@@ -1,57 +1,48 @@
-from fastapi import FastAPI, HTTPException
+"""
+IntelliWMS API Gateway - Coordinator Agent Entrypoint.
+Orchestrates:
+- Task 1: Security & JWT Validation
+- Task 2: Intent Classification & Routing
+- Task 3: API Gateway & MCP Delegation
+"""
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from config.settings import settings
 from utils.logger import StructuredLogger
-from security.sanitizer import sanitize_input
-from agents.coordinator.intent_classifier import intent_classifier
+from backend.routes.query import router as query_router
+from backend.middleware.error_handler import register_error_handlers
 
 app = FastAPI(
-    title="IntelliWMS API",
-    description="Intelligent Agentic Warehouse Management System",
-    version="0.1.0"
+    title="IntelliWMS API Gateway",
+    description="Intelligent Agentic Warehouse Management System - Coordinator Agent",
+    version="0.3.0"
 )
 
 logger = StructuredLogger(__name__)
 
+# Register Global Exception & Error Handlers
+register_error_handlers(app)
+
+# CORS Middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000"],
+    allow_origins=["http://localhost:5173", "http://localhost:3000", "*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+# Mount Routes
+app.include_router(query_router)
+
 @app.get("/health")
 def health_check():
     return {
         "status": "ok",
-        "message": "IntelliWMS backend is running smoothly",
+        "message": "IntelliWMS API Gateway is running smoothly",
         "primary_llm": settings.LLM_PRIMARY
-    }
-
-@app.post("/query")
-def query_endpoint(payload: dict):
-    user_query = payload.get("query", "")
-
-    # 1. Security & Prompt Injection Check
-    is_safe, sanitized_or_reason = sanitize_input(user_query)
-    if not is_safe:
-        logger.log_event("SECURITY_BLOCKED", {"query": user_query, "reason": sanitized_or_reason})
-        return {
-            "status": "blocked",
-            "message": sanitized_or_reason,
-            "decision": None
-        }
-
-    # 2. Intent Classification via Gemini
-    decision = intent_classifier.classify(sanitized_or_reason)
-
-    return {
-        "status": "success",
-        "query": sanitized_or_reason,
-        "routing": decision
     }
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="127.0.0.1", port=8000)
+    uvicorn.run("backend.main:app", host="127.0.0.1", port=8000, reload=True)
