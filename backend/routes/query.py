@@ -16,6 +16,8 @@ from config.settings import settings
 from utils.logger import StructuredLogger
 from security.sanitizer import sanitize_input
 from agents.coordinator.intent_classifier import intent_classifier
+from agents.coordinator.router import decide_route, route_to_agent
+from agents.coordinator.context_builder import build_context
 from mcp_servers.coordinator_client import coordinator_mcp_client
 from backend.middleware.error_handler import UnauthorizedException
 
@@ -132,19 +134,18 @@ async def handle_coordinator_query(payload: QueryRequest, request: Request):
         }
 
     # 4. Intent Classification & Routing (Task 2 interface)
-    routing_decision = classify_intent_with_fallback(sanitized_or_reason)
-    domain = routing_decision.get("domain", "KNOWLEDGE")
-    target_agent = DOMAIN_TO_AGENT_MAP.get(domain, "knowledge_agent")
-    confidence = routing_decision.get("confidence", 0.90)
+    routing_decision = decide_route(sanitized_or_reason)
+    target_agent = routing_decision["target_agent"]
+    domain = routing_decision["domain"]
+    confidence = routing_decision["confidence"]
 
-    # 5. MCP Delegation (Task 3 interface)
-    context_payload = {
-        "query": sanitized_or_reason,
-        "user_id": user_id,
-        "role": user_role,
-        "domain": domain,
-        "confidence": confidence
-    }
+    # 5. Context Builder & MCP Delegation (Task 2 + Task 3 interface)
+    context_payload = build_context(
+        user_id=user_id,
+        message=sanitized_or_reason,
+        intent=domain,
+        role=user_role
+    )
 
     agent_result = coordinator_mcp_client.call_agent(target_agent, context_payload)
 
