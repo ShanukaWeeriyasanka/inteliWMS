@@ -1,31 +1,98 @@
-
 import re
 from typing import Tuple
 
-# Common prompt injection and system override triggers
-INJECTION_PATTERNS = [
-    r"ignore (all )?(previous|prior) instructions",
-    r"system prompt",
-    r"you are now (a|an|in)",
-    r"bypass (security|rules|guardrails)",
-    r"drop table|delete from|update users",
-    r"jailbreak|dan mode",
-]
+class InputSanitizer:
+    """Detects and blocks prompt injection attempts."""
+    
+    INJECTION_PATTERNS = [
+        r"ignore\s+(?:all\s+)?(?:previous\s+)?instructions?",
+        r"system\s+prompt",
+        r"dump\s+(?:the\s+)?database",
+        r"reveal\s+(?:your\s+)?system\s+prompt",
+        r"show\s+me\s+your\s+instructions?",
+        r"bypass\s+(?:security|rules|guardrails)",
+        r"unauthorized\s+access",
+        r"admin\s+mode",
+        r"forget\s+everything",
+        r"override\s+(?:all\s+)?rules?",
+        r"you\s+are\s+now\s+(?:a|an|in)",
+        r"drop\s+table|delete\s+from|update\s+users",
+        r"jailbreak|dan\s+mode",
+    ]
+    
+    def __init__(self):
+        self.compiled_patterns = [
+            re.compile(pattern, re.IGNORECASE) for pattern in self.INJECTION_PATTERNS
+        ]
+    
+    def is_injection_attempt(self, text: str) -> Tuple[bool, str]:
+        """
+        Detect if text contains a prompt injection attempt.
+        
+        Returns:
+            (is_injection: bool, reason: str)
+        """
+        for pattern in self.compiled_patterns:
+            if pattern.search(text):
+                return True, f"Detected suspicious pattern: {pattern.pattern}"
+        return False, ""
+    
+    def sanitize_input(self, text: str) -> Tuple[str, bool]:
+        """
+        Clean and validate user input.
+        
+        Returns:
+            (cleaned_text: str, is_safe: bool)
+        """
+        if not text or not text.strip():
+            return "", False
+        
+        # Check for injection
+        is_injection, reason = self.is_injection_attempt(text)
+        if is_injection:
+            return "", False
+        
+        # Clean the text
+        cleaned = text.strip()
+        cleaned = re.sub(r'\s+', ' ', cleaned)  # collapse whitespace
+        
+        # Limit length (prevent huge payloads)
+        max_length = 1000
+        if len(cleaned) > max_length:
+            cleaned = cleaned[:max_length]
+        
+        return cleaned, True
 
-def sanitize_input(user_message: str) -> Tuple[bool, str]:
+    def log_suspicious_attempt(self, text: str, reason: str, user_id: str = None, role: str = None) -> None:
+        """Log suspicious input for audit trail (Responsible AI compliance)."""
+        try:
+            from security.audit_logger import audit_logger
+            audit_logger.log_event(
+                event_type="INJECTION_BLOCKED",
+                severity="HIGH",
+                user_id=user_id,
+                role=role,
+                details={"reason": reason, "snippet": text[:150]}
+            )
+        except Exception as e:
+            print(f"[SECURITY WARNING] Failed to log audit event: {e}")
+
+# Singleton instance
+sanitizer = InputSanitizer()
+
+# Backward-compatible function (used by backend/main.py)
+def sanitize_input(user_message: str, user_id: str = None, role: str = None) -> Tuple[bool, str]:
     """
-    Scans input for prompt injection patterns.
-    Returns:
-        (is_safe: bool, sanitized_or_reason: str)
+    Wrapper that keeps the same interface backend/main.py expects:
+    Returns (is_safe: bool, sanitized_or_reason: str)
     """
     if not user_message or not user_message.strip():
         return False, "Empty query received."
-
-    lower_msg = user_message.lower()
-
-    for pattern in INJECTION_PATTERNS:
-        if re.search(pattern, lower_msg):
-            return False, f"Security Alert: Suspicious query pattern detected ('{pattern}'). Request blocked."
-
-    # Return safe message (strip whitespace)
-    return True, user_message.strip()
+    
+    is_injection, reason = sanitizer.is_injection_attempt(user_message)
+    if is_injection:
+        sanitizer.log_suspicious_attempt(user_message, reason, user_id=user_id, role=role)
+        return False, f"Security Alert: {reason}. Request blocked."
+    
+    cleaned, _ = sanitizer.sanitize_input(user_message)
+    return True, cleaned

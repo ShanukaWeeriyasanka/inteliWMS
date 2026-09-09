@@ -4,12 +4,13 @@ import os
 # Ensure project root is in Python path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from database.connection import engine, Base, SessionLocal
+from database.connection import engine, Base, SessionLocal, init_db
 from database.models import User, Product, Order
+from security.auth import auth_service
 
 def seed_database():
-    print("Creating tables in database...")
-    Base.metadata.create_all(bind=engine)
+    print("Initializing tables in database...")
+    init_db()
     
     db = SessionLocal()
     try:
@@ -18,10 +19,29 @@ def seed_database():
         db.query(Product).delete()
         db.query(Order).delete()
         
-        # Sample Users
+        # Sample Users with properly salted hashes
         users = [
-            User(username="john_staff", email="john@warehouse.com", hashed_password="dev_password_hash", role="staff"),
-            User(username="sarah_manager", email="sarah@warehouse.com", hashed_password="dev_password_hash", role="manager"),
+            User(
+                username="john_staff",
+                name="John Davis",
+                email="john@warehouse.com",
+                hashed_password=auth_service._hash_password("pass123"),
+                role="staff"
+            ),
+            User(
+                username="sarah_manager",
+                name="Sarah Miller",
+                email="sarah@warehouse.com",
+                hashed_password=auth_service._hash_password("pass456"),
+                role="manager"
+            ),
+            User(
+                username="admin_user",
+                name="Alex Vance (Admin)",
+                email="admin@warehouse.com",
+                hashed_password=auth_service._hash_password("admin123"),
+                role="admin"
+            ),
         ]
         db.add_all(users)
         
@@ -42,7 +62,7 @@ def seed_database():
         db.add_all(orders)
         
         db.commit()
-        print(" SUCCESS: Database initialized and seeded with sample products and orders!")
+        print(" SUCCESS: Database initialized and seeded with sample users, products, and orders!")
     finally:
         db.close()
 
