@@ -1,6 +1,14 @@
-from fastapi import FastAPI, HTTPException, Header, Depends
-from fastapi.middleware.cors import CORSMiddleware
+"""
+IntelliWMS API Gateway - Coordinator Agent Entrypoint.
+Orchestrates:
+- Task 1: Security & JWT Validation, Database Auth & RBAC
+- Task 2: Intent Classification & Routing
+- Task 3: API Gateway & MCP Delegation
+"""
 from typing import Optional
+from fastapi import FastAPI, HTTPException, Header
+from fastapi.middleware.cors import CORSMiddleware
+
 from config.settings import settings
 from utils.logger import StructuredLogger
 from security.sanitizer import sanitize_input, sanitizer
@@ -8,16 +16,21 @@ from security.jwt_handler import jwt_handler
 from security.rbac import rbac_manager, PERMISSION_MATRIX
 from security.auth import auth_service
 from security.audit_logger import audit_logger
-from agents.coordinator.intent_classifier import intent_classifier
+from backend.routes.query import router as query_router
+from backend.middleware.error_handler import register_error_handlers
 
 app = FastAPI(
-    title="IntelliWMS API - Task 1 Security & Authentication",
-    description="Intelligent Agentic Warehouse Management System",
-    version="0.2.0"
+    title="IntelliWMS API Gateway - Coordinator Agent",
+    description="Intelligent Agentic Warehouse Management System (Task 1 Security & Task 3 API Gateway)",
+    version="0.3.0"
 )
 
 logger = StructuredLogger(__name__)
 
+# Register Global Exception & Error Handlers (Task 3)
+register_error_handlers(app)
+
+# CORS Middleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173", "http://localhost:3000", "*"],
@@ -40,13 +53,16 @@ def get_current_user(authorization: Optional[str] = Header(None)) -> Optional[di
     except Exception:
         return None
 
+# ==================== Health Monitor ====================
+
 @app.get("/health")
 def health_check():
     return {
         "status": "ok",
-        "message": "IntelliWMS backend is running smoothly",
+        "message": "IntelliWMS API Gateway is running smoothly",
         "primary_llm": settings.LLM_PRIMARY,
-        "security_layer": "Task 1 Active (JWT + RBAC + Sanitizer + Audit Logger)"
+        "security_layer": "Task 1 Active (JWT + RBAC + Sanitizer + Audit Logger)",
+        "gateway_layer": "Task 3 Active (MCP Client + Global Error Handler)"
     }
 
 # ==================== Task 1 Security & Auth Endpoints ====================
@@ -97,6 +113,23 @@ def register_endpoint(payload: dict):
         "user": user_info
     }
 
+@app.get("/auth/me")
+def get_profile(authorization: Optional[str] = Header(None)):
+    user = get_current_user(authorization)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid or missing authentication token")
+    
+    role = user.get("role", "staff")
+    permissions = rbac_manager.get_permissions(role)
+    
+    return {
+        "user_id": user.get("user_id"),
+        "role": role,
+        "permissions": permissions,
+        "exp": user.get("exp"),
+        "iat": user.get("iat")
+    }
+
 @app.post("/security/execute-action")
 def execute_role_action(payload: dict, authorization: Optional[str] = Header(None)):
     action = payload.get("action", "")
@@ -122,23 +155,6 @@ def execute_role_action(payload: dict, authorization: Optional[str] = Header(Non
             "role": role,
             "message": str(e)
         }
-
-@app.get("/auth/me")
-def get_profile(authorization: Optional[str] = Header(None)):
-    user = get_current_user(authorization)
-    if not user:
-        raise HTTPException(status_code=401, detail="Invalid or missing authentication token")
-    
-    role = user.get("role", "staff")
-    permissions = rbac_manager.get_permissions(role)
-    
-    return {
-        "user_id": user.get("user_id"),
-        "role": role,
-        "permissions": permissions,
-        "exp": user.get("exp"),
-        "iat": user.get("iat")
-    }
 
 @app.get("/security/rbac-matrix")
 def get_rbac_matrix():
@@ -183,64 +199,10 @@ def get_audit_logs(limit: int = 50, event_type: Optional[str] = None):
         "logs": audit_logger.get_logs(limit=limit, event_type=event_type)
     }
 
-# ==================== Main Warehouse Query Endpoint ====================
+# ==================== Task 3 API Gateway & MCP Query Route ====================
 
-@app.post("/query")
-def query_endpoint(payload: dict, authorization: Optional[str] = Header(None)):
-    user_query = payload.get("query", "")
-    token = payload.get("token")
-    
-    # 1. Auth & Token Validation (if token provided)
-    user_id = "anonymous"
-    user_role = "staff"
-    
-    auth_header = authorization or (f"Bearer {token}" if token else None)
-    if auth_header:
-        user = get_current_user(auth_header)
-        if user:
-            user_id = user.get("user_id", "user")
-            user_role = user.get("role", "staff")
-    
-    # 2. Security & Prompt Injection Check
-    is_safe, sanitized_or_reason = sanitize_input(user_query, user_id=user_id, role=user_role)
-    if not is_safe:
-        logger.log_event("SECURITY_BLOCKED", {"query": user_query, "reason": sanitized_or_reason, "user_id": user_id})
-        return {
-            "status": "blocked",
-            "message": sanitized_or_reason,
-            "security": {
-                "authenticated": bool(auth_header and user_id != "anonymous"),
-                "user_id": user_id,
-                "role": user_role,
-                "is_safe": False
-            },
-            "decision": None
-        }
-
-    # Log successful sanitized query event
-    audit_logger.log_event(
-        event_type="REQUEST_SANITIZED",
-        severity="INFO",
-        user_id=user_id,
-        role=user_role,
-        details={"query_length": len(sanitized_or_reason)}
-    )
-
-    # 3. Intent Classification via Coordinator/Gemini
-    decision = intent_classifier.classify(sanitized_or_reason)
-
-    return {
-        "status": "success",
-        "query": sanitized_or_reason,
-        "security": {
-            "authenticated": bool(auth_header and user_id != "anonymous"),
-            "user_id": user_id,
-            "role": user_role,
-            "is_safe": True
-        },
-        "routing": decision
-    }
+app.include_router(query_router)
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="127.0.0.1", port=8000)
+    uvicorn.run("backend.main:app", host="127.0.0.1", port=8000, reload=True)
