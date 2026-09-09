@@ -15,6 +15,7 @@ spacy>=3.8.0
 
 # Database & ORM
 sqlalchemy>=2.0.0
+psycopg2-binary>=2.9.9
 
 # Authentication & Security
 passlib[bcrypt]>=1.7.4
