@@ -1,28 +1,64 @@
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { api } from './services/api'
-import Topbar from './components/Topbar'
-import TokenInspectorDrawer from './components/TokenInspectorDrawer'
+import {
+  Sidebar,
+  PromptCapsule,
+  ChatMessage,
+  ArtifactPanel,
+  OperationalModal,
+  WarehouseThinkingAnimation
+} from './components/coordinator UI'
 import LoginPage from './pages/LoginPage'
-import StaffDashboard from './pages/StaffDashboard'
-import ManagerDashboard from './pages/ManagerDashboard'
-import AdminDashboard from './pages/AdminDashboard'
+import {
+  Menu,
+  Layers,
+  Sparkles,
+  ShieldCheck,
+  Cpu,
+  Database,
+  RefreshCw,
+  LogOut
+} from 'lucide-react'
 
-function App() {
-  // Session & Authentication State
+export default function App() {
+  // Session & Authentication
   const [token, setToken] = useState(localStorage.getItem('token') || '')
   const [currentUser, setCurrentUser] = useState(null)
   const [authError, setAuthError] = useState('')
   const [authLoading, setAuthLoading] = useState(false)
 
-  // Operational State
+  // Layout & Navigation State
+  const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth >= 1024)
+  const [artifactOpen, setArtifactOpen] = useState(false)
+  const [artifactTab, setArtifactTab] = useState('telemetry')
+  const [selectedArtifactMessage, setSelectedArtifactMessage] = useState(null)
+  const [operationalModal, setOperationalModal] = useState(null) // null | 'approvals' | 'injection_sandbox'
   const [actionLoading, setActionLoading] = useState(false)
-  const [queryLoading, setQueryLoading] = useState(false)
 
-  // Admin Telemetry & Audit
+  // Chat & Operational Query State
+  const [messages, setMessages] = useState([])
+  const [lastUserQuery, setLastUserQuery] = useState('')
+  const [chatHistory, setChatHistory] = useState([
+    { id: 1, title: 'SKU-4521 Bay Location & Stock', timestamp: new Date(Date.now() - 3600000) },
+    { id: 2, title: 'Consignment #4521 Carrier Dispatch', timestamp: new Date(Date.now() - 7200000) },
+    { id: 3, title: 'Hazmat Spill Response Manual', timestamp: new Date(Date.now() - 86400000) }
+  ])
+  const [activeChatId, setActiveChatId] = useState(1)
+  const [isLoading, setIsLoading] = useState(false)
+  const [selectedAgent, setSelectedAgent] = useState('auto')
+
+  // Security SOC Telemetry
   const [auditLogs, setAuditLogs] = useState([])
   const [auditStats, setAuditStats] = useState(null)
 
-  // Restore existing session on mount
+  const messagesEndRef = useRef(null)
+
+  // Auto-scroll chat
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages, isLoading])
+
+  // Restore session on mount
   useEffect(() => {
     if (token) {
       restoreSession(token)
@@ -33,12 +69,20 @@ function App() {
     try {
       const user = await api.fetchMe(authToken)
       setCurrentUser(user)
-      if (user.role === 'admin') {
-        fetchAuditData()
-      }
+      fetchAuditData()
     } catch (e) {
-      console.warn('Session restoration failed or expired:', e.message)
+      console.warn('Session restoration failed:', e.message)
       handleLogout()
+    }
+  }
+
+  const fetchAuditData = async () => {
+    try {
+      const data = await api.fetchAuditLogs()
+      setAuditLogs(data.logs || [])
+      setAuditStats(data.stats || null)
+    } catch (e) {
+      console.warn('Could not fetch audit logs:', e.message)
     }
   }
 
@@ -50,9 +94,7 @@ function App() {
       setToken(data.token)
       localStorage.setItem('token', data.token)
       setCurrentUser(data.user)
-      if (data.user.role === 'admin') {
-        fetchAuditData()
-      }
+      fetchAuditData()
     } catch (err) {
       setAuthError(err.response?.data?.detail || err.message || 'Authentication failed')
     } finally {
@@ -68,6 +110,7 @@ function App() {
       setToken(data.token)
       localStorage.setItem('token', data.token)
       setCurrentUser(data.user)
+      fetchAuditData()
     } catch (err) {
       setAuthError(err.response?.data?.detail || err.message || 'Registration failed')
     } finally {
@@ -81,17 +124,125 @@ function App() {
     localStorage.removeItem('token')
   }
 
-  const handleExecuteAction = async (actionName) => {
+  const handleSwitchRoleQuick = (newRole) => {
+    // Demo role switcher for testing RBAC matrix live
+    if (!currentUser) return
+    setCurrentUser({
+      ...currentUser,
+      role: newRole
+    })
+  }
+
+  // Handle Query Submission through Coordinator API Gateway
+  const handleSendMessage = async ({ text, attachments, mode, targetAgent }) => {
+    if (!text.trim() && attachments.length === 0) return
+
+    setLastUserQuery(text)
+
+    const userMsg = {
+      id: Date.now(),
+      role: 'user',
+      content: text,
+      attachments,
+      senderName: currentUser?.name || currentUser?.username || 'Operator',
+      timestamp: new Date()
+    }
+
+    setMessages((prev) => [...prev, userMsg])
+    setIsLoading(true)
+
+    try {
+      // Execute query through real backend Coordinator API Gateway
+      const res = await api.sendQuery(text, token)
+      
+      // Update history if first message
+      if (messages.length === 0) {
+        const newHistItem = {
+          id: Date.now(),
+          title: text.slice(0, 32) + (text.length > 32 ? '...' : ''),
+          timestamp: new Date()
+        }
+        setChatHistory((prev) => [newHistItem, ...prev])
+        setActiveChatId(newHistItem.id)
+      }
+
+      // Check if backend returned security block
+      if (res.status === 'error' && res.error_code === 'PROMPT_INJECTION_DETECTED') {
+        const blockMsg = {
+          id: Date.now() + 1,
+          role: 'assistant',
+          status: 'blocked',
+          content: res.message || 'Prompt injection attempt detected and neutralized by security shield.',
+          routing: {
+            status: 'blocked',
+            target_agent: 'security_sanitizer',
+            rule: res.message
+          },
+          timestamp: new Date()
+        }
+        setMessages((prev) => [...prev, blockMsg])
+        setSelectedArtifactMessage(blockMsg)
+        fetchAuditData()
+        return
+      }
+
+      // Helper parser for SKU or Order cards
+      const hasSku = text.toUpperCase().includes('SKU-') || res.response?.includes('SKU-') || (res.routing?.extracted_params?.sku)
+      const hasOrder = text.includes('#4521') || res.response?.includes('#4521') || (res.routing?.extracted_params?.order_id)
+
+      const assistantMsg = {
+        id: Date.now() + 1,
+        role: 'assistant',
+        content: res.response || 'Warehouse query coordinated and dispatched to specialist agent.',
+        routing: res.routing || {
+          target_agent: res.agent_used || 'coordinator',
+          confidence: 0.95,
+          latency_ms: 28
+        },
+        skuData: hasSku ? {
+          sku: 'SKU-4521',
+          location: 'Aisle 12, Shelf B3, Bay 04',
+          stock: '350 units available'
+        } : null,
+        orderData: hasOrder ? {
+          id: '#4521',
+          status: 'In Transit — On Schedule',
+          carrier: 'FreightExpress • Priority 1'
+        } : null,
+        metadata: {
+          agent_used: res.agent_used,
+          audit: res.audit
+        },
+        timestamp: new Date()
+      }
+
+      setMessages((prev) => [...prev, assistantMsg])
+      setSelectedArtifactMessage(assistantMsg)
+      fetchAuditData()
+    } catch (err) {
+      const errorMsg = {
+        id: Date.now() + 1,
+        role: 'assistant',
+        status: 'error',
+        content: `Error contacting Coordinator Agent: ${err.response?.data?.detail || err.message}`,
+        timestamp: new Date()
+      }
+      setMessages((prev) => [...prev, errorMsg])
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // Handle Role Actions (e.g. approve_restock)
+  const handleExecuteRoleAction = async (actionName) => {
     setActionLoading(true)
     try {
       const res = await api.executeAction(actionName, token)
-      if (currentUser?.role === 'admin') {
-        fetchAuditData()
-      }
+      fetchAuditData()
       return res
     } catch (err) {
       return {
-        status: 'error',
+        status: 'denied',
         message: err.response?.data?.detail || err.message
       }
     } finally {
@@ -99,42 +250,67 @@ function App() {
     }
   }
 
-  const handleSendQuery = async (queryText) => {
-    setQueryLoading(true)
-    try {
-      const res = await api.sendQuery(queryText, token)
-      if (currentUser?.role === 'admin') {
-        fetchAuditData()
-      }
-      return { data: res }
-    } catch (err) {
-      return { error: `Request failed: ${err.message}` }
-    } finally {
-      setQueryLoading(false)
-    }
-  }
-
-  const fetchAuditData = async () => {
-    try {
-      const data = await api.fetchAuditLogs()
-      setAuditLogs(data.logs || [])
-      setAuditStats(data.stats || null)
-    } catch (e) {
-      console.warn('Error loading audit logs:', e.message)
-    }
-  }
-
+  // Handle Injection Testing
   const handleTestInjection = async (testText) => {
     try {
       const res = await api.testInjection(testText)
       fetchAuditData()
       return res
     } catch (e) {
-      return { is_safe: false, reason: 'Error evaluating: ' + e.message }
+      return { is_safe: false, reason: e.message }
     }
   }
 
-  // View 1: Unauthenticated -> Modular Side-by-Side Login Screen
+  // New Chat
+  const handleNewChat = () => {
+    setMessages([])
+    setActiveChatId(null)
+  }
+
+  // Select Chat from History
+  const handleSelectChat = (chatId) => {
+    setActiveChatId(chatId)
+    const chat = chatHistory.find((c) => c.id === chatId)
+    if (chat) {
+      setMessages([
+        {
+          id: Date.now(),
+          role: 'user',
+          content: chat.title,
+          senderName: currentUser?.name || 'Operator',
+          timestamp: chat.timestamp
+        },
+        {
+          id: Date.now() + 1,
+          role: 'assistant',
+          content: `Reopened session: ${chat.title}. All warehouse telemetry and specialist routing decisions restored.`,
+          routing: {
+            target_agent: chat.title.includes('SKU') ? 'inventory_agent' : chat.title.includes('Order') ? 'fulfillment_agent' : 'knowledge_agent',
+            confidence: 0.98,
+            latency_ms: 22
+          },
+          skuData: chat.title.includes('SKU') ? {
+            sku: 'SKU-4521',
+            location: 'Aisle 12, Shelf B3, Bay 04',
+            stock: '350 units available'
+          } : null,
+          orderData: chat.title.includes('Order') ? {
+            id: '#4521',
+            status: 'In Transit — On Schedule',
+            carrier: 'FreightExpress • Priority 1'
+          } : null,
+          timestamp: new Date()
+        }
+      ])
+    }
+  }
+
+  const handleOpenArtifactTab = (tabName) => {
+    setArtifactTab(tabName)
+    setArtifactOpen(true)
+  }
+
+  // View 1: Unauthenticated Session
   if (!currentUser || !token) {
     return (
       <LoginPage
@@ -147,46 +323,183 @@ function App() {
     )
   }
 
-  // View 2: Authenticated -> Role-Tailored Modular Application Shell
+  // View 2: Authenticated Claude.ai Operational Interface
   return (
-    <div className="app-shell">
-      <Topbar currentUser={currentUser} onLogout={handleLogout} />
+    <div className="claude-app-layout">
+      {/* Collapsible Left Sidebar */}
+      <Sidebar
+        isOpen={sidebarOpen}
+        onToggle={() => setSidebarOpen(!sidebarOpen)}
+        chatHistory={chatHistory}
+        activeChatId={activeChatId}
+        onSelectChat={handleSelectChat}
+        onNewChat={handleNewChat}
+        onClearHistory={() => setChatHistory([])}
+        currentUser={currentUser}
+        onLogout={handleLogout}
+        onOpenArtifactTab={handleOpenArtifactTab}
+        onSwitchRoleQuick={handleSwitchRoleQuick}
+      />
 
-      <main className="dashboard-content">
-        {currentUser.role === 'staff' && (
-          <StaffDashboard
-            currentUser={currentUser}
-            onExecuteAction={handleExecuteAction}
-            onSendQuery={handleSendQuery}
-            actionLoading={actionLoading}
-            queryLoading={queryLoading}
-          />
-        )}
+      {/* Main Center Canvas */}
+      <div className="claude-main-stage">
+        {/* Minimal Editorial Topbar */}
+        <header className="claude-topbar">
+          <div className="topbar-left">
+            <button
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="topbar-icon-btn"
+              title="Toggle Sidebar"
+            >
+              <Menu size={18} />
+            </button>
+            <div className="topbar-title-group">
+              <img src="/intelliwms_logo.png" alt="IntelliWMS" className="topbar-logo-img" />
+              <span className="topbar-title">IntelliWMS</span>
+              <span className="topbar-separator">/</span>
+              <span className="topbar-sub">Coordinator Agent</span>
+            </div>
+          </div>
 
-        {currentUser.role === 'manager' && (
-          <ManagerDashboard
-            currentUser={currentUser}
-            onExecuteAction={handleExecuteAction}
-            onSendQuery={handleSendQuery}
-            actionLoading={actionLoading}
-            queryLoading={queryLoading}
-          />
-        )}
+          <div className="topbar-center">
+            <div className="system-health-pill" title="Live PostgreSQL 17.6 + Supabase & Coordinator Agents connected">
+              <span className="live-dot" />
+              <span>Multi-Agent Live · Supabase PG 17</span>
+            </div>
+          </div>
 
-        {currentUser.role === 'admin' && (
-          <AdminDashboard
-            currentUser={currentUser}
-            auditStats={auditStats}
-            auditLogs={auditLogs}
-            onRefreshAuditLogs={fetchAuditData}
-            onTestInjection={handleTestInjection}
-          />
-        )}
+          <div className="topbar-right">
+            {/* Quick Role Indicator */}
+            <div className={`role-badge-pill role-${currentUser.role || 'staff'}`}>
+              <ShieldCheck size={13} />
+              <span>{currentUser.role?.toUpperCase() || 'STAFF'}</span>
+            </div>
 
-        <TokenInspectorDrawer token={token} currentUser={currentUser} />
-      </main>
+            {/* Artifact Panel Toggle Button */}
+            <button
+              onClick={() => setArtifactOpen(!artifactOpen)}
+              className={`topbar-artifact-btn ${artifactOpen ? 'active' : ''}`}
+              title="Toggle Artifact Panel"
+            >
+              <Layers size={15} />
+              <span>Artifacts</span>
+            </button>
+          </div>
+        </header>
+
+        {/* Center Conversation / Hero Canvas */}
+        <main className="claude-center-canvas">
+          {/* Ambient Lighting & Micro-Grid Atmosphere */}
+          <div className="ambient-canvas-glow" />
+          <div className="industrial-grid-layer" />
+
+          {messages.length === 0 ? (
+            /* EMPTY HERO STATE (Clean Luxury Command Interface) */
+            <div className="claude-hero-container">
+              <div className="hero-greeting-box">
+                {/* Luxury Multi-Layer Emblem Badge */}
+                <div className="hero-emblem-badge">
+                  <div className="emblem-halo-ring" />
+                  <img src="/intelliwms_logo.png" alt="IntelliWMS" className="hero-logo-img" />
+                </div>
+
+                <h1 className="hero-serif-title">Let's coordinate</h1>
+                <p className="hero-subtitle">
+                  Autonomous supply chain intelligence and warehouse operations.
+                </p>
+              </div>
+
+              {/* Central Clean Capsule */}
+              <div className="hero-capsule-wrapper">
+                <PromptCapsule
+                  onSend={handleSendMessage}
+                  isLoading={isLoading}
+                  currentUser={currentUser}
+                  selectedAgent={selectedAgent}
+                  setSelectedAgent={setSelectedAgent}
+                  onOpenOperationalModal={(type) => setOperationalModal(type)}
+                />
+              </div>
+            </div>
+          ) : (
+            /* ACTIVE CHAT STREAM */
+            <div className="claude-chat-stream-container">
+              <div className="chat-messages-scroll-area">
+                {messages.map((msg) => (
+                  <ChatMessage
+                    key={msg.id}
+                    message={msg}
+                    onOpenArtifact={(m) => {
+                      setSelectedArtifactMessage(m)
+                      setArtifactTab('telemetry')
+                      setArtifactOpen(true)
+                    }}
+                    onInspectLocation={() => {
+                      setArtifactTab('bay_visualizer')
+                      setArtifactOpen(true)
+                    }}
+                    onInspectOrder={() => {
+                      setArtifactTab('order_timeline')
+                      setArtifactOpen(true)
+                    }}
+                  />
+                ))}
+
+                {isLoading && (
+                  <div className="chat-message-row assistant-row loading-row">
+                    <div className="message-avatar-container">
+                      <div className="assistant-msg-avatar warehouse-avatar-glow">
+                        <img src="/intelliwms_logo.png" alt="IntelliWMS" className="assistant-logo-icon pulse" />
+                      </div>
+                    </div>
+                    <div className="message-bubble-wrapper" style={{ width: '100%', maxWidth: '620px' }}>
+                      <WarehouseThinkingAnimation queryText={lastUserQuery} />
+                    </div>
+                  </div>
+                )}
+                <div ref={messagesEndRef} />
+              </div>
+
+              {/* Bottom Sticky Prompt Capsule */}
+              <div className="bottom-sticky-prompt-bar">
+                <PromptCapsule
+                  onSend={handleSendMessage}
+                  isLoading={isLoading}
+                  currentUser={currentUser}
+                  selectedAgent={selectedAgent}
+                  setSelectedAgent={setSelectedAgent}
+                  onOpenOperationalModal={(type) => setOperationalModal(type)}
+                />
+              </div>
+            </div>
+          )}
+        </main>
+      </div>
+
+      {/* Right Slide-out Artifact & Telemetry Drawer */}
+      <ArtifactPanel
+        isOpen={artifactOpen}
+        onClose={() => setArtifactOpen(false)}
+        activeTab={artifactTab}
+        setActiveTab={setArtifactTab}
+        selectedMessage={selectedArtifactMessage}
+        token={token}
+        currentUser={currentUser}
+        auditLogs={auditLogs}
+        auditStats={auditStats}
+        onRefreshAuditLogs={fetchAuditData}
+      />
+
+      {/* Operational Modal for Approvals and Sandbox */}
+      <OperationalModal
+        isOpen={!!operationalModal}
+        modalType={operationalModal}
+        onClose={() => setOperationalModal(null)}
+        currentUser={currentUser}
+        onExecuteAction={handleExecuteRoleAction}
+        onTestInjection={handleTestInjection}
+        actionLoading={actionLoading}
+      />
     </div>
   )
 }
-
-export default App
