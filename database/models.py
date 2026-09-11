@@ -60,3 +60,17 @@ class ConversationLog(Base):
     agent_routed_to = Column(String)
     response = Column(String)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+
+class ShiftHandoff(Base):
+    """Stores shift transition notes and operational handoffs between warehouse crews."""
+    __tablename__ = "shift_handoffs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    shift_type = Column(String(50), nullable=False)        # "morning", "afternoon", "night"
+    supervisor = Column(String(100), nullable=False)       # Username or Staff ID
+    summary = Column(Text, nullable=False)                 # General operational overview
+    incidents = Column(Text, nullable=True)                # Equipment breakdowns, spills, safety alarms
+    pending_tasks = Column(Text, nullable=True)            # Incomplete picks, awaiting courier arrivals
+    created_at = Column(DateTime(timezone=True), server_default=func.now())

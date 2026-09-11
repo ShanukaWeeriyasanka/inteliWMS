@@ -1,7 +1,7 @@
 import logging
 import json
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 from config.settings import settings
 
 # Make sure logs directory exists
@@ -26,7 +26,7 @@ class StructuredLogger:
     def log_event(self, event_type: str, details: dict):
         """Log an event as structured JSON."""
         entry = {
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "event_type": event_type,
             **details
         }

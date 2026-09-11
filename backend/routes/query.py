@@ -17,6 +17,7 @@ from utils.logger import StructuredLogger
 from security.sanitizer import sanitize_input
 from agents.coordinator.intent_classifier import intent_classifier
 from agents.coordinator.router import decide_route, route_to_agent
+from agents.coordinator.query_normalizer import normalize_query
 from agents.coordinator.context_builder import build_context
 from mcp_servers.coordinator_client import coordinator_mcp_client
 from backend.middleware.error_handler import UnauthorizedException
@@ -114,7 +115,7 @@ async def handle_coordinator_query(payload: QueryRequest, request: Request):
         user_id = claims.get("user_id") or claims.get("sub") or "user_authenticated"
         user_role = claims.get("role", "staff")
 
-    # 3. Prompt Injection Defense (Task 1 interface)
+    # 3. Prompt Injection Defense
     is_safe, sanitized_or_reason = sanitize_input(user_query)
     if not is_safe:
         logger.log_event("SECURITY_BLOCKED", {
@@ -133,28 +134,50 @@ async def handle_coordinator_query(payload: QueryRequest, request: Request):
             }
         }
 
-    # 4. Intent Classification & Routing (Task 2 interface)
-    routing_decision = decide_route(sanitized_or_reason)
+    # 3.5. Query Normalization — convert broken English / vague inputs to clear queries
+    #      Uses Gemini → Groq hybrid. Falls back to original on failure.
+    clean_query = normalize_query(sanitized_or_reason)
+
+    # 4. Intent Classification & Routing
+    routing_decision = decide_route(clean_query)
     target_agent = routing_decision["target_agent"]
     domain = routing_decision["domain"]
     confidence = routing_decision["confidence"]
 
-    # 5. Context Builder & MCP Delegation (Task 2 + Task 3 interface)
+    # 4.5. Coordinator Direct Reply — meta/system questions answered without delegation
+    if routing_decision.get("direct_response"):
+        return {
+            "status": "success",
+            "agent_used": "coordinator",
+            "response": routing_decision["direct_response"],
+            "routing": routing_decision,
+            "audit": {
+                "user_id": user_id,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "routing_confidence": confidence,
+                "domain": domain,
+                "normalized_query": clean_query
+            }
+        }
+
+    # 5. Context Builder & MCP Delegation
     context_payload = build_context(
         user_id=user_id,
-        message=sanitized_or_reason,
+        message=clean_query,
         intent=domain,
         role=user_role
     )
 
     agent_result = coordinator_mcp_client.call_agent(target_agent, context_payload)
 
-    # 6. Structured Response Formatting
+    # 6. Structured Response
     audit_meta = {
         "user_id": user_id,
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "routing_confidence": confidence,
-        "domain": domain
+        "domain": domain,
+        "original_query": user_query,
+        "normalized_query": clean_query
     }
 
     return {

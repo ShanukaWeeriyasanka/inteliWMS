@@ -1,0 +1,14 @@
+{
+  "stop_words": [
+    "where", "is", "are", "the", "located", "stored", "kept", "find", 
+    "location", "of", "item", "items", "product", "products", "please", 
+    "can", "you", "tell", "me", "show", "check", "lookup", "give"
+  ],
+  "product_synonyms": {
+    "scanner": ["barcode scanner", "rf gun", "handheld scanner", "scanner", "readers"],
+    "printer": ["label printer", "thermal printer", "zebra printer", "printer"],
+    "pallet wrap": ["stretch film", "plastic wrap", "pallet wrap", "shrink wrap", "wrapping"]
+  },
+  "location_indicators": ["aisle", "shelf", "bin", "bay", "zone", "rack", "tier"],
+  "unit_indicators": ["units", "pcs", "pieces", "boxes", "cartons", "pallets", "skids", "packs", "crates"]
+}

@@ -129,19 +129,16 @@ class CoordinatorMCPClient:
         )
 
     def _handle_knowledge_query(self, query: str, context: Dict[str, Any]) -> str:
-        """Mock knowledge specialist agent logic."""
-        if "sop" in query or "return" in query:
-            return (
-                "Warehouse SOP-08 (Customer Return & Damage Inspection): "
-                "1. Log item serial in Returns Intake Terminal. "
-                "2. Conduct visual damage audit. "
-                "3. Re-grade item (Grade A: Restock; Grade B: Refurbish; Grade C: Quarantine)."
-            )
-        if "safety" in query or "forklift" in query:
-            return (
-                "Safety Protocol SP-14: High-visibility vests mandatory in Aisles 1-8. "
-                "Forklift maximum speed limit 8 km/h. Pedestrian right-of-way enforced at all cross-junctions."
-            )
+        """Invokes real Knowledge Agent (calls execute_knowledge_query with local fallback)."""
+        try:
+            from agents.knowledge_agent.agent import execute_knowledge_query
+            user_role = context.get("role") or context.get("user_role") or "staff"
+            res = execute_knowledge_query(query, user_role=user_role, context=context)
+            if res and res.get("response"):
+                return res["response"]
+        except Exception as e:
+            logger.log_event("KNOWLEDGE_INTEGRATION_ERROR", {"error": str(e)})
+
         return (
             "Knowledge Agent: Consulted InteliWMS Operational Manual v2.4. "
             "Standard floor procedures apply. Contact shift supervisor for specialized exception handling."

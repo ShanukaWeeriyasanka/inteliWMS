@@ -1,0 +1,26 @@
+[
+  {
+    "doc_id": "SOP-HAZ-001",
+    "title": "Hazardous Materials & Battery Handling Protocol",
+    "category": "Safety",
+    "content": "1. Battery Storage: All lead-acid and lithium forklift batteries must be charged only in designated Charging Station Alpha (Bay 15). Proper eye protection and rubber gloves are mandatory.\n\n2. Acid Spill Protocol: In the event of battery electrolyte leakage, immediately alert the Floor Supervisor. Deploy the Acid Neutralizing Spill Kit located at Pillar 14. Do not flush chemical spills down the drain.\n\n3. Ventilation: The charging bay exhaust fans must run continuously 24/7 to prevent hydrogen gas buildup."
+  },
+  {
+    "doc_id": "SOP-STG-002",
+    "title": "Pallet Stacking & Racking Regulations",
+    "category": "Storage",
+    "content": "1. Stacking Limits: In Zone A (Heavy Goods), pallets may be stacked up to a maximum of 3 tiers high. In Zone C (High Turnover), double stacking (maximum 2 tiers) is the absolute limit for safety.\n\n2. Damaged Pallets: Any wooden pallet with cracked stringers or missing boards must be tagged with a RED TAG and transferred to the Quarantine Staging Area at Bay 9.\n\n3. Overhang Rules: Product overhang must not exceed 2 inches on any side of standard 48x40 inch GMA pallets."
+  },
+  {
+    "doc_id": "SOP-SAF-003",
+    "title": "Forklift & Mobile Equipment Safety Protocol",
+    "category": "Safety",
+    "content": "1. Speed Limits: Maximum speed for forklifts and reach trucks inside warehouse aisles is 5 mph (8 km/h). Speed in the main cross-dock corridor is strictly capped at 8 mph.\n\n2. Pedestrian Right-of-Way: Pedestrians wearing high-visibility vests always have unconditional right-of-way. Operators must sound horn at all blind intersections and aisle exits.\n\n3. High-Value Secure Cages: High-value electronics (Category E) must be stored in the Secure Cage inside Zone B. Access requires keycard authorization from a Shift Supervisor."
+  },
+  {
+    "doc_id": "SOP-RET-004",
+    "title": "Customer Returns & Reverse Logistics SOP Documentation",
+    "category": "Returns",
+    "content": "1. RMA Verification: All inbound returns must be verified against an active Return Merchandise Authorization (RMA) number before unloading at Receiving Dock 3.\n\n2. Inspection & Grading: Grade A items (unopened box, undamaged seals) are returned to active stock in Zone B. Grade B items (opened box, complete accessories) are directed to the repackaging line.\n\n3. Quarantine & Scrap: Any returned item showing physical defects, water damage, or electrical fault must be tagged and transferred to the Returns Quarantine Area at Bay 11."
+  }
+]

@@ -4,6 +4,7 @@ Uses LLM (Gemini or configured provider) to classify warehouse queries into:
 - INVENTORY
 - FULFILLMENT
 - KNOWLEDGE
+- COORDINATOR  (meta/system questions answered directly by the coordinator)
 Includes confidence scoring, fallback logic for confidence < 0.60, and heuristic rules.
 """
 import json
@@ -68,8 +69,30 @@ class IntentResult(tuple):
 class IntentClassifier:
     """Classifies warehouse queries into specialist agent domains."""
 
-    VALID_DOMAINS = {"INVENTORY", "FULFILLMENT", "KNOWLEDGE"}
+    VALID_DOMAINS = {"INVENTORY", "FULFILLMENT", "KNOWLEDGE", "COORDINATOR"}
     CONFIDENCE_THRESHOLD = 0.60
+
+    # Meta/system questions the coordinator answers directly without delegation
+    META_PATTERNS = [
+        r"\bhow many agents\b",
+        r"\bhow many subagents\b",
+        r"\bwhat agents\b",
+        r"\bwhat subagents\b",
+        r"\bwhich agents\b",
+        r"\blist.*agents\b",
+        r"\bwhat can you do\b",
+        r"\bwhat are you\b",
+        r"\bwho are you\b",
+        r"\bintroduce yourself\b",
+        r"^(hi+|hello+|hey+|yo+|greetings|sup|howdy)[\s\!\?\.]*$",
+        r"\b(hi+|hello+|hey+|yo+)\b",
+        r"\bhelp\b",
+        r"\bbruh\b",
+        r"\bwhat is intelliwms\b",
+        r"\bwhat do you do\b",
+        r"\bwhat.*system\b",
+        r"\byour (agents|subagents|capabilities|features)\b",
+    ]
 
     def __init__(self, llm: Optional[Any] = None):
         self._llm = llm
@@ -87,7 +110,12 @@ class IntentClassifier:
             IntentResult: unpackable as (intent, confidence, reasoning)
         """
         if not query or not query.strip():
-            return IntentResult("KNOWLEDGE", 0.50, "Empty query defaulted to KNOWLEDGE")
+            return IntentResult("COORDINATOR", 1.0, "Empty query handled by coordinator")
+
+        # 0. Fast-path: meta/system questions always handled by coordinator
+        meta_result = self._detect_meta_query(query)
+        if meta_result:
+            return meta_result
 
         # 1. Attempt LLM classification if client is configured
         try:
@@ -173,8 +201,24 @@ Analyze the query and return ONLY a valid JSON object:
         if any(re.search(p, q_lower) for p in knowledge_patterns):
             return IntentResult("KNOWLEDGE", 0.91, "Heuristic match: warehouse SOP, safety, and protocol signals.")
 
-        # Default safest domain
-        return IntentResult("KNOWLEDGE", 0.85, "Defaulted to Knowledge domain for general operational guidance.")
+        # Default: tell the user we didn't understand rather than hallucinating
+        return IntentResult(
+            "COORDINATOR",
+            0.50,
+            "Query did not match any warehouse domain — coordinator will respond directly."
+        )
+
+    def _detect_meta_query(self, query: str) -> Optional[IntentResult]:
+        """Detects system/meta questions that the coordinator handles itself."""
+        q_lower = query.lower().strip()
+        if any(re.search(p, q_lower) for p in self.META_PATTERNS):
+            logger.log_event("COORDINATOR_META_QUERY_DETECTED", {"query": query[:80]})
+            return IntentResult(
+                "COORDINATOR",
+                0.99,
+                "Meta/system query detected — answered directly by coordinator without agent delegation."
+            )
+        return None
 
     def _extract_json(self, text: str) -> str:
         """Strips markdown code fences and returns clean JSON string."""

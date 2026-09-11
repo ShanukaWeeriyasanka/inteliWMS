@@ -106,10 +106,10 @@ def test_classify_heuristic_fallback_sop():
     assert confidence >= 0.85
 
 def test_classify_empty_query():
-    """Test empty query gracefully defaults to KNOWLEDGE."""
+    """Test empty query gracefully defaults to COORDINATOR."""
     classifier = IntentClassifier(llm=None)
     intent, confidence, reasoning = classifier.classify("")
-    assert intent == "KNOWLEDGE"
+    assert intent == "COORDINATOR"
     assert "Empty" in reasoning
 
 # =========================================================================
