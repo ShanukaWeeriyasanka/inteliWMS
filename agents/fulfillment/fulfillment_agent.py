@@ -8,8 +8,22 @@ from utils.logger import StructuredLogger
 logger = StructuredLogger(__name__)
 
 class FulfillmentAgent:
-    def __init__(self, classifier: FulfillmentIntentClassifier = None):
+    def __init__(self, classifier: FulfillmentIntentClassifier = None, dispatcher=None):
         self.classifier = classifier or fulfillment_intent_classifier
+        self.dispatcher = dispatcher
+
+    async def _call_inventory(self, sku: str, user_id: str, role: str, db: Session) -> dict:
+        if not self.dispatcher:
+            from agents.coordinator.agent_dispatcher import dispatch_to_agent
+            self.dispatcher = dispatch_to_agent
+            
+        context_payload = {
+            "query": f"check stock for {sku}",
+            "user_id": user_id,
+            "user_role": role,
+            "extracted_sku": sku
+        }
+        return await self.dispatcher("inventory_agent", context_payload, db)
 
     async def handle(self, request: FulfillmentRequest, db: Session) -> FulfillmentResponse:
         try:
@@ -57,7 +71,23 @@ class FulfillmentAgent:
 
             elif intent == FulfillmentIntent.ORDER_DELAY:
                 if order.status == "delayed":
-                    message = f"Order {order_id} is currently delayed. A specific delay reason is not available in the order record."
+                    base_message = f"Order {order_id} is currently delayed."
+                    if order.sku:
+                        try:
+                            inv_resp = await self._call_inventory(order.sku, request.user_id, request.role, db)
+                            inv_text = inv_resp.get("response", "").lower()
+                            
+                            if "out of stock" in inv_text or "stock: 0" in inv_text or "0 units" in inv_text:
+                                message = f"{base_message} The related {order.sku} is currently out of stock. This may be contributing to the delay, but the order record does not contain a specific delay reason."
+                            elif "stock:" in inv_text or "units on hand" in inv_text or "available" in inv_text:
+                                message = f"{base_message} The related {order.sku} currently has stock available, so the available inventory data does not by itself explain the delay. The order record does not contain a specific delay reason."
+                            else:
+                                message = f"{base_message} A specific delay reason is not available in the order record."
+                        except Exception as e:
+                            logger.log_event("CROSS_AGENT_INVENTORY_ERROR", {"error": str(e), "sku": order.sku})
+                            message = f"{base_message} A specific delay reason is not available in the order record."
+                    else:
+                        message = f"{base_message} A specific delay reason is not available in the order record."
                 else:
                     message = f"Order {order_id} is currently {order.status} and is not marked as delayed."
                 return FulfillmentResponse(success=True, order_id=order_id, intent=intent, message=message)

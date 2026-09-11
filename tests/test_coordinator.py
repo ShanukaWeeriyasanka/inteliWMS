@@ -138,6 +138,7 @@ def test_query_fulfillment_routing(mock_get_order, mock_classify, valid_staff_to
     # mock order
     class MockOrder:
         status = "delayed"
+        sku = "SKU-4521"
     mock_get_order.return_value = MockOrder()
 
     response = client.post(

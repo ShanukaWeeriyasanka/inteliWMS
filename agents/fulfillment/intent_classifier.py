@@ -19,7 +19,7 @@ class FulfillmentIntentClassifier:
     def client(self):
         if self._llm is not None:
             return self._llm
-        return llm_config.get_client()
+        return llm_config.get_fulfillment_client()
         
     def _extract_json(self, text: str) -> str:
         """Strips markdown code fences and returns clean JSON string."""
