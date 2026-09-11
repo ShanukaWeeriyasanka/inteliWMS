@@ -8,9 +8,12 @@ Orchestrates:
 """
 from datetime import datetime, timezone
 from typing import Optional, Dict, Any
-from fastapi import APIRouter, Request, HTTPException
+from fastapi import APIRouter, Request, HTTPException, Depends
 from pydantic import BaseModel, Field
 import jwt
+
+from sqlalchemy.orm import Session
+from database.connection import get_db
 
 from config.settings import settings
 from utils.logger import StructuredLogger
@@ -20,6 +23,8 @@ from agents.coordinator.router import decide_route, route_to_agent
 from agents.coordinator.context_builder import build_context
 from mcp_servers.coordinator_client import coordinator_mcp_client
 from backend.middleware.error_handler import UnauthorizedException
+
+from agents.coordinator.agent_dispatcher import dispatch_to_agent
 
 logger = StructuredLogger(__name__)
 router = APIRouter(tags=["Coordinator Query Gateway"])
@@ -97,7 +102,7 @@ def classify_intent_with_fallback(clean_query: str) -> Dict[str, Any]:
         }
 
 @router.post("/query")
-async def handle_coordinator_query(payload: QueryRequest, request: Request):
+async def handle_coordinator_query(payload: QueryRequest, request: Request, db: Session = Depends(get_db)):
     """
     Main Coordinator entry point.
     Receives user natural language query, enforces security, classifies intent,
@@ -147,7 +152,7 @@ async def handle_coordinator_query(payload: QueryRequest, request: Request):
         role=user_role
     )
 
-    agent_result = coordinator_mcp_client.call_agent(target_agent, context_payload)
+    agent_result = await dispatch_to_agent(target_agent, context_payload, db)
 
     # 6. Structured Response Formatting
     audit_meta = {
@@ -157,10 +162,15 @@ async def handle_coordinator_query(payload: QueryRequest, request: Request):
         "domain": domain
     }
 
-    return {
+    final_response = {
         "status": "success",
         "agent_used": target_agent,
         "response": agent_result.get("response"),
         "routing": routing_decision,
         "audit": audit_meta
     }
+    
+    if "fulfillment_details" in agent_result:
+        final_response["fulfillment_details"] = agent_result["fulfillment_details"]
+
+    return final_response

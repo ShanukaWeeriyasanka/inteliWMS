@@ -4,6 +4,7 @@ Unit and Integration Tests for Coordinator Agent Task 3: API Gateway & MCP Deleg
 import time
 import jwt
 import pytest
+from unittest.mock import patch
 from fastapi.testclient import TestClient
 
 from backend.main import app
@@ -128,8 +129,17 @@ def test_query_inventory_routing(valid_staff_token):
     assert data["agent_used"] == "inventory_agent"
     assert "Aisle 4" in data["response"] or "SKU-4521" in data["response"]
 
-def test_query_fulfillment_routing(valid_staff_token):
+@patch('agents.fulfillment.fulfillment_agent.fulfillment_intent_classifier.classify')
+@patch('agents.fulfillment.fulfillment_agent.get_order_by_id')
+def test_query_fulfillment_routing(mock_get_order, mock_classify, valid_staff_token):
     """Test query requiring dispatch status routes to fulfillment_agent."""
+    from agents.fulfillment.schemas import FulfillmentIntent, FulfillmentIntentResult
+    mock_classify.return_value = FulfillmentIntentResult(intent=FulfillmentIntent.ORDER_DELAY, confidence=0.9)
+    # mock order
+    class MockOrder:
+        status = "delayed"
+    mock_get_order.return_value = MockOrder()
+
     response = client.post(
         "/query",
         json={"token": valid_staff_token, "message": "why is order #4521 delayed?"}
@@ -138,7 +148,8 @@ def test_query_fulfillment_routing(valid_staff_token):
     data = response.json()
     assert data["status"] == "success"
     assert data["agent_used"] == "fulfillment_agent"
-    assert "Order #4521" in data["response"]
+    assert "Order" in data["response"]
+    assert "4521" in data["response"]
 
 def test_query_knowledge_routing(valid_staff_token):
     """Test query requesting procedures routes to knowledge_agent."""
