@@ -8,6 +8,7 @@ import {
   OperationalModal,
   WarehouseThinkingAnimation
 } from './components/coordinator UI'
+import SplineScene from './components/SplineScene'
 import LoginPage from './pages/LoginPage'
 import {
   Menu,
@@ -343,8 +344,8 @@ export default function App() {
 
       {/* Main Center Canvas */}
       <div className="claude-main-stage">
-        {/* Minimal Editorial Topbar */}
-        <header className="claude-topbar">
+        {/* Floating Minimalist Topbar: Sidebar Icon & Who Logged In */}
+        <header className="claude-topbar floating-minimal-topbar">
           <div className="topbar-left">
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -353,64 +354,35 @@ export default function App() {
             >
               <Menu size={18} />
             </button>
-            <div className="topbar-title-group">
-              <img src="/intelliwms_logo.png" alt="IntelliWMS" className="topbar-logo-img" />
-              <span className="topbar-title">IntelliWMS</span>
-              <span className="topbar-separator">/</span>
-              <span className="topbar-sub">Coordinator Agent</span>
-            </div>
-          </div>
-
-          <div className="topbar-center">
-            <div className="system-health-pill" title="Live PostgreSQL 17.6 + Supabase & Coordinator Agents connected">
-              <span className="live-dot" />
-              <span>Multi-Agent Live · Supabase PG 17</span>
-            </div>
           </div>
 
           <div className="topbar-right">
-            {/* Quick Role Indicator */}
-            <div className={`role-badge-pill role-${currentUser.role || 'staff'}`}>
-              <ShieldCheck size={13} />
-              <span>{currentUser.role?.toUpperCase() || 'STAFF'}</span>
+            {/* Who Logged In */}
+            <div className="topbar-logged-user-pill">
+              <div className="topbar-user-avatar">
+                {currentUser.name ? currentUser.name[0].toUpperCase() : (currentUser.username ? currentUser.username[0].toUpperCase() : 'U')}
+              </div>
+              <span className="topbar-user-name">{currentUser.name || currentUser.username}</span>
+              <span className={`role-badge-pill role-${currentUser.role || 'staff'}`}>
+                <ShieldCheck size={12} />
+                <span>{currentUser.role?.toUpperCase() || 'STAFF'}</span>
+              </span>
             </div>
-
-            {/* Artifact Panel Toggle Button */}
-            <button
-              onClick={() => setArtifactOpen(!artifactOpen)}
-              className={`topbar-artifact-btn ${artifactOpen ? 'active' : ''}`}
-              title="Toggle Artifact Panel"
-            >
-              <Layers size={15} />
-              <span>Artifacts</span>
-            </button>
           </div>
         </header>
 
         {/* Center Conversation / Hero Canvas */}
-        <main className="claude-center-canvas">
+        <main className="claude-center-canvas spline-active-canvas">
           {/* Ambient Lighting & Micro-Grid Atmosphere */}
           <div className="ambient-canvas-glow" />
-          <div className="industrial-grid-layer" />
+
+          {/* Spline 3D Scene */}
+          <SplineScene isChatActive={messages.length > 0} />
 
           {messages.length === 0 ? (
-            /* EMPTY HERO STATE (Clean Luxury Command Interface) */
-            <div className="claude-hero-container">
-              <div className="hero-greeting-box">
-                {/* Luxury Multi-Layer Emblem Badge */}
-                <div className="hero-emblem-badge">
-                  <div className="emblem-halo-ring" />
-                  <img src="/intelliwms_logo.png" alt="IntelliWMS" className="hero-logo-img" />
-                </div>
-
-                <h1 className="hero-serif-title">Let's coordinate</h1>
-                <p className="hero-subtitle">
-                  Autonomous supply chain intelligence and warehouse operations.
-                </p>
-              </div>
-
-              {/* Central Clean Capsule */}
-              <div className="hero-capsule-wrapper">
+            /* Pure 3D Scene + Floating Chat Box */
+            <div className="spline-hero-chat-container">
+              <div className="spline-capsule-floating-wrapper">
                 <PromptCapsule
                   onSend={handleSendMessage}
                   isLoading={isLoading}

@@ -1,23 +1,24 @@
 import React, { useState } from 'react'
 import {
-  Plus,
+  SquarePen,
+  Search,
   Warehouse,
   Truck,
   ShieldCheck,
   Activity,
-  MessageSquare,
-  LogOut,
-  ChevronDown,
-  Trash2,
+  Settings,
   PanelLeftClose,
+  PanelLeft,
+  Trash2,
+  LogOut,
   Sparkles,
-  Boxes
+  X
 } from 'lucide-react'
 
 export default function Sidebar({
   isOpen,
   onToggle,
-  chatHistory,
+  chatHistory = [],
   activeChatId,
   onSelectChat,
   onNewChat,
@@ -28,187 +29,317 @@ export default function Sidebar({
   onSwitchRoleQuick
 }) {
   const [userDropdownOpen, setUserDropdownOpen] = useState(false)
+  const [activeMode, setActiveMode] = useState('chat') // 'chat' | 'ops'
+  const [isSearching, setIsSearching] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+
+  const filteredHistory = searchQuery.trim()
+    ? chatHistory.filter((item) =>
+        item.title?.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : chatHistory
+
+  const userInitial =
+    currentUser?.name?.[0]?.toUpperCase() ||
+    currentUser?.username?.[0]?.toUpperCase() ||
+    'O'
 
   return (
-    <aside className={`claude-sidebar ${isOpen ? 'open' : 'closed'}`}>
-      {/* Brand Header */}
-      <div className="sidebar-brand-row">
-        <div className="sidebar-brand">
-          <div className="sidebar-emblem-glow">
-            <img src="/intelliwms_logo.png" alt="IntelliWMS" className="sidebar-logo-img" />
-          </div>
-          <div className="sidebar-brand-text">
-            <h2>IntelliWMS</h2>
-            <span>Supply Chain Intelligence</span>
-          </div>
-        </div>
-        <button
-          onClick={onToggle}
-          className="sidebar-toggle-btn"
-          title={isOpen ? 'Collapse Sidebar' : 'Expand Sidebar'}
-        >
-          <PanelLeftClose size={16} />
-        </button>
-      </div>
-
-      {/* New Query / Chat Button */}
-      <div className="sidebar-new-query-wrapper">
-        <button onClick={onNewChat} className="btn-new-query">
-          <Plus size={16} />
-          <span>New Warehouse Query</span>
-        </button>
-      </div>
-
-      {/* Primary Operational Modules */}
-      <div className="sidebar-section">
-        <div className="sidebar-section-title">
-          <span>Operational Modules</span>
-          <Warehouse size={12} />
-        </div>
-
-        <button
-          className="sidebar-nav-item"
-          onClick={() => onOpenArtifactTab('bay_visualizer')}
-        >
-          <div className="nav-item-left">
-            <Warehouse size={15} className="text-amber" />
-            <span>Floor & Bay Map</span>
-          </div>
-          <span className="nav-shortcut">Bay</span>
-        </button>
-
-        <button
-          className="sidebar-nav-item"
-          onClick={() => onOpenArtifactTab('order_timeline')}
-        >
-          <div className="nav-item-left">
-            <Truck size={15} className="text-blue" />
-            <span>Order Fulfillment</span>
-          </div>
-          <span className="nav-shortcut">Fleet</span>
-        </button>
-
-        <button
-          className="sidebar-nav-item"
-          onClick={() => onOpenArtifactTab('rbac_claims')}
-        >
-          <div className="nav-item-left">
-            <ShieldCheck size={15} className="text-emerald" />
-            <span>JWT & RBAC Shield</span>
-          </div>
-          <span className="nav-shortcut">Token</span>
-        </button>
-
-        <button
-          className="sidebar-nav-item"
-          onClick={() => onOpenArtifactTab('soc_audit')}
-        >
-          <div className="nav-item-left">
-            <Activity size={15} className="text-coral" />
-            <span>Security SOC Stream</span>
-          </div>
-          <span className="nav-shortcut">Audit</span>
-        </button>
-      </div>
-
-      {/* Session History & Tasks */}
-      <div className="sidebar-section chat-history-section">
-        <div className="sidebar-section-title">
-          <span>Recent Queries & Tasks</span>
-          {chatHistory.length > 0 && (
+    <aside className={`gemini-sidebar ${isOpen ? 'expanded' : 'collapsed'}`}>
+      {/* 1. TOP BRAND & TOGGLE ROW */}
+      <div className="gemini-sidebar-header">
+        {isOpen ? (
+          <>
+            <div className="gemini-brand-left" onClick={onNewChat} role="button" title="IntelliWMS Home">
+              <div className="gemini-brand-logo-wrap">
+                <img
+                  src="/intelliwms_logo.png"
+                  alt="IntelliWMS"
+                  className="gemini-brand-logo-img"
+                  onError={(e) => {
+                    e.target.style.display = 'none'
+                  }}
+                />
+                <Sparkles size={18} className="gemini-brand-fallback-sparkle" />
+              </div>
+              <span className="gemini-brand-title">IntelliWMS</span>
+            </div>
             <button
-              onClick={onClearHistory}
-              className="clear-history-icon-btn"
-              title="Clear history"
+              onClick={onToggle}
+              className="gemini-icon-btn"
+              title="Collapse sidebar"
             >
-              <Trash2 size={12} />
+              <PanelLeftClose size={18} />
             </button>
-          )}
-        </div>
-
-        <div className="sidebar-history-list">
-          {chatHistory.length === 0 ? (
-            <div className="empty-history-notice">
-              <Boxes size={14} className="text-muted" />
-              <span>No recent queries yet</span>
+          </>
+        ) : (
+          <div className="gemini-collapsed-top">
+            <div className="gemini-brand-logo-wrap" title="IntelliWMS" onClick={onToggle}>
+              <img
+                src="/intelliwms_logo.png"
+                alt="IntelliWMS"
+                className="gemini-brand-logo-img"
+                onError={(e) => {
+                  e.target.style.display = 'none'
+                }}
+              />
+              <Sparkles size={18} className="gemini-brand-fallback-sparkle" />
             </div>
-          ) : (
-            chatHistory.map((item) => (
-              <button
-                key={item.id}
-                onClick={() => onSelectChat(item.id)}
-                className={`history-item-btn ${activeChatId === item.id ? 'active' : ''}`}
-              >
-                <MessageSquare size={13} className="history-msg-icon" />
-                <span className="history-item-title">{item.title}</span>
-                <span className="history-item-time">
-                  {new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </span>
-              </button>
-            ))
-          )}
-        </div>
+            <button
+              onClick={onToggle}
+              className="gemini-icon-btn"
+              title="Expand sidebar"
+            >
+              <PanelLeft size={18} />
+            </button>
+          </div>
+        )}
       </div>
 
-      {/* Bottom User Profile Section */}
-      <div className="sidebar-user-footer">
-        <div className="user-profile-tile" onClick={() => setUserDropdownOpen(!userDropdownOpen)}>
-          <div className="user-avatar-pill">
-            {currentUser?.name?.[0]?.toUpperCase() || currentUser?.username?.[0]?.toUpperCase() || 'U'}
+      {/* 2. MODE SWITCHER PILL (Expanded Only, matching Gemini's Chat | Spark) */}
+      {isOpen && (
+        <div className="gemini-pill-tabs-wrapper">
+          <div className="gemini-pill-tabs">
+            <button
+              className={`gemini-pill-tab ${activeMode === 'chat' ? 'active' : ''}`}
+              onClick={() => setActiveMode('chat')}
+            >
+              Chat
+            </button>
+            <button
+              className={`gemini-pill-tab ${activeMode === 'ops' ? 'active' : ''}`}
+              onClick={() => {
+                setActiveMode('ops')
+                onOpenArtifactTab('bay_visualizer')
+              }}
+            >
+              Hub <span className="gemini-tab-badge">LIVE</span>
+            </button>
           </div>
-          <div className="user-info-text">
-            <div className="user-name-line">
-              <span className="user-display-name">
-                {currentUser?.name || currentUser?.username || 'Operator'}
-              </span>
-              <span className={`role-tag role-tag-${currentUser?.role || 'staff'}`}>
-                {currentUser?.role?.toUpperCase() || 'STAFF'}
-              </span>
-            </div>
-            <span className="user-sub-label">Verified Cryptographic Session</span>
-          </div>
-          <ChevronDown size={14} className={`dropdown-chevron ${userDropdownOpen ? 'rotated' : ''}`} />
         </div>
+      )}
 
+      {/* 3. SCROLLABLE ACTIONS & MODULES */}
+      <div className="gemini-sidebar-body">
+        {/* Action: New Query */}
+        <button
+          onClick={onNewChat}
+          className={`gemini-nav-item ${isOpen ? 'item-expanded' : 'item-collapsed'}`}
+          title={!isOpen ? 'New query' : undefined}
+        >
+          <SquarePen size={18} className="gemini-item-icon" />
+          {isOpen && <span className="gemini-item-label">New query</span>}
+        </button>
+
+        {/* Action: Search Queries */}
+        <button
+          onClick={() => {
+            if (!isOpen) {
+              onToggle()
+              setIsSearching(true)
+            } else {
+              setIsSearching(!isSearching)
+            }
+          }}
+          className={`gemini-nav-item ${isOpen ? 'item-expanded' : 'item-collapsed'} ${isSearching ? 'active-nav' : ''}`}
+          title={!isOpen ? 'Search queries' : undefined}
+        >
+          <Search size={18} className="gemini-item-icon" />
+          {isOpen && <span className="gemini-item-label">Search queries</span>}
+        </button>
+
+        {/* Inline Search Input if searching */}
+        {isOpen && isSearching && (
+          <div className="gemini-search-input-wrapper">
+            <Search size={13} className="gemini-search-inner-icon" />
+            <input
+              type="text"
+              placeholder="Search chats..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              autoFocus
+              className="gemini-search-input"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="gemini-search-clear-btn"
+              >
+                <X size={12} />
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Operational Modules (Floor, Fleet, RBAC, SOC) */}
+        <button
+          onClick={() => onOpenArtifactTab('bay_visualizer')}
+          className={`gemini-nav-item ${isOpen ? 'item-expanded' : 'item-collapsed'}`}
+          title={!isOpen ? 'Floor & Bay Map' : undefined}
+        >
+          <Warehouse size={18} className="gemini-item-icon" />
+          {isOpen && <span className="gemini-item-label">Floor & Bay Map</span>}
+        </button>
+
+        <button
+          onClick={() => onOpenArtifactTab('order_timeline')}
+          className={`gemini-nav-item ${isOpen ? 'item-expanded' : 'item-collapsed'}`}
+          title={!isOpen ? 'Order Fulfillment' : undefined}
+        >
+          <Truck size={18} className="gemini-item-icon" />
+          {isOpen && <span className="gemini-item-label">Order Fulfillment</span>}
+        </button>
+
+        <button
+          onClick={() => onOpenArtifactTab('rbac_claims')}
+          className={`gemini-nav-item ${isOpen ? 'item-expanded' : 'item-collapsed'}`}
+          title={!isOpen ? 'JWT & RBAC Shield' : undefined}
+        >
+          <ShieldCheck size={18} className="gemini-item-icon" />
+          {isOpen && <span className="gemini-item-label">JWT & RBAC Shield</span>}
+        </button>
+
+        <button
+          onClick={() => onOpenArtifactTab('soc_audit')}
+          className={`gemini-nav-item ${isOpen ? 'item-expanded' : 'item-collapsed'}`}
+          title={!isOpen ? 'Security SOC Stream' : undefined}
+        >
+          <Activity size={18} className="gemini-item-icon" />
+          {isOpen && <span className="gemini-item-label">Security SOC Stream</span>}
+        </button>
+
+        {/* 4. RECENT SECTION (Expanded Only, exactly like Gemini Image 2) */}
+        {isOpen && (
+          <div className="gemini-recent-section">
+            <div className="gemini-recent-header">
+              <span className="gemini-recent-title">Recent</span>
+              {chatHistory.length > 0 && (
+                <button
+                  onClick={onClearHistory}
+                  className="gemini-clear-btn"
+                  title="Clear recent queries"
+                >
+                  <Trash2 size={12} />
+                </button>
+              )}
+            </div>
+
+            <div className="gemini-recent-list">
+              {filteredHistory.length === 0 ? (
+                <div className="gemini-empty-recent">
+                  <span>{searchQuery ? 'No matching queries' : 'No recent queries'}</span>
+                </div>
+              ) : (
+                filteredHistory.map((item) => {
+                  const isActive = activeChatId === item.id
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => onSelectChat(item.id)}
+                      className={`gemini-recent-item ${isActive ? 'active' : ''}`}
+                      title={item.title}
+                    >
+                      <span className="gemini-recent-item-text">{item.title}</span>
+                    </button>
+                  )
+                })
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* 5. BOTTOM USER FOOTER */}
+      <div className="gemini-sidebar-footer">
+        {isOpen ? (
+          <div className="gemini-user-row">
+            <div
+              className="gemini-user-info-group"
+              onClick={() => setUserDropdownOpen(!userDropdownOpen)}
+            >
+              <div className="gemini-avatar-circle">
+                {userInitial}
+              </div>
+              <div className="gemini-user-details">
+                <span className="gemini-user-name">
+                  {currentUser?.name || currentUser?.username || 'Shanuka Weeriyasanka'}
+                </span>
+                <span className="gemini-user-role">
+                  {currentUser?.role ? currentUser.role.charAt(0).toUpperCase() + currentUser.role.slice(1) : 'Manager'}
+                </span>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setUserDropdownOpen(!userDropdownOpen)}
+              className={`gemini-icon-btn ${userDropdownOpen ? 'active' : ''}`}
+              title="Settings & session"
+            >
+              <Settings size={18} />
+            </button>
+          </div>
+        ) : (
+          <div className="gemini-collapsed-footer">
+            <button
+              onClick={() => setUserDropdownOpen(!userDropdownOpen)}
+              className="gemini-icon-btn"
+              title="Settings & session"
+            >
+              <Settings size={18} />
+            </button>
+            <div
+              className="gemini-avatar-circle"
+              onClick={() => {
+                onToggle()
+                setUserDropdownOpen(true)
+              }}
+              title={currentUser?.name || currentUser?.username || 'Operator'}
+            >
+              {userInitial}
+            </div>
+          </div>
+        )}
+
+        {/* User Role Switch / Sign Out Dropdown Menu */}
         {userDropdownOpen && (
-          <div className="sidebar-user-menu">
-            <div className="menu-header">
+          <div className="gemini-user-dropdown-menu">
+            <div className="gemini-dropdown-header">
               <span>Switch Simulated Role</span>
             </div>
-            <div className="role-switch-grid">
+            <div className="gemini-role-list">
               <button
-                className={`role-choice-btn ${currentUser?.role === 'staff' ? 'active' : ''}`}
+                className={`gemini-dropdown-item ${currentUser?.role === 'staff' ? 'active' : ''}`}
                 onClick={() => {
                   onSwitchRoleQuick('staff')
                   setUserDropdownOpen(false)
                 }}
               >
-                Staff (Floor)
+                <span>Staff (Floor)</span>
               </button>
               <button
-                className={`role-choice-btn ${currentUser?.role === 'manager' ? 'active' : ''}`}
+                className={`gemini-dropdown-item ${currentUser?.role === 'manager' ? 'active' : ''}`}
                 onClick={() => {
                   onSwitchRoleQuick('manager')
                   setUserDropdownOpen(false)
                 }}
               >
-                Manager (Supervisor)
+                <span>Manager (Supervisor)</span>
               </button>
               <button
-                className={`role-choice-btn ${currentUser?.role === 'admin' ? 'active' : ''}`}
+                className={`gemini-dropdown-item ${currentUser?.role === 'admin' ? 'active' : ''}`}
                 onClick={() => {
                   onSwitchRoleQuick('admin')
                   setUserDropdownOpen(false)
                 }}
               >
-                Admin (SOC)
+                <span>Admin (SOC)</span>
               </button>
             </div>
 
-            <div className="menu-divider" />
+            <div className="gemini-dropdown-divider" />
 
-            <button onClick={onLogout} className="menu-logout-btn">
-              <LogOut size={14} />
+            <button onClick={onLogout} className="gemini-dropdown-logout">
+              <LogOut size={15} />
               <span>Sign Out Session</span>
             </button>
           </div>
