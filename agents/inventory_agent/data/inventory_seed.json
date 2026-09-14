@@ -1,0 +1,101 @@
+{
+    "products": [
+        {
+            "sku": "SKU-4521",
+            "name": "Wireless Barcode Scanner",
+            "aliases": [
+                "barcode scanner",
+                "scanner",
+                "handheld scanner",
+                "forklift scanner"
+            ],
+            "category": "Equipment",
+            "location": "Aisle 12, Shelf B3",
+            "quantity_on_hand": 340,
+            "reserved_quantity": 25,
+            "safety_stock": 50,
+            "reorder_point": 80,
+            "reorder_quantity": 200,
+            "unit": "units"
+        },
+        {
+            "sku": "SKU-7788",
+            "name": "Thermal Label Printer",
+            "aliases": [
+                "label printer",
+                "printer",
+                "thermal printer",
+                "zebra printer"
+            ],
+            "category": "Equipment",
+            "location": "Aisle 5, Shelf A1",
+            "quantity_on_hand": 15,
+            "reserved_quantity": 5,
+            "safety_stock": 10,
+            "reorder_point": 20,
+            "reorder_quantity": 30,
+            "unit": "units"
+        },
+        {
+            "sku": "SKU-9012",
+            "name": "Heavy Duty Pallet Wrap",
+            "aliases": [
+                "pallet wrap",
+                "shrink wrap",
+                "stretch film",
+                "packing wrap"
+            ],
+            "category": "Packaging",
+            "location": "Aisle 3, Shelf C2",
+            "quantity_on_hand": 5,
+            "reserved_quantity": 2,
+            "safety_stock": 20,
+            "reorder_point": 25,
+            "reorder_quantity": 100,
+            "unit": "rolls"
+        },
+        {
+            "sku": "SKU-1088",
+            "name": "Thermal Industrial Label Rolls",
+            "aliases": [
+                "label rolls",
+                "barcode labels",
+                "thermal labels",
+                "sticker rolls"
+            ],
+            "category": "Consumables",
+            "location": "Aisle 1, Bay A-03",
+            "quantity_on_hand": 120,
+            "reserved_quantity": 10,
+            "safety_stock": 30,
+            "reorder_point": 50,
+            "reorder_quantity": 150,
+            "unit": "rolls"
+        },
+        {
+            "sku": "SKU-2045",
+            "name": "Heavy Duty Forklift Battery Lithium",
+            "aliases": [
+                "forklift battery",
+                "lithium battery",
+                "heavy duty battery",
+                "battery pack"
+            ],
+            "category": "Equipment Parts",
+            "location": "Aisle 4, Bay B-12",
+            "quantity_on_hand": 42,
+            "reserved_quantity": 8,
+            "safety_stock": 15,
+            "reorder_point": 25,
+            "reorder_quantity": 30,
+            "unit": "units"
+        }
+    ],
+    "warehouse_zones": {
+        "Aisle 12": "Zone B - Electronics & Scanning Tech",
+        "Aisle 5": "Zone A - Dispatch Packing Stations",
+        "Aisle 3": "Zone C - Bulk Pallet Storage",
+        "Aisle 1": "Zone A - High Turn Consumables",
+        "Aisle 4": "Zone D - Heavy Machinery & Batteries"
+    }
+}
