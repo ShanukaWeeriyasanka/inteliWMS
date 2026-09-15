@@ -21,6 +21,7 @@ class Settings:
     # LLM Settings
     LLM_PRIMARY: str = os.getenv("LLM_PRIMARY", "gemini")
     GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
+    FULFILLMENT_GEMINI_API_KEY: str = os.getenv("FULFILLMENT_GEMINI_API_KEY", "")
     GROQ_API_KEY: str = os.getenv("GROQ_API_KEY", "")
     OLLAMA_URL: str = os.getenv("OLLAMA_URL", "http://localhost:11434")
     KNOWLEDGE_AGENT_MODEL: str = os.getenv("KNOWLEDGE_AGENT_MODEL", "gemini/gemini-2.5-flash")

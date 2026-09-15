@@ -11,7 +11,7 @@ logger = StructuredLogger(__name__)
 
 
 class LLMConfig:
-    """Centralized Gemini + Groq hybrid LLM provider configuration."""
+    """Centralized Gemini + Groq hybrid LLM provider configuration with key isolation."""
 
     GEMINI_MODEL: str = "gemini-3.6-flash"
     GROQ_MODEL: str = "llama3-70b-8192"  # Best free Groq model for reasoning
@@ -19,6 +19,7 @@ class LLMConfig:
     def __init__(self):
         self.primary_provider = settings.LLM_PRIMARY
         self.gemini_key = settings.GEMINI_API_KEY
+        self.fulfillment_gemini_key = settings.FULFILLMENT_GEMINI_API_KEY
         self.groq_key = settings.GROQ_API_KEY
 
     # ------------------------------------------------------------------ #
@@ -26,14 +27,21 @@ class LLMConfig:
     # ------------------------------------------------------------------ #
 
     def get_client(self):
-        """Returns the primary Gemini client (used by existing IntentClassifier)."""
+        """Returns the Coordinator Gemini client using GEMINI_API_KEY."""
         if not self.gemini_key:
-            return None
+            raise ValueError("GEMINI_API_KEY not found in .env. Please check your .env file.")
         try:
             return genai.Client(api_key=self.gemini_key)
         except Exception as e:
             logger.log_event("GEMINI_CLIENT_INIT_FAILED", {"error": str(e)})
-            return None
+            raise
+
+    def get_fulfillment_client(self):
+        """Returns the Fulfillment-specific Gemini client using FULFILLMENT_GEMINI_API_KEY."""
+        if not self.fulfillment_gemini_key:
+            raise ValueError("FULFILLMENT_GEMINI_API_KEY not found in .env. Please check your .env file.")
+        
+        return genai.Client(api_key=self.fulfillment_gemini_key)
 
     def get_groq_client(self):
         """Returns a Groq client (used as fallback or standalone)."""
