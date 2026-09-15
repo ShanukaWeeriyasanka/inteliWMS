@@ -56,7 +56,7 @@ class FulfillmentIntentClassifier:
             # Match existing Coordinator invocation pattern
             if hasattr(client, "models") and hasattr(client.models, "generate_content"):
                 response = client.models.generate_content(
-                    model="gemini-3.6-flash",
+                    model=llm_config.GEMINI_MODEL,
                     contents=prompt
                 )
                 raw_text = getattr(response, "text", "").strip()

@@ -13,8 +13,8 @@ logger = StructuredLogger(__name__)
 class LLMConfig:
     """Centralized Gemini + Groq hybrid LLM provider configuration with key isolation."""
 
-    GEMINI_MODEL: str = "gemini-3.6-flash"
-    GROQ_MODEL: str = "llama3-70b-8192"  # Best free Groq model for reasoning
+    GEMINI_MODEL: str = "gemini-3.6-flash"          # Gemini 2 (Google's current model ID)
+    GROQ_MODEL: str = "qwen/qwen3.8-27b"            # Best available reasoning model on this Groq account
 
     def __init__(self):
         self.primary_provider = settings.LLM_PRIMARY
