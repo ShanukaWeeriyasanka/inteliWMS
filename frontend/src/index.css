@@ -411,9 +411,7 @@ svg.lucide {
   margin: 0 auto;
 }
 
-/* =========================================================================
-   CLAUDE.AI APPLICATION LAYOUT (3-COLUMN DESKTOP SHELL)
-   ========================================================================= */
+
 .claude-app-layout {
   display: flex;
   width: 100vw;
@@ -423,9 +421,7 @@ svg.lucide {
   background-color: var(--bg-primary);
 }
 
-/* =========================================================================
-   LEFT SIDEBAR: GEMINI AI CLEAN AESTHETIC FOR INTELLIWMS
-   ========================================================================= */
+
 .gemini-sidebar,
 .claude-sidebar {
   height: 100%;
