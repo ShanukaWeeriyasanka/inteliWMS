@@ -103,21 +103,42 @@ class IntentClassifier:
             return self._llm
         return llm_config.get_client()
 
+    # Minimum heuristic confidence to skip LLM — queries above this threshold
+    # are routed instantly without any API call.
+    HEURISTIC_CONFIDENCE_THRESHOLD = 0.80
+
     def classify(self, query: str) -> IntentResult:
         """
-        Sends query to LLM with the coordinator system prompt.
+        Classifies a query using a heuristic-first strategy for minimal latency.
+
+        Order of operations:
+          0. Meta/system fast-path (greetings, capability questions) — instant
+          1. Deterministic heuristic classifier — instant (< 1ms)
+          2. LLM classification — only when heuristic confidence < 0.80
+
         Returns:
             IntentResult: unpackable as (intent, confidence, reasoning)
         """
         if not query or not query.strip():
             return IntentResult("COORDINATOR", 1.0, "Empty query handled by coordinator")
 
-        # 0. Fast-path: meta/system questions always handled by coordinator
+        # 0. Fast-path: meta/system questions handled directly — no API call needed
         meta_result = self._detect_meta_query(query)
         if meta_result:
             return meta_result
 
-        # 1. Attempt LLM classification if client is configured
+        # 1. Run heuristic classifier first — instant, no API call
+        heuristic_result = self._heuristic_fallback(query)
+        if heuristic_result.confidence >= self.HEURISTIC_CONFIDENCE_THRESHOLD:
+            # High-confidence heuristic result — return immediately, skip LLM
+            logger.log_event("HEURISTIC_CLASSIFICATION", {
+                "query": query[:60],
+                "domain": heuristic_result.domain,
+                "confidence": heuristic_result.confidence
+            })
+            return heuristic_result
+
+        # 2. Low-confidence heuristic — try LLM for ambiguous queries
         try:
             client = self.client
             if client is not None:
@@ -127,7 +148,6 @@ User warehouse query: "{query}"
 
 Analyze the query and return ONLY a valid JSON object:
 """
-                # Check for mock callable or generate_content
                 if hasattr(client, "models") and hasattr(client.models, "generate_content"):
                     response = client.models.generate_content(
                         model="gemini-3.6-flash",
@@ -149,7 +169,6 @@ Analyze the query and return ONLY a valid JSON object:
                     confidence = float(parsed.get("confidence", 0.85))
                     reasoning = str(parsed.get("reasoning", "LLM classified intent"))
 
-                    # Confidence escalation: if confidence < 0.60, default to Knowledge
                     if confidence < self.CONFIDENCE_THRESHOLD or domain not in self.VALID_DOMAINS:
                         logger.log_event("LOW_CONFIDENCE_ESCALATION", {
                             "query": query,
@@ -168,8 +187,8 @@ Analyze the query and return ONLY a valid JSON object:
         except Exception as e:
             logger.log_event("LLM_CLASSIFICATION_EXCEPTION", {"query": query, "error": str(e)})
 
-        # 2. Deterministic Warehouse Rule Heuristics Fallback
-        return self._heuristic_fallback(query)
+        # 3. LLM failed — fall back to heuristic result regardless of confidence
+        return heuristic_result
 
     def _heuristic_fallback(self, query: str) -> IntentResult:
         """Rule-based heuristic classifier when LLM is unavailable or for testing."""

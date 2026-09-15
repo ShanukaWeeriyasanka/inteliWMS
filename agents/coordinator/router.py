@@ -37,22 +37,54 @@ def route_to_agent(intent: str) -> str:
 
 def build_coordinator_direct_response(query: str) -> str:
     """
-    Uses hybrid LLM (Gemini → Groq) to generate a helpful direct reply for
-    meta/system questions that don't need specialist agent delegation.
-    """
-    # Fast-path for simple greetings to save API latency
-    q_lower = query.lower().strip()
-    import re
-    if re.match(r"^(hi+|hello+|hey+|yo+|greetings|sup|howdy)[\s\!\?\.]*$", q_lower):
-        return "👋 Hello! I'm the IntelliWMS Coordinator. I can help you with Inventory 📦, Fulfillment 🚚, or warehouse SOPs 📚. What do you need?"
+    Returns a direct reply for meta/system questions without specialist delegation.
 
+    Uses an expanded keyword fast-path map to avoid LLM API calls for common
+    coordinator questions. Falls back to LLM only for truly novel questions.
+    """
+    import re
+    q_lower = query.lower().strip()
+
+    # --- Expanded fast-path map (instant, no API call) ---
+    CAPABILITY_RESPONSE = (
+        "I'm the **IntelliWMS Coordinator** 🤖. I manage 3 specialist agents:\n"
+        "• 📦 **Inventory Agent** — stock levels, SKU locations, restock alerts\n"
+        "• 🚚 **Fulfillment Agent** — order status, delays, shipping & dispatch\n"
+        "• 📚 **Knowledge Agent** — SOPs, safety protocols, compliance, returns\n\n"
+        "Just ask me a warehouse question and I'll route it to the right agent!"
+    )
+    GREETING_RESPONSE = (
+        "👋 Hello! I'm the IntelliWMS Coordinator. I can help you with:\n"
+        "📦 Inventory • 🚚 Fulfillment • 📚 Warehouse SOPs\n"
+        "What do you need?"
+    )
+
+    # Greetings
+    if re.match(r"^(hi+|hello+|hey+|yo+|greetings|sup|howdy|hiya)[\s\!\?\.]*$", q_lower):
+        return GREETING_RESPONSE
+
+    # Capability / what-can-you-do questions
+    capability_patterns = [
+        r"\bwhat can you do\b", r"\bwhat do you do\b", r"\bwhat are you\b",
+        r"\bwho are you\b", r"\bintroduce yourself\b", r"\bwhat is intelliwms\b",
+        r"\bhow many agents\b", r"\bhow many subagents\b", r"\blist.*agents\b",
+        r"\bwhat agents\b", r"\bwhat subagents\b", r"\byour (agents|subagents|capabilities)\b",
+        r"\bwhat.*system\b", r"\btell me about yourself\b",
+    ]
+    if any(re.search(p, q_lower) for p in capability_patterns):
+        return CAPABILITY_RESPONSE
+
+    # Help
+    if re.match(r"^help[\s\!\?\.]*$", q_lower) or re.match(r"^what\?*$", q_lower):
+        return CAPABILITY_RESPONSE
+
+    # --- LLM fallback for genuinely novel questions ---
     from config.llm_config import llm_config
     from config.prompts import COORDINATOR_DIRECT_REPLY_PROMPT, COORDINATOR_UNKNOWN_REPLY
 
     try:
         prompt = COORDINATOR_DIRECT_REPLY_PROMPT.format(query=query)
-        reply = llm_config.hybrid_complete(prompt=prompt, max_tokens=300)
-        # Removed the >10 char limit so short answers ("Hi!") don't get blocked
+        reply = llm_config.hybrid_complete(prompt=prompt, max_tokens=200)
         if reply and len(reply.strip()) > 1:
             return reply.strip()
     except Exception as e:
