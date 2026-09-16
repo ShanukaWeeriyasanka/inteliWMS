@@ -93,21 +93,21 @@ class CoordinatorMCPClient:
             raise
 
     def _handle_inventory_query(self, query: str, context: Dict[str, Any]) -> str:
-        """Mock inventory specialist agent logic."""
-        if "4521" in query or "battery" in query:
-            return (
-                "SKU-4521 (Heavy Duty Forklift Battery Lithium) is currently located at "
-                "Aisle 4, Bay B-12. Current stock: 42 units on hand, 8 reserved for pending dispatches. "
-                "Minimum safety threshold: 25 units."
-            )
-        if "1088" in query or "label" in query:
-            return (
-                "SKU-1088 (Thermal Industrial Label Rolls) is at Aisle 1, Bay A-03. "
-                "Current stock: 120 rolls on hand. Reorder point: 50 rolls."
-            )
+        """Delegates to the real InventoryAgent (DB-backed, alias-aware)."""
+        try:
+            from agents.inventory_agent.agent import handle_inventory_query
+            sku = context.get("extracted_sku")
+            user_role = context.get("user_role") or context.get("role") or "staff"
+            # Use original-case query from context to preserve SKU casing
+            original_query = context.get("original_message") or context.get("query") or query
+            resp = handle_inventory_query(original_query, sku=sku, user_role=user_role)
+            if resp and resp.get("response"):
+                return resp["response"]
+        except Exception as e:
+            logger.log_event("INVENTORY_AGENT_INTEGRATION_ERROR", {"error": str(e)})
         return (
-            "Inventory Agent: Verified SKU location and availability across regional fulfillment center. "
-            "All items checked are within normal operational stocking thresholds."
+            "Inventory Agent: Unable to retrieve stock data at this time. "
+            "Please try again or contact your shift supervisor."
         )
 
     def _handle_fulfillment_query(self, query: str, context: Dict[str, Any]) -> str:
@@ -133,7 +133,9 @@ class CoordinatorMCPClient:
         try:
             from agents.knowledge_agent.agent import execute_knowledge_query
             user_role = context.get("role") or context.get("user_role") or "staff"
-            res = execute_knowledge_query(query, user_role=user_role, context=context)
+            # Use original-case query to preserve SKU/SOP identifiers (e.g. SKU-4521, SOP-SAF-003)
+            original_query = context.get("original_message") or query
+            res = execute_knowledge_query(original_query, user_role=user_role, context=context)
             if res and res.get("response"):
                 return res["response"]
         except Exception as e:

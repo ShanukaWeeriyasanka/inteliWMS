@@ -17,21 +17,25 @@ def extract_sku(message: str) -> Optional[str]:
     return None
 
 def extract_order_id(message: str) -> Optional[str]:
-    """Extracts warehouse Order ID pattern like ORD-1001, #4521, or order 4521."""
+    """Extracts warehouse Order ID pattern like ORD-1001, #4521, or order 4521.
+    
+    All formats are normalized to ORD-XXXX so the fulfillment agent's
+    extractor (which only accepts ORD- prefix) can recognize them.
+    """
     if not message:
         return None
-    # Match ORD-XXXX
-    match = re.search(r"\b(ORD-[0-9]{4,6})\b", message, re.IGNORECASE)
+    # Match ORD-XXXX (canonical format)
+    match = re.search(r"\b(ORD-[0-9]{3,6})\b", message, re.IGNORECASE)
     if match:
         return match.group(1).upper()
-    # Match #XXXX
+    # Match #XXXX → normalize to ORD-XXXX
     match = re.search(r"#([0-9]{3,6})\b", message)
     if match:
-        return match.group(1)
-    # Match 'order 4521'
+        return f"ORD-{match.group(1)}"
+    # Match 'order 4521' → normalize to ORD-4521
     match = re.search(r"\border\s+([0-9]{3,6})\b", message, re.IGNORECASE)
     if match:
-        return match.group(1)
+        return f"ORD-{match.group(1)}"
     return None
 
 def build_context(

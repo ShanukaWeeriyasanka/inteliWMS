@@ -84,8 +84,7 @@ class IntentClassifier:
         r"\bwhat are you\b",
         r"\bwho are you\b",
         r"\bintroduce yourself\b",
-        r"^(hi+|hello+|hey+|yo+|greetings|sup|howdy)[\s\!\?\.]*$",
-        r"\b(hi+|hello+|hey+|yo+)\b",
+        r"^(hi+|hello+|hey+|yo+|greetings|sup|howdy)[\s\!\?\.]*$",  # Only whole-query greetings
         r"\bhelp\b",
         r"\bbruh\b",
         r"\bwhat is intelliwms\b",

@@ -151,10 +151,10 @@ def test_extract_sku():
     assert extract_sku("general question without any item code") is None
 
 def test_extract_order_id():
-    """Test extraction of order identifiers (#1234, ORD-1001, order 5555)."""
-    assert extract_order_id("what is the status of order #4521?") == "4521"
+    """Test extraction of order identifiers — all formats normalize to ORD-XXXX."""
+    assert extract_order_id("what is the status of order #4521?") == "ORD-4521"
     assert extract_order_id("dispatch status for ORD-1001") == "ORD-1001"
-    assert extract_order_id("why is order 9012 delayed?") == "9012"
+    assert extract_order_id("why is order 9012 delayed?") == "ORD-9012"
     assert extract_order_id("where is the safety manual?") is None
 
 def test_build_context_full_payload():
@@ -169,6 +169,6 @@ def test_build_context_full_payload():
     assert context["user_role"] == "staff"
     assert context["original_message"] == "why is order #4521 delayed?"
     assert context["intent"] == "FULFILLMENT"
-    assert context["extracted_order_id"] == "4521"
+    assert context["extracted_order_id"] == "ORD-4521"  # Normalized to ORD-XXXX format
     assert context["audit_log"] == "routed_by_coordinator"
     assert "timestamp" in context
