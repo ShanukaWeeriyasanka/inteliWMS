@@ -8,6 +8,7 @@ import {
   OperationalModal,
   WarehouseThinkingAnimation
 } from './components/coordinator UI'
+import CommercializationModal from './components/CommercializationModal'
 import SplineScene from './components/SplineScene'
 import LoginPage from './pages/LoginPage'
 import {
@@ -18,7 +19,8 @@ import {
   Cpu,
   Database,
   RefreshCw,
-  LogOut
+  LogOut,
+  Crown
 } from 'lucide-react'
 
 export default function App() {
@@ -34,6 +36,8 @@ export default function App() {
   const [artifactTab, setArtifactTab] = useState('telemetry')
   const [selectedArtifactMessage, setSelectedArtifactMessage] = useState(null)
   const [operationalModal, setOperationalModal] = useState(null) // null | 'approvals' | 'injection_sandbox'
+  const [isCommercializationOpen, setIsCommercializationOpen] = useState(false)
+  const [isEnterpriseTrial, setIsEnterpriseTrial] = useState(false)
   const [actionLoading, setActionLoading] = useState(false)
 
   // Chat & Operational Query State
@@ -340,6 +344,7 @@ export default function App() {
         onLogout={handleLogout}
         onOpenArtifactTab={handleOpenArtifactTab}
         onSwitchRoleQuick={handleSwitchRoleQuick}
+        onOpenCommercializationModal={() => setIsCommercializationOpen(true)}
       />
 
       {/* Main Center Canvas */}
@@ -357,6 +362,18 @@ export default function App() {
           </div>
 
           <div className="topbar-right">
+            {/* Enterprise Trial Active Pill */}
+            {isEnterpriseTrial && (
+              <div
+                className="topbar-trial-pill"
+                onClick={() => setIsCommercializationOpen(true)}
+                title="14-Day Enterprise Trial Active • Click to view Commercialization Plan"
+              >
+                <Crown size={12} className="trial-crown-icon" />
+                <span>ENTERPRISE TRIAL</span>
+              </div>
+            )}
+
             {/* Who Logged In */}
             <div className="topbar-logged-user-pill">
               <div className="topbar-user-avatar">
@@ -471,6 +488,14 @@ export default function App() {
         onExecuteAction={handleExecuteRoleAction}
         onTestInjection={handleTestInjection}
         actionLoading={actionLoading}
+      />
+
+      {/* Commercialization Plan Modal */}
+      <CommercializationModal
+        isOpen={isCommercializationOpen}
+        onClose={() => setIsCommercializationOpen(false)}
+        isTrialActive={isEnterpriseTrial}
+        onStartTrial={() => setIsEnterpriseTrial(true)}
       />
     </div>
   )

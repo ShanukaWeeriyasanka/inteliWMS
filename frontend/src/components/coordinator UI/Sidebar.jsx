@@ -12,6 +12,7 @@ import {
   Trash2,
   LogOut,
   Sparkles,
+  Crown,
   X
 } from 'lucide-react'
 
@@ -26,7 +27,8 @@ export default function Sidebar({
   currentUser,
   onLogout,
   onOpenArtifactTab,
-  onSwitchRoleQuick
+  onSwitchRoleQuick,
+  onOpenCommercializationModal
 }) {
   const [userDropdownOpen, setUserDropdownOpen] = useState(false)
   const [activeMode, setActiveMode] = useState('chat') // 'chat' | 'ops'
@@ -246,6 +248,40 @@ export default function Sidebar({
               )}
             </div>
           </div>
+        )}
+      </div>
+
+      {/* 4.5 UPGRADE WMS BUTTON */}
+      <div className={`gemini-upgrade-section ${isOpen ? 'expanded' : 'collapsed'}`}>
+        {isOpen ? (
+          <button
+            onClick={onOpenCommercializationModal}
+            className="gemini-upgrade-btn"
+            title="Upgrade WMS — Commercial Plans"
+          >
+            <div className="upgrade-btn-content">
+              <div className="upgrade-icon-wrap">
+                <Crown size={15} className="upgrade-crown-icon" />
+              </div>
+              <div className="upgrade-text-wrap">
+                <div className="upgrade-title-row">
+                  <span className="upgrade-title">Upgrade WMS</span>
+                  <span className="upgrade-pill-badge">PRO</span>
+                </div>
+                <span className="upgrade-subtitle">Commercialization Plan</span>
+              </div>
+            </div>
+            <Sparkles size={14} className="upgrade-sparkle-right" />
+          </button>
+        ) : (
+          <button
+            onClick={onOpenCommercializationModal}
+            className="gemini-upgrade-btn-collapsed"
+            title="Upgrade WMS — Commercial Plans"
+          >
+            <Crown size={16} className="upgrade-crown-icon" />
+            <span className="upgrade-dot-pulse" />
+          </button>
         )}
       </div>
 
