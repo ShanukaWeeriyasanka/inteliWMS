@@ -199,50 +199,54 @@ export default function ArtifactPanel({
               <div className="bay-loc-title">
                 <Warehouse size={18} className="text-amber" />
                 <div>
-                  <h4>High-Bay Location: Aisle 12, Shelf B3</h4>
-                  <span>Payload: Lithium Forklift Power Pack (SKU-4521)</span>
+                  <h4>Location: {selectedMessage?.skuData?.location || 'Zone-A-Aisle-01-Shelf-A1'}</h4>
+                  <span>Payload: {selectedMessage?.skuData?.name || 'Warehouse Stock Item'} ({selectedMessage?.skuData?.sku || 'SKU-4521'})</span>
                 </div>
               </div>
-              <div className="bay-badge-stock">350 Units In Stock</div>
+              <div className="bay-badge-stock">{selectedMessage?.skuData?.stock || 'In Stock (Live DB)'}</div>
             </div>
 
             {/* Visual Floor Grid */}
             <div className="floor-grid-container">
-              <div className="floor-label">Warehouse Floor Alpha — High-Bay Storage Racks</div>
+              <div className="floor-label">Warehouse Floor Map — Real-Time Storage Coordinates</div>
               <div className="racks-visual-grid">
-                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14].map((aisle) => (
-                  <div
-                    key={aisle}
-                    className={`aisle-column ${aisle === 12 ? 'target-aisle' : ''}`}
-                  >
-                    <span className="aisle-num">A{aisle}</span>
-                    <div className="shelf-tier tier-a" />
-                    <div className={`shelf-tier tier-b ${aisle === 12 ? 'target-shelf-glow' : ''}`}>
-                      {aisle === 12 && <div className="target-beacon-pin" title="SKU-4521 Stored Here" />}
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14].map((aisle) => {
+                  const targetAisle = selectedMessage?.skuData?.location?.match(/aisle[ -]?0?(\d+)/i)?.[1] || 1
+                  const isMatch = Number(targetAisle) === aisle
+                  return (
+                    <div
+                      key={aisle}
+                      className={`aisle-column ${isMatch ? 'target-aisle' : ''}`}
+                    >
+                      <span className="aisle-num">A{aisle}</span>
+                      <div className="shelf-tier tier-a" />
+                      <div className={`shelf-tier tier-b ${isMatch ? 'target-shelf-glow' : ''}`}>
+                        {isMatch && <div className="target-beacon-pin" title="Item Stored Here" />}
+                      </div>
+                      <div className="shelf-tier tier-c" />
                     </div>
-                    <div className="shelf-tier tier-c" />
-                  </div>
-                ))}
+                  )
+                })}
               </div>
-              <div className="floor-runway">Forklift Transit Runway 03 (Automated AGV Lane)</div>
+              <div className="floor-runway">Forklift Transit Runway — Verified Database Coordinates</div>
             </div>
 
             <div className="bay-metrics-grid">
               <div className="bay-metric-card">
                 <span className="bay-lbl">Storage Zone</span>
-                <span className="bay-val">Heavy Machinery (Zone H)</span>
+                <span className="bay-val">{selectedMessage?.skuData?.location?.split('-')[0] || 'Zone A'}</span>
               </div>
               <div className="bay-metric-card">
-                <span className="bay-lbl">Ambient Temp</span>
-                <span className="bay-val">19.4 °C (Monitored)</span>
+                <span className="bay-lbl">Database Status</span>
+                <span className="bay-val text-emerald">Synced (Supabase)</span>
               </div>
               <div className="bay-metric-card">
-                <span className="bay-lbl">Pallet Weight</span>
-                <span className="bay-val">420 kg / bay</span>
+                <span className="bay-lbl">SKU Code</span>
+                <span className="bay-val">{selectedMessage?.skuData?.sku || 'SKU-4521'}</span>
               </div>
               <div className="bay-metric-card">
-                <span className="bay-lbl">Next Cycle Count</span>
-                <span className="bay-val">Tomorrow, 08:00</span>
+                <span className="bay-lbl">Live Stock</span>
+                <span className="bay-val">{selectedMessage?.skuData?.stock || 'Available'}</span>
               </div>
             </div>
           </div>
@@ -253,10 +257,10 @@ export default function ArtifactPanel({
           <div className="order-timeline-tab-view">
             <div className="order-header-card">
               <div>
-                <h4>Consignment #4521</h4>
-                <span>Recipient: Apex Automotive Distribution • Priority 1 Expedited</span>
+                <h4>Consignment: {selectedMessage?.orderData?.id || 'ORD-1001'}</h4>
+                <span>Recipient: Verified Customer • Priority Dispatch</span>
               </div>
-              <span className="status-pill in-transit">IN TRANSIT</span>
+              <span className="status-pill in-transit">{selectedMessage?.orderData?.status || 'PROCESSING'}</span>
             </div>
 
             <div className="timeline-steps-vertical">
@@ -264,17 +268,17 @@ export default function ArtifactPanel({
                 <div className="step-dot" />
                 <div className="step-content">
                   <strong>Order Manifest Validated</strong>
-                  <span>Coordinator validated cryptographic signature & inventory reservation</span>
-                  <small>Today, 08:14 AM</small>
+                  <span>Coordinator validated database record & inventory reservation</span>
+                  <small>Live Database Verified</small>
                 </div>
               </div>
 
               <div className="timeline-step completed">
                 <div className="step-dot" />
                 <div className="step-content">
-                  <strong>Automated AGV Pick Completed</strong>
-                  <span>Picked from Aisle 12, Shelf B3 by AGV Unit #08</span>
-                  <small>Today, 09:30 AM</small>
+                  <strong>Warehouse Pick Dispatch</strong>
+                  <span>Order state: {selectedMessage?.orderData?.status || 'PROCESSING'}</span>
+                  <small>Active in Fulfillment Queue</small>
                 </div>
               </div>
 

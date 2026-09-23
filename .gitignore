@@ -39,3 +39,4 @@ htmlcov/
 # Docker volumes (local data)
 postgres_data/
 chroma_data/
+data/chroma_db/
