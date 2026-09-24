@@ -28,7 +28,8 @@ export default function Sidebar({
   onLogout,
   onOpenArtifactTab,
   onSwitchRoleQuick,
-  onOpenCommercializationModal
+  onOpenCommercializationModal,
+  onOpenPricingModal
 }) {
   const [userDropdownOpen, setUserDropdownOpen] = useState(false)
   const [activeMode, setActiveMode] = useState('chat') // 'chat' | 'ops'
@@ -44,7 +45,7 @@ export default function Sidebar({
   const userInitial =
     currentUser?.name?.[0]?.toUpperCase() ||
     currentUser?.username?.[0]?.toUpperCase() ||
-    'O'
+    'S'
 
   return (
     <aside className={`gemini-sidebar ${isOpen ? 'expanded' : 'collapsed'}`}>
@@ -255,9 +256,9 @@ export default function Sidebar({
       <div className={`gemini-upgrade-section ${isOpen ? 'expanded' : 'collapsed'}`}>
         {isOpen ? (
           <button
-            onClick={onOpenCommercializationModal}
+            onClick={onOpenPricingModal || onOpenCommercializationModal}
             className="gemini-upgrade-btn"
-            title="Upgrade WMS — Commercial Plans"
+            title="Upgrade WMS — SaaS Pricing & Plans"
           >
             <div className="upgrade-btn-content">
               <div className="upgrade-icon-wrap">
@@ -268,16 +269,16 @@ export default function Sidebar({
                   <span className="upgrade-title">Upgrade WMS</span>
                   <span className="upgrade-pill-badge">PRO</span>
                 </div>
-                <span className="upgrade-subtitle">Commercialization Plan</span>
+                <span className="upgrade-subtitle">Pricing & Plans</span>
               </div>
             </div>
             <Sparkles size={14} className="upgrade-sparkle-right" />
           </button>
         ) : (
           <button
-            onClick={onOpenCommercializationModal}
+            onClick={onOpenPricingModal || onOpenCommercializationModal}
             className="gemini-upgrade-btn-collapsed"
-            title="Upgrade WMS — Commercial Plans"
+            title="Upgrade WMS — SaaS Pricing & Plans"
           >
             <Crown size={16} className="upgrade-crown-icon" />
             <span className="upgrade-dot-pulse" />
@@ -301,7 +302,7 @@ export default function Sidebar({
                   {currentUser?.name || currentUser?.username || 'Shanuka Weeriyasanka'}
                 </span>
                 <span className="gemini-user-role">
-                  {currentUser?.role ? currentUser.role.charAt(0).toUpperCase() + currentUser.role.slice(1) : 'Manager'}
+                  {currentUser?.role ? currentUser.role.charAt(0).toUpperCase() + currentUser.role.slice(1) : 'Staff'}
                 </span>
               </div>
             </div>

@@ -9,6 +9,7 @@ import {
   WarehouseThinkingAnimation
 } from './components/coordinator UI'
 import CommercializationModal from './components/CommercializationModal'
+import PricingModal from './components/PricingModal'
 import SplineScene from './components/SplineScene'
 import LoginPage from './pages/LoginPage'
 import {
@@ -36,6 +37,7 @@ export default function App() {
   const [artifactTab, setArtifactTab] = useState('telemetry')
   const [selectedArtifactMessage, setSelectedArtifactMessage] = useState(null)
   const [operationalModal, setOperationalModal] = useState(null) // null | 'approvals' | 'injection_sandbox'
+  const [isPricingModalOpen, setIsPricingModalOpen] = useState(false)
   const [isCommercializationOpen, setIsCommercializationOpen] = useState(false)
   const [isEnterpriseTrial, setIsEnterpriseTrial] = useState(false)
   const [actionLoading, setActionLoading] = useState(false)
@@ -344,7 +346,8 @@ export default function App() {
         onLogout={handleLogout}
         onOpenArtifactTab={handleOpenArtifactTab}
         onSwitchRoleQuick={handleSwitchRoleQuick}
-        onOpenCommercializationModal={() => setIsCommercializationOpen(true)}
+        onOpenPricingModal={() => setIsPricingModalOpen(true)}
+        onOpenCommercializationModal={() => setIsPricingModalOpen(true)}
       />
 
       {/* Main Center Canvas */}
@@ -366,8 +369,8 @@ export default function App() {
             {isEnterpriseTrial && (
               <div
                 className="topbar-trial-pill"
-                onClick={() => setIsCommercializationOpen(true)}
-                title="14-Day Enterprise Trial Active • Click to view Commercialization Plan"
+                onClick={() => setIsPricingModalOpen(true)}
+                title="SaaS Pricing & Plans • Feature Comparison"
               >
                 <Crown size={12} className="trial-crown-icon" />
                 <span>ENTERPRISE TRIAL</span>
@@ -490,12 +493,13 @@ export default function App() {
         actionLoading={actionLoading}
       />
 
-      {/* Commercialization Plan Modal */}
-      <CommercializationModal
-        isOpen={isCommercializationOpen}
-        onClose={() => setIsCommercializationOpen(false)}
-        isTrialActive={isEnterpriseTrial}
-        onStartTrial={() => setIsEnterpriseTrial(true)}
+      {/* SaaS Pricing & Feature Comparison Modal */}
+      <PricingModal
+        isOpen={isPricingModalOpen || isCommercializationOpen}
+        onClose={() => {
+          setIsPricingModalOpen(false)
+          setIsCommercializationOpen(false)
+        }}
       />
     </div>
   )

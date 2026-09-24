@@ -1,0 +1,676 @@
+/* =========================================================================
+   SAAS PRICING & FEATURE COMPARISON MODAL STYLES
+   Dark glassmorphic styling tailored for IntelliWMS
+   ========================================================================= */
+
+.pricing-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.78);
+  backdrop-filter: blur(28px) saturate(180%);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  padding: 24px;
+  animation: modalFadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.pricing-modal-container {
+  background: rgba(18, 18, 24, 0.96);
+  backdrop-filter: blur(40px) saturate(200%);
+  -webkit-backdrop-filter: blur(40px) saturate(200%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 24px;
+  width: 100%;
+  max-width: 1080px;
+  max-height: 92vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 32px 80px rgba(0, 0, 0, 0.85), 0 0 40px rgba(6, 182, 212, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  animation: modalPopIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+  color: #f1f5f9;
+}
+
+@keyframes modalPopIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* Modal Header */
+.pricing-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 28px 18px 28px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.04) 0%, transparent 100%);
+}
+
+.pricing-header-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.pricing-header-icon-wrap {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #06b6d4 0%, #0284c7 50%, #3b82f6 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 4px 16px rgba(6, 182, 212, 0.35);
+  color: #ffffff;
+}
+
+.pricing-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pricing-modal-title {
+  font-family: inherit;
+  font-size: 20px;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.pricing-header-badge {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 3px 9px;
+  border-radius: 9999px;
+  background: rgba(6, 182, 212, 0.15);
+  border: 1px solid rgba(6, 182, 212, 0.35);
+  color: #38bdf8;
+  text-transform: uppercase;
+}
+
+.pricing-modal-subtitle {
+  font-size: 13px;
+  color: rgba(226, 232, 240, 0.65);
+  margin-top: 3px;
+  margin-bottom: 0;
+}
+
+.pricing-close-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.pricing-close-btn:hover {
+  background: rgba(255, 255, 255, 0.14);
+  color: #ffffff;
+  transform: rotate(90deg);
+}
+
+/* Plan Selection Alert Banner */
+.pricing-alert-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 28px;
+  background: linear-gradient(90deg, rgba(16, 185, 129, 0.18) 0%, rgba(6, 182, 212, 0.14) 100%);
+  border-bottom: 1px solid rgba(16, 185, 129, 0.3);
+  font-size: 12.5px;
+  color: #d1fae5;
+}
+
+.pricing-alert-banner strong {
+  color: #ffffff;
+}
+
+.pricing-alert-dismiss {
+  background: transparent;
+  border: none;
+  color: #a7f3d0;
+  cursor: pointer;
+  padding: 2px 6px;
+  font-size: 11px;
+}
+
+.pricing-alert-dismiss:hover {
+  color: #ffffff;
+}
+
+/* Modal Scrollable Body */
+.pricing-modal-body {
+  padding: 24px 28px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  flex: 1;
+}
+
+/* Section Header */
+.section-headline-group {
+  margin-bottom: 16px;
+}
+
+.section-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #38bdf8;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.section-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 4px 0 2px 0;
+}
+
+.section-desc {
+  font-size: 12.5px;
+  color: rgba(226, 232, 240, 0.6);
+  margin: 0;
+}
+
+/* 2. Top Section: 3 Pricing Tier Cards Grid */
+.pricing-tiers-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+}
+
+.pricing-card {
+  background: rgba(25, 27, 34, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 18px;
+  padding: 22px 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.pricing-card:hover {
+  background: rgba(30, 33, 42, 0.9);
+  border-color: rgba(255, 255, 255, 0.2);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
+}
+
+/* Featured / Professional Card Styling */
+.pricing-card.featured-card {
+  background: linear-gradient(180deg, rgba(14, 30, 48, 0.85) 0%, rgba(18, 24, 38, 0.95) 100%);
+  border: 1px solid rgba(6, 182, 212, 0.45);
+  box-shadow: 0 12px 36px rgba(6, 182, 212, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+.pricing-card.featured-card:hover {
+  border-color: rgba(6, 182, 212, 0.7);
+  box-shadow: 0 16px 44px rgba(6, 182, 212, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+
+/* Enterprise Card Styling */
+.pricing-card.enterprise-card {
+  background: linear-gradient(180deg, rgba(30, 22, 46, 0.85) 0%, rgba(20, 18, 32, 0.95) 100%);
+  border: 1px solid rgba(168, 85, 247, 0.35);
+}
+
+.pricing-card.enterprise-card:hover {
+  border-color: rgba(168, 85, 247, 0.65);
+  box-shadow: 0 16px 44px rgba(168, 85, 247, 0.22);
+}
+
+/* Selected Card Highlight */
+.pricing-card.selected-card {
+  outline: 2px solid #38bdf8;
+  outline-offset: -1px;
+}
+
+.card-badge-top {
+  position: absolute;
+  top: 0;
+  right: 20px;
+  transform: translateY(0);
+}
+
+.plan-pill {
+  display: inline-block;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  padding: 3px 10px;
+  border-radius: 0 0 8px 8px;
+  text-transform: uppercase;
+}
+
+.plan-pill.pro {
+  background: linear-gradient(135deg, #06b6d4, #0284c7);
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(6, 182, 212, 0.4);
+}
+
+.plan-pill.ent {
+  background: linear-gradient(135deg, #a855f7, #6366f1);
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(168, 85, 247, 0.4);
+}
+
+.card-top-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.card-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.card-plan-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0;
+}
+
+.card-plan-desc {
+  font-size: 12px;
+  color: rgba(226, 232, 240, 0.68);
+  line-height: 1.4;
+  margin: 0 0 16px 0;
+  min-height: 34px;
+}
+
+.card-price-block {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  padding-bottom: 16px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.price-currency {
+  font-size: 18px;
+  font-weight: 600;
+  color: rgba(226, 232, 240, 0.7);
+}
+
+.price-value {
+  font-size: 32px;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+.price-frequency {
+  font-size: 12px;
+  color: rgba(226, 232, 240, 0.5);
+  font-weight: 500;
+}
+
+/* Bullet Points */
+.card-bullet-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 22px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.card-bullet-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  font-size: 12.5px;
+  color: rgba(226, 232, 240, 0.85);
+  line-height: 1.35;
+}
+
+.bullet-check-icon {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.bullet-check-starter {
+  color: #38bdf8;
+}
+
+.bullet-check-pro {
+  color: #06b6d4;
+}
+
+.bullet-check-ent {
+  color: #c084fc;
+}
+
+/* CTA Buttons */
+.card-cta-btn {
+  width: 100%;
+  padding: 11px 16px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  margin-top: auto;
+}
+
+.card-cta-starter {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #f8fafc;
+}
+
+.card-cta-starter:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.25);
+  transform: translateY(-1px);
+}
+
+.card-cta-pro {
+  background: linear-gradient(135deg, #06b6d4 0%, #0284c7 100%);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+  box-shadow: 0 4px 16px rgba(6, 182, 212, 0.35);
+}
+
+.card-cta-pro:hover {
+  background: linear-gradient(135deg, #0891b2 0%, #0369a1 100%);
+  box-shadow: 0 6px 20px rgba(6, 182, 212, 0.5);
+  transform: translateY(-1px);
+}
+
+.card-cta-ent {
+  background: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+  box-shadow: 0 4px 16px rgba(168, 85, 247, 0.35);
+}
+
+.card-cta-ent:hover {
+  background: linear-gradient(135deg, #9333ea 0%, #6d28d9 100%);
+  box-shadow: 0 6px 20px rgba(168, 85, 247, 0.5);
+  transform: translateY(-1px);
+}
+
+.btn-arrow-icon {
+  transition: transform 0.2s ease;
+}
+
+.card-cta-btn:hover .btn-arrow-icon {
+  transform: translateX(3px);
+}
+
+/* 3. Bottom Section: Feature Comparison Table */
+.comparison-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.comparison-table-card {
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(15, 17, 23, 0.85);
+  overflow: hidden;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.feature-matrix-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 13px;
+}
+
+.feature-matrix-table thead th {
+  padding: 14px 18px;
+  background: rgba(255, 255, 255, 0.03);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.09);
+  color: #ffffff;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.feature-matrix-table thead th.col-feature {
+  width: 37%;
+  color: rgba(226, 232, 240, 0.6);
+  font-size: 11.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.feature-matrix-table thead th.col-tier {
+  width: 21%;
+  text-align: center;
+}
+
+.tier-th-badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 9999px;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
+.tier-th-badge.badge-pro {
+  background: rgba(6, 182, 212, 0.2);
+  color: #38bdf8;
+  border: 1px solid rgba(6, 182, 212, 0.4);
+}
+
+.tier-th-badge.badge-ent {
+  background: rgba(168, 85, 247, 0.2);
+  color: #c084fc;
+  border: 1px solid rgba(168, 85, 247, 0.4);
+}
+
+.feature-matrix-table tbody tr {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  transition: background 0.15s ease;
+}
+
+.feature-matrix-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.feature-matrix-table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.feature-matrix-table tbody td {
+  padding: 13px 18px;
+  vertical-align: middle;
+}
+
+.feature-cell-title {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.feature-cell-title strong {
+  color: #f1f5f9;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.feature-cell-title span {
+  font-size: 11px;
+  color: rgba(226, 232, 240, 0.5);
+}
+
+.matrix-val-cell {
+  text-align: center;
+  font-weight: 600;
+}
+
+/* Cell Value Badges */
+.val-price {
+  font-size: 14px;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.val-pill-check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  color: #34d399;
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+.val-pill-cross {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  background: rgba(244, 63, 94, 0.1);
+  border: 1px solid rgba(244, 63, 94, 0.25);
+  color: #fb7185;
+  font-size: 11.5px;
+  font-weight: 500;
+}
+
+.val-storage {
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: #e2e8f0;
+}
+
+.val-storage.highlight-storage {
+  color: #38bdf8;
+}
+
+.val-ai-limited {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 9px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: rgba(226, 232, 240, 0.7);
+  font-size: 11.5px;
+  font-weight: 500;
+}
+
+.val-ai-full {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 9px;
+  border-radius: 6px;
+  background: rgba(6, 182, 212, 0.15);
+  border: 1px solid rgba(6, 182, 212, 0.35);
+  color: #38bdf8;
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+/* Modal Footer */
+.pricing-modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 28px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(14, 15, 20, 0.95);
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.footer-info-text {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: rgba(226, 232, 240, 0.55);
+}
+
+.footer-info-icon {
+  color: #38bdf8;
+}
+
+.pricing-btn-close {
+  padding: 8px 20px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #f1f5f9;
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.pricing-btn-close:hover {
+  background: rgba(255, 255, 255, 0.14);
+  color: #ffffff;
+}
+
+/* Responsive Breakpoints */
+@media (max-width: 900px) {
+  .pricing-tiers-grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+  .pricing-modal-container {
+    max-height: 95vh;
+  }
+  .feature-matrix-table thead th.col-feature {
+    width: 40%;
+  }
+}
