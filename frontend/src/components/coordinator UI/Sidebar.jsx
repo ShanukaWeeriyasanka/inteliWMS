@@ -12,6 +12,7 @@ import {
   Trash2,
   LogOut,
   Sparkles,
+  Crown,
   X
 } from 'lucide-react'
 
@@ -26,7 +27,9 @@ export default function Sidebar({
   currentUser,
   onLogout,
   onOpenArtifactTab,
-  onSwitchRoleQuick
+  onSwitchRoleQuick,
+  onOpenCommercializationModal,
+  onOpenPricingModal
 }) {
   const [userDropdownOpen, setUserDropdownOpen] = useState(false)
   const [activeMode, setActiveMode] = useState('chat') // 'chat' | 'ops'
@@ -42,7 +45,7 @@ export default function Sidebar({
   const userInitial =
     currentUser?.name?.[0]?.toUpperCase() ||
     currentUser?.username?.[0]?.toUpperCase() ||
-    'O'
+    'S'
 
   return (
     <aside className={`gemini-sidebar ${isOpen ? 'expanded' : 'collapsed'}`}>
@@ -249,6 +252,40 @@ export default function Sidebar({
         )}
       </div>
 
+      {/* 4.5 UPGRADE WMS BUTTON */}
+      <div className={`gemini-upgrade-section ${isOpen ? 'expanded' : 'collapsed'}`}>
+        {isOpen ? (
+          <button
+            onClick={onOpenPricingModal || onOpenCommercializationModal}
+            className="gemini-upgrade-btn"
+            title="Upgrade WMS — SaaS Pricing & Plans"
+          >
+            <div className="upgrade-btn-content">
+              <div className="upgrade-icon-wrap">
+                <Crown size={15} className="upgrade-crown-icon" />
+              </div>
+              <div className="upgrade-text-wrap">
+                <div className="upgrade-title-row">
+                  <span className="upgrade-title">Upgrade WMS</span>
+                  <span className="upgrade-pill-badge">PRO</span>
+                </div>
+                <span className="upgrade-subtitle">Pricing & Plans</span>
+              </div>
+            </div>
+            <Sparkles size={14} className="upgrade-sparkle-right" />
+          </button>
+        ) : (
+          <button
+            onClick={onOpenPricingModal || onOpenCommercializationModal}
+            className="gemini-upgrade-btn-collapsed"
+            title="Upgrade WMS — SaaS Pricing & Plans"
+          >
+            <Crown size={16} className="upgrade-crown-icon" />
+            <span className="upgrade-dot-pulse" />
+          </button>
+        )}
+      </div>
+
       {/* 5. BOTTOM USER FOOTER */}
       <div className="gemini-sidebar-footer">
         {isOpen ? (
@@ -265,7 +302,7 @@ export default function Sidebar({
                   {currentUser?.name || currentUser?.username || 'Shanuka Weeriyasanka'}
                 </span>
                 <span className="gemini-user-role">
-                  {currentUser?.role ? currentUser.role.charAt(0).toUpperCase() + currentUser.role.slice(1) : 'Manager'}
+                  {currentUser?.role ? currentUser.role.charAt(0).toUpperCase() + currentUser.role.slice(1) : 'Staff'}
                 </span>
               </div>
             </div>

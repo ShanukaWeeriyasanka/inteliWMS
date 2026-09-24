@@ -8,6 +8,8 @@ import {
   OperationalModal,
   WarehouseThinkingAnimation
 } from './components/coordinator UI'
+import CommercializationModal from './components/CommercializationModal'
+import PricingModal from './components/PricingModal'
 import SplineScene from './components/SplineScene'
 import LoginPage from './pages/LoginPage'
 import {
@@ -18,7 +20,8 @@ import {
   Cpu,
   Database,
   RefreshCw,
-  LogOut
+  LogOut,
+  Crown
 } from 'lucide-react'
 
 export default function App() {
@@ -34,6 +37,9 @@ export default function App() {
   const [artifactTab, setArtifactTab] = useState('telemetry')
   const [selectedArtifactMessage, setSelectedArtifactMessage] = useState(null)
   const [operationalModal, setOperationalModal] = useState(null) // null | 'approvals' | 'injection_sandbox'
+  const [isPricingModalOpen, setIsPricingModalOpen] = useState(false)
+  const [isCommercializationOpen, setIsCommercializationOpen] = useState(false)
+  const [isEnterpriseTrial, setIsEnterpriseTrial] = useState(false)
   const [actionLoading, setActionLoading] = useState(false)
 
   // Chat & Operational Query State
@@ -340,6 +346,8 @@ export default function App() {
         onLogout={handleLogout}
         onOpenArtifactTab={handleOpenArtifactTab}
         onSwitchRoleQuick={handleSwitchRoleQuick}
+        onOpenPricingModal={() => setIsPricingModalOpen(true)}
+        onOpenCommercializationModal={() => setIsPricingModalOpen(true)}
       />
 
       {/* Main Center Canvas */}
@@ -357,6 +365,18 @@ export default function App() {
           </div>
 
           <div className="topbar-right">
+            {/* Enterprise Trial Active Pill */}
+            {isEnterpriseTrial && (
+              <div
+                className="topbar-trial-pill"
+                onClick={() => setIsPricingModalOpen(true)}
+                title="SaaS Pricing & Plans • Feature Comparison"
+              >
+                <Crown size={12} className="trial-crown-icon" />
+                <span>ENTERPRISE TRIAL</span>
+              </div>
+            )}
+
             {/* Who Logged In */}
             <div className="topbar-logged-user-pill">
               <div className="topbar-user-avatar">
@@ -471,6 +491,15 @@ export default function App() {
         onExecuteAction={handleExecuteRoleAction}
         onTestInjection={handleTestInjection}
         actionLoading={actionLoading}
+      />
+
+      {/* SaaS Pricing & Feature Comparison Modal */}
+      <PricingModal
+        isOpen={isPricingModalOpen || isCommercializationOpen}
+        onClose={() => {
+          setIsPricingModalOpen(false)
+          setIsCommercializationOpen(false)
+        }}
       />
     </div>
   )
