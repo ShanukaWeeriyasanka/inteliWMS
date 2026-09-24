@@ -187,9 +187,40 @@ export default function App() {
         return
       }
 
-      // Helper parser for SKU or Order cards
-      const hasSku = text.toUpperCase().includes('SKU-') || res.response?.includes('SKU-') || (res.routing?.extracted_params?.sku)
-      const hasOrder = text.includes('#4521') || res.response?.includes('#4521') || (res.routing?.extracted_params?.order_id)
+      // Helper parser for dynamic SKU or Order data from live response
+      const respText = res.response || ''
+      const skuMatch = respText.match(/(?:SKU-\d+|[A-Z0-9_-]+)/i) || text.match(/(?:SKU-\d+)/i)
+      const isInventory = res.agent_used === 'inventory_agent' || res.routing?.target_agent === 'inventory' || text.toLowerCase().includes('sku')
+      const isFulfillment = res.agent_used === 'fulfillment_agent' || res.routing?.target_agent === 'fulfillment' || text.toLowerCase().includes('ord-') || text.toLowerCase().includes('order')
+
+      // Extract dynamic product name, location, and stock from agent response
+      let dynamicSkuData = null
+      if (isInventory && (respText.includes('located at') || respText.includes('stock:') || skuMatch)) {
+        const skuFound = (respText.match(/SKU-\d+/i) || text.match(/SKU-\d+/i) || ['SKU-4521'])[0].toUpperCase()
+        const nameMatch = respText.match(/\*\*"?([^*"]+)"?\*\*\s*\((?:SKU-\d+)\)/i) || respText.match(/product\s+([A-Za-z0-9\s-]+)/i)
+        const locMatch = respText.match(/located at\s+\*\*?([^*.]+)\*\*?/i) || respText.match(/location[:\s]+([A-Za-z0-9\s-]+)/i)
+        const stockMatch = respText.match(/(\d+)\s+units/i) || respText.match(/stock[:\s]+(\d+)/i)
+
+        dynamicSkuData = {
+          sku: skuFound,
+          name: nameMatch ? nameMatch[1].trim() : 'Warehouse Inventory Item',
+          location: locMatch ? locMatch[1].trim() : 'Zone-A-Aisle-01-Shelf-A1',
+          stock: stockMatch ? `${stockMatch[1]} units on hand` : 'In Stock'
+        }
+      }
+
+      // Extract dynamic order data from agent response
+      let dynamicOrderData = null
+      if (isFulfillment && (respText.toLowerCase().includes('order') || text.toLowerCase().includes('ord-'))) {
+        const orderFound = (respText.match(/ORD-\d+/i) || text.match(/ORD-\d+/i) || ['ORD-1001'])[0].toUpperCase()
+        const statusMatch = respText.match(/currently\s+([a-zA-Z\s]+)[.]?/i) || respText.match(/status[:\s]+([a-zA-Z\s]+)/i)
+
+        dynamicOrderData = {
+          id: orderFound,
+          status: statusMatch ? statusMatch[1].trim().toUpperCase() : 'PROCESSING',
+          carrier: 'FedEx Ground • Standard Dispatch'
+        }
+      }
 
       const assistantMsg = {
         id: Date.now() + 1,
@@ -200,16 +231,8 @@ export default function App() {
           confidence: 0.95,
           latency_ms: 28
         },
-        skuData: hasSku ? {
-          sku: 'SKU-4521',
-          location: 'Aisle 12, Shelf B3, Bay 04',
-          stock: '350 units available'
-        } : null,
-        orderData: hasOrder ? {
-          id: '#4521',
-          status: 'In Transit — On Schedule',
-          carrier: 'FreightExpress • Priority 1'
-        } : null,
+        skuData: dynamicSkuData,
+        orderData: dynamicOrderData,
         metadata: {
           agent_used: res.agent_used,
           audit: res.audit

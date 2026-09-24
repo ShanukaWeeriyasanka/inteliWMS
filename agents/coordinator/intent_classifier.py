@@ -206,8 +206,8 @@ Analyze the query and return ONLY a valid JSON object:
         ]
         # KNOWLEDGE indicators
         knowledge_patterns = [
-            r"\b(sop|sop-\d+|standard operating procedure|policy|policies|guideline|manual|safety|protocol|sp-\d+)\b",
-            r"\b(returns|how to return|compliance|shift handover|shift notes|speed limit|vest)\b"
+            r"\b(sop|sop-\d+|standard operating procedure|policy|policies|guideline|guidelines|manual|safety|protocol|protocols|sp-\d+)\b",
+            r"\b(returns|how to return|compliance|shift handover|shift handoff|shift notes|speed limit|speed|stack|stacking|tier|tiers|height|limit|hazard|hazardous|spill|vest|ppe|chemical|zone [abc]|crossdock)\b"
         ]
 
         if any(re.search(p, q_lower) for p in inventory_patterns) and not any(re.search(p, q_lower) for p in fulfillment_patterns):

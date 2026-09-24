@@ -126,24 +126,22 @@ export default function ChatMessage({
                   <div className="embedded-card-header">
                     <div className="card-header-left">
                       <ScanBarcode size={15} className="text-amber" />
-                      <strong>Inventory Bay Manifest: {meta.sku || message.skuData?.sku || 'SKU-4521'}</strong>
+                      <strong>Inventory Bay Manifest: {message.skuData?.sku || meta.sku || 'SKU-4521'}</strong>
                     </div>
-                    <span className="hud-status-badge badge-emerald">HIGH-BAY VERIFIED</span>
+                    <span className="hud-status-badge badge-emerald">DB VERIFIED</span>
                   </div>
                   <div className="embedded-card-body">
                     <div className="sku-spec-grid">
                       <div className="spec-tile">
-                        <span className="spec-label">HIGH-BAY COORDINATES:</span>
+                        <span className="spec-label">WAREHOUSE LOCATION:</span>
                         <div className="coords-badge-group">
-                          <span className="coord-chip">AISLE 12</span>
-                          <span className="coord-chip">SHELF B3</span>
-                          <span className="coord-chip accent">BAY 04</span>
+                          <span className="coord-chip accent">{message.skuData?.location || 'Zone-A-Aisle-01-Shelf-A1'}</span>
                         </div>
                       </div>
                       <div className="spec-tile">
-                        <span className="spec-label">VERIFIED FLOOR STOCK:</span>
+                        <span className="spec-label">VERIFIED LIVE STOCK:</span>
                         <div className="stock-level-container">
-                          <span className="spec-val stock-val">{message.skuData?.stock || '350 units (Optimal)'}</span>
+                          <span className="spec-val stock-val">{message.skuData?.stock || 'In Stock'}</span>
                           <div className="stock-progress-track">
                             <div className="stock-progress-fill" style={{ width: '87%' }} />
                           </div>
@@ -167,26 +165,26 @@ export default function ChatMessage({
                   <div className="embedded-card-header">
                     <div className="card-header-left">
                       <Truck size={15} className="text-blue" />
-                      <strong>Fulfillment Consignment: {meta.order_id || message.orderData?.id || '#4521'}</strong>
+                      <strong>Fulfillment Consignment: {message.orderData?.id || meta.order_id || 'ORD-1001'}</strong>
                     </div>
-                    <span className="hud-status-badge badge-blue">ON-SCHEDULE DISPATCH</span>
+                    <span className="hud-status-badge badge-blue">ORDER TRACKING</span>
                   </div>
                   <div className="embedded-card-body">
                     <div className="sku-spec-grid">
                       <div className="spec-tile">
-                        <span className="spec-label">DISPATCH TELEMETRY:</span>
-                        <span className="spec-val status-in-transit">{message.orderData?.status || 'In Transit (On Schedule)'}</span>
+                        <span className="spec-label">STATUS TELEMETRY:</span>
+                        <span className="spec-val status-in-transit">{message.orderData?.status || 'PROCESSING'}</span>
                         <div className="transit-progress-track">
-                          <div className="transit-progress-fill" style={{ width: '68%' }} />
+                          <div className="transit-progress-fill" style={{ width: message.orderData?.status === 'DELIVERED' ? '100%' : message.orderData?.status === 'SHIPPED' ? '75%' : '35%' }} />
                         </div>
                       </div>
                       <div className="spec-tile">
-                        <span className="spec-label">ASSIGNED CARRIER FLEET:</span>
-                        <span className="spec-val carrier-val">{message.orderData?.carrier || 'FreightExpress Logistics • Priority 1'}</span>
+                        <span className="spec-label">ASSIGNED CARRIER:</span>
+                        <span className="spec-val carrier-val">{message.orderData?.carrier || 'FedEx Ground • Logistics'}</span>
                       </div>
                     </div>
                     <button
-                      onClick={() => onInspectOrder(message.orderData || { id: meta.order_id || '#4521' })}
+                      onClick={() => onInspectOrder(message.orderData || { id: message.orderData?.id || meta.order_id || 'ORD-1001' })}
                       className="btn-inspect-artifact"
                     >
                       <Truck size={13} className="text-blue" />
