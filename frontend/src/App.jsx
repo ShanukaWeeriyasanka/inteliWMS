@@ -194,8 +194,34 @@ export default function App() {
       }
 
       // Helper parser for SKU or Order cards
-      const hasSku = text.toUpperCase().includes('SKU-') || res.response?.includes('SKU-') || (res.routing?.extracted_params?.sku)
+      const invDetails = res.inventory_details || null
+      const firstItem = invDetails?.items?.[0] || null
+      const isInventory = res.agent_used === 'inventory_agent' || !!invDetails
+      const hasSku = !!firstItem || text.toUpperCase().includes('SKU-') || res.response?.includes('SKU-') || (res.routing?.extracted_params?.sku)
       const hasOrder = text.includes('#4521') || res.response?.includes('#4521') || (res.routing?.extracted_params?.order_id)
+
+      const skuData = firstItem ? {
+        sku: firstItem.sku,
+        name: firstItem.name,
+        location: firstItem.location,
+        aisle: firstItem.aisle || 12,
+        shelf: firstItem.shelf || 'B3',
+        tier: firstItem.tier || 'B',
+        bay: firstItem.bay || 'Bay 04',
+        stock: `${firstItem.quantity_on_hand} ${firstItem.unit} (${firstItem.status.replace('_', ' ')})`,
+        available: firstItem.available_quantity,
+        status: firstItem.status,
+        rawItem: firstItem
+      } : (hasSku ? {
+        sku: res.routing?.extracted_params?.sku || 'SKU-4521',
+        name: 'Warehouse Stock Item',
+        location: 'Aisle 12, Shelf B3, Bay 04',
+        aisle: 12,
+        shelf: 'B3',
+        tier: 'B',
+        bay: 'Bay 04',
+        stock: '340 units available'
+      } : null)
 
       const assistantMsg = {
         id: Date.now() + 1,
@@ -206,11 +232,8 @@ export default function App() {
           confidence: 0.95,
           latency_ms: 28
         },
-        skuData: hasSku ? {
-          sku: 'SKU-4521',
-          location: 'Aisle 12, Shelf B3, Bay 04',
-          stock: '350 units available'
-        } : null,
+        inventory_details: invDetails,
+        skuData,
         orderData: hasOrder ? {
           id: '#4521',
           status: 'In Transit — On Schedule',
@@ -218,13 +241,21 @@ export default function App() {
         } : null,
         metadata: {
           agent_used: res.agent_used,
-          audit: res.audit
+          audit: res.audit,
+          inventory_details: invDetails
         },
         timestamp: new Date()
       }
 
       setMessages((prev) => [...prev, assistantMsg])
       setSelectedArtifactMessage(assistantMsg)
+      
+      // Auto open visualizer for inventory inquiries
+      if (isInventory || skuData) {
+        setArtifactTab('bay_visualizer')
+        setArtifactOpen(true)
+      }
+      
       fetchAuditData()
     } catch (err) {
       const errorMsg = {

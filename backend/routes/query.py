@@ -196,4 +196,7 @@ async def handle_coordinator_query(payload: QueryRequest, request: Request, db: 
     if "fulfillment_details" in agent_result:
         final_response["fulfillment_details"] = agent_result["fulfillment_details"]
 
+    if "inventory_details" in agent_result:
+        final_response["inventory_details"] = agent_result["inventory_details"]
+
     return final_response

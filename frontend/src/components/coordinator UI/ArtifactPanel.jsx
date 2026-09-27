@@ -14,6 +14,7 @@ import {
   AlertCircle,
   Activity
 } from 'lucide-react'
+import WarehouseFloorVisualizer from './WarehouseFloorVisualizer'
 
 export default function ArtifactPanel({
   isOpen,
@@ -192,60 +193,12 @@ export default function ArtifactPanel({
           </div>
         )}
 
-        {/* TAB 2: BAY VISUALIZER */}
+        {/* TAB 2: DYNAMIC WAREHOUSE FLOOR & BAY VISUALIZER (MEMBER 1) */}
         {activeTab === 'bay_visualizer' && (
-          <div className="bay-visualizer-tab-view">
-            <div className="bay-header-callout">
-              <div className="bay-loc-title">
-                <Warehouse size={18} className="text-amber" />
-                <div>
-                  <h4>High-Bay Location: Aisle 12, Shelf B3</h4>
-                  <span>Payload: Lithium Forklift Power Pack (SKU-4521)</span>
-                </div>
-              </div>
-              <div className="bay-badge-stock">350 Units In Stock</div>
-            </div>
-
-            {/* Visual Floor Grid */}
-            <div className="floor-grid-container">
-              <div className="floor-label">Warehouse Floor Alpha — High-Bay Storage Racks</div>
-              <div className="racks-visual-grid">
-                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14].map((aisle) => (
-                  <div
-                    key={aisle}
-                    className={`aisle-column ${aisle === 12 ? 'target-aisle' : ''}`}
-                  >
-                    <span className="aisle-num">A{aisle}</span>
-                    <div className="shelf-tier tier-a" />
-                    <div className={`shelf-tier tier-b ${aisle === 12 ? 'target-shelf-glow' : ''}`}>
-                      {aisle === 12 && <div className="target-beacon-pin" title="SKU-4521 Stored Here" />}
-                    </div>
-                    <div className="shelf-tier tier-c" />
-                  </div>
-                ))}
-              </div>
-              <div className="floor-runway">Forklift Transit Runway 03 (Automated AGV Lane)</div>
-            </div>
-
-            <div className="bay-metrics-grid">
-              <div className="bay-metric-card">
-                <span className="bay-lbl">Storage Zone</span>
-                <span className="bay-val">Heavy Machinery (Zone H)</span>
-              </div>
-              <div className="bay-metric-card">
-                <span className="bay-lbl">Ambient Temp</span>
-                <span className="bay-val">19.4 °C (Monitored)</span>
-              </div>
-              <div className="bay-metric-card">
-                <span className="bay-lbl">Pallet Weight</span>
-                <span className="bay-val">420 kg / bay</span>
-              </div>
-              <div className="bay-metric-card">
-                <span className="bay-lbl">Next Cycle Count</span>
-                <span className="bay-val">Tomorrow, 08:00</span>
-              </div>
-            </div>
-          </div>
+          <WarehouseFloorVisualizer
+            selectedMessage={selectedMessage}
+            currentUser={currentUser}
+          />
         )}
 
         {/* TAB 3: FULFILLMENT & ORDER TIMELINE */}

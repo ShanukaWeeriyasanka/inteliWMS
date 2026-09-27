@@ -1,0 +1,46 @@
+{
+  "sibling_warehouses": [
+    {
+      "warehouse_id": "WH-BETA-EAST",
+      "name": "IntelliWMS East Distribution Center",
+      "location": "Newark, NJ",
+      "transit_days": 1,
+      "transfer_cost_per_unit": 2.50,
+      "inventory": {
+        "SKU-4521": { "name": "Wireless Barcode Scanner", "quantity": 180, "surplus": 120 },
+        "SKU-7788": { "name": "Thermal Label Printer", "quantity": 65, "surplus": 45 },
+        "SKU-9012": { "name": "Heavy Duty Pallet Wrap", "quantity": 320, "surplus": 220 },
+        "SKU-1088": { "name": "Thermal Industrial Label Rolls", "quantity": 40, "surplus": 0 },
+        "SKU-2045": { "name": "Heavy Duty Forklift Battery Lithium", "quantity": 14, "surplus": 4 }
+      }
+    },
+    {
+      "warehouse_id": "WH-GAMMA-SOUTH",
+      "name": "IntelliWMS South Logistics Hub",
+      "location": "Atlanta, GA",
+      "transit_days": 2,
+      "transfer_cost_per_unit": 3.75,
+      "inventory": {
+        "SKU-4521": { "name": "Wireless Barcode Scanner", "quantity": 50, "surplus": 10 },
+        "SKU-7788": { "name": "Thermal Label Printer", "quantity": 12, "surplus": 0 },
+        "SKU-9012": { "name": "Heavy Duty Pallet Wrap", "quantity": 450, "surplus": 350 },
+        "SKU-1088": { "name": "Thermal Industrial Label Rolls", "quantity": 280, "surplus": 180 },
+        "SKU-2045": { "name": "Heavy Duty Forklift Battery Lithium", "quantity": 55, "surplus": 35 }
+      }
+    },
+    {
+      "warehouse_id": "WH-DELTA-CENTRAL",
+      "name": "IntelliWMS Central Inland Terminal",
+      "location": "Chicago, IL",
+      "transit_days": 1,
+      "transfer_cost_per_unit": 2.20,
+      "inventory": {
+        "SKU-4521": { "name": "Wireless Barcode Scanner", "quantity": 210, "surplus": 150 },
+        "SKU-7788": { "name": "Thermal Label Printer", "quantity": 80, "surplus": 60 },
+        "SKU-9012": { "name": "Heavy Duty Pallet Wrap", "quantity": 90, "surplus": 10 },
+        "SKU-1088": { "name": "Thermal Industrial Label Rolls", "quantity": 310, "surplus": 210 },
+        "SKU-2045": { "name": "Heavy Duty Forklift Battery Lithium", "quantity": 8, "surplus": 0 }
+      }
+    }
+  ]
+}

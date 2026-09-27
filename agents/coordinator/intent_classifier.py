@@ -193,11 +193,16 @@ Analyze the query and return ONLY a valid JSON object:
         """Rule-based heuristic classifier when LLM is unavailable or for testing."""
         q_lower = query.lower()
 
-        # INVENTORY indicators
+        # INVENTORY indicators (Stock, Location, Doc Parser, Depletion, Anomaly, Transfer, Equipment Health)
         inventory_patterns = [
             r"\b(stock|inventory|quantity|sku|sku-\d+|reorder|restock|battery|label rolls|pallet wrap)\b",
-            r"\b(how many|on hand|in stock|warehouse aisle|shelf|bin location)\b",
-            r"\b(supplier email|equipment issue|supplier)\b"
+            r"\b(how many|on hand|in stock|warehouse aisle|shelf|bin location|bay map)\b",
+            r"\b(supplier email|supplier pdf|parse email|inbound invoice|manifest|po-\d+|we shipped)\b",
+            r"\b(grinding|hydraulic leak|conveyor slip|belt squeal|agv-\d+|equipment health|machine breakdown|informal log)\b",
+            r"\b(forklift.*(grind|leak|noise|break|service|repair|shaking))\b",
+            r"\b(shrinkage|anomaly|missing stock|discrepancy|unauthorized adjustment|loss prevention)\b",
+            r"\b(transfer|sibling warehouse|other warehouse|surplus stock|wh-beta|wh-gamma|wh-delta)\b",
+            r"\b(burn rate|depletion|velocity|days until stockout|predict reorder)\b"
         ]
         # FULFILLMENT indicators
         fulfillment_patterns = [
@@ -210,14 +215,14 @@ Analyze the query and return ONLY a valid JSON object:
             r"\b(returns|how to return|compliance|shift handover|shift notes|speed limit|vest)\b"
         ]
 
-        if any(re.search(p, q_lower) for p in inventory_patterns) and not any(re.search(p, q_lower) for p in fulfillment_patterns):
-            return IntentResult("INVENTORY", 0.93, "Heuristic match: stock, SKU, and inventory signals.")
+        if any(re.search(p, q_lower) for p in knowledge_patterns):
+            return IntentResult("KNOWLEDGE", 0.91, "Heuristic match: warehouse SOP, safety, and protocol signals.")
 
         if any(re.search(p, q_lower) for p in fulfillment_patterns):
             return IntentResult("FULFILLMENT", 0.94, "Heuristic match: order status, dispatch, and tracking signals.")
 
-        if any(re.search(p, q_lower) for p in knowledge_patterns):
-            return IntentResult("KNOWLEDGE", 0.91, "Heuristic match: warehouse SOP, safety, and protocol signals.")
+        if any(re.search(p, q_lower) for p in inventory_patterns):
+            return IntentResult("INVENTORY", 0.93, "Heuristic match: stock, SKU, and inventory signals.")
 
         # Default: tell the user we didn't understand rather than hallucinating
         return IntentResult(

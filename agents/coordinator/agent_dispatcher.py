@@ -29,9 +29,17 @@ async def dispatch_to_agent(target_agent: str, context_payload: Dict[str, Any], 
                 "agent_used": target_agent,
                 "response": resp.get("response", ""),
                 "inventory_details": {
+                    "sub_intent": resp.get("sub_intent", "stock_check"),
                     "items": resp.get("items", []),
                     "needs_reorder": resp.get("needs_reorder", False),
                     "source": resp.get("source", "database"),
+                    "document_result": resp.get("document_result"),
+                    "prediction_result": resp.get("prediction_result"),
+                    "anomaly_result": resp.get("anomaly_result"),
+                    "transfer_result": resp.get("transfer_result"),
+                    "equipment_health_result": resp.get("equipment_health_result"),
+                    "warehouse_layout": resp.get("warehouse_layout"),
+                    "execution_time_ms": resp.get("execution_time_ms")
                 }
             }
         except Exception as e:

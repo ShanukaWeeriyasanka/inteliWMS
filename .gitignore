@@ -36,6 +36,7 @@ Thumbs.db
 .coverage
 htmlcov/
 
-# Docker volumes (local data)
+# Docker & local vector store data
 postgres_data/
 chroma_data/
+data/chroma_db/

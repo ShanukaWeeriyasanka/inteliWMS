@@ -135,17 +135,17 @@ export default function ChatMessage({
                       <div className="spec-tile">
                         <span className="spec-label">HIGH-BAY COORDINATES:</span>
                         <div className="coords-badge-group">
-                          <span className="coord-chip">AISLE 12</span>
-                          <span className="coord-chip">SHELF B3</span>
-                          <span className="coord-chip accent">BAY 04</span>
+                          <span className="coord-chip">AISLE {message.skuData?.aisle || 12}</span>
+                          <span className="coord-chip">SHELF {message.skuData?.shelf || 'B3'}</span>
+                          <span className="coord-chip accent">{message.skuData?.bay ? message.skuData.bay.toUpperCase() : `TIER ${message.skuData?.tier || 'B'}`}</span>
                         </div>
                       </div>
                       <div className="spec-tile">
                         <span className="spec-label">VERIFIED FLOOR STOCK:</span>
                         <div className="stock-level-container">
-                          <span className="spec-val stock-val">{message.skuData?.stock || '350 units (Optimal)'}</span>
+                          <span className="spec-val stock-val">{message.skuData?.stock || 'Physical stock verified'}</span>
                           <div className="stock-progress-track">
-                            <div className="stock-progress-fill" style={{ width: '87%' }} />
+                            <div className="stock-progress-fill" style={{ width: message.skuData?.status === 'OUT_OF_STOCK' ? '8%' : (message.skuData?.status === 'LOW_STOCK' ? '30%' : '85%') }} />
                           </div>
                         </div>
                       </div>
