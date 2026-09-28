@@ -17,7 +17,7 @@ from mcp_servers.coordinator_client import (
 
 client = TestClient(app)
 
-TEST_SECRET = "dev-secret-change-in-production"
+TEST_SECRET = settings.JWT_SECRET
 
 @pytest.fixture
 def valid_staff_token():

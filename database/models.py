@@ -106,6 +106,10 @@ class Order(Base):
     priority = Column(String(30), default="standard")
     total_amount = Column(Numeric(12, 2), default=0.00)
     shipping_address = Column(Text, nullable=True)
+    # --- Recommendation 2: Delay root-cause tracking fields ---
+    delay_reason = Column(String(255), nullable=True)   # e.g. "Carrier bottleneck", "Weather hold"
+    carrier_name = Column(String(150), nullable=True)   # e.g. "FedEx", "DHL", "UPS"
+    revised_delivery_date = Column(DateTime(timezone=True), nullable=True)  # Updated ETA after delay
     created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 

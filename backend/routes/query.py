@@ -6,14 +6,16 @@ Orchestrates:
 3. MCP delegation to specialist agents (Task 3)
 4. Standardized response formatting and audit metadata
 """
+import time
 from datetime import datetime, timezone
 from typing import Optional, Dict, Any
-from fastapi import APIRouter, Request, HTTPException, Depends
+from fastapi import APIRouter, Request, HTTPException, Depends, BackgroundTasks
 from pydantic import BaseModel, Field
 import jwt
 
 from sqlalchemy.orm import Session
 from database.connection import get_db
+from database.models import ConversationLog
 
 from config.settings import settings
 from utils.logger import StructuredLogger
@@ -42,35 +44,49 @@ DOMAIN_TO_AGENT_MAP = {
 }
 
 def verify_and_decode_token(token_str: str) -> Dict[str, Any]:
-    """Validates JWT token against known configuration secrets."""
+    """
+    Validates JWT token strictly against the single configured secret.
+    SECURITY: Dev fallback secrets have been removed — only settings.JWT_SECRET is accepted.
+    """
     if not token_str or token_str == "invalid_token":
         raise UnauthorizedException("Invalid authentication token")
 
-    secrets_to_try = [
-        settings.JWT_SECRET,
-        "dev-secret-change-in-production",
-        "your-secret-key-minimum-32-characters-long",
-        "dev-secret-minimum-32-characters-long"
-    ]
-
-    for secret in secrets_to_try:
-        try:
-            return jwt.decode(token_str, secret, algorithms=["HS256"])
-        except jwt.InvalidSignatureError:
-            continue
-        except jwt.ExpiredSignatureError:
-            raise UnauthorizedException("Authentication token has expired")
-        except Exception:
-            continue
-
-    # Attempt decode without signature check to differentiate signature mismatch from format error
     try:
-        jwt.decode(token_str, options={"verify_signature": False})
+        return jwt.decode(token_str, settings.JWT_SECRET, algorithms=["HS256"])
+    except jwt.ExpiredSignatureError:
+        raise UnauthorizedException("Authentication token has expired")
+    except jwt.InvalidSignatureError:
         raise UnauthorizedException("Token signature verification failed")
-    except UnauthorizedException:
-        raise
     except Exception as e:
         raise UnauthorizedException(f"Malformed or invalid token: {str(e)}")
+
+
+def _persist_conversation_log(
+    db: Session,
+    user_id: str,
+    user_role: str,
+    message: str,
+    agent_used: str,
+    intent: str,
+    response_text: str,
+    latency_ms: int,
+) -> None:
+    """Background task: commit a conversation turn to the ConversationLog table."""
+    try:
+        log_entry = ConversationLog(
+            user_id=user_id,
+            role=user_role,
+            message=message,
+            agent_routed_to=agent_used,
+            intent=intent,
+            response=response_text,
+            latency_ms=latency_ms,
+        )
+        db.add(log_entry)
+        db.commit()
+    except Exception as exc:
+        db.rollback()
+        logger.log_event("CONVERSATION_LOG_FAILED", {"error": str(exc)})
 
 def classify_intent_with_fallback(clean_query: str) -> Dict[str, Any]:
     """Classifies user intent using IntentClassifier with local heuristic fallback."""
@@ -103,7 +119,7 @@ def classify_intent_with_fallback(clean_query: str) -> Dict[str, Any]:
         }
 
 @router.post("/query")
-async def handle_coordinator_query(payload: QueryRequest, request: Request, db: Session = Depends(get_db)):
+async def handle_coordinator_query(payload: QueryRequest, request: Request, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     """
     Main Coordinator entry point.
     Receives user natural language query, enforces security, classifies intent,
@@ -173,7 +189,9 @@ async def handle_coordinator_query(payload: QueryRequest, request: Request, db: 
         role=user_role
     )
 
+    t_start = time.monotonic()
     agent_result = await dispatch_to_agent(target_agent, context_payload, db)
+    latency_ms = int((time.monotonic() - t_start) * 1000)
 
     # 6. Structured Response
     audit_meta = {
@@ -185,10 +203,12 @@ async def handle_coordinator_query(payload: QueryRequest, request: Request, db: 
         "normalized_query": clean_query
     }
 
+    response_text = agent_result.get("response", "")
+
     final_response = {
         "status": "success",
         "agent_used": target_agent,
-        "response": agent_result.get("response"),
+        "response": response_text,
         "routing": routing_decision,
         "audit": audit_meta
     }
@@ -198,5 +218,18 @@ async def handle_coordinator_query(payload: QueryRequest, request: Request, db: 
 
     if "inventory_details" in agent_result:
         final_response["inventory_details"] = agent_result["inventory_details"]
+
+    # 7. Recommendation 3 — Persist conversation turn to audit log (background, non-blocking)
+    background_tasks.add_task(
+        _persist_conversation_log,
+        db=db,
+        user_id=user_id,
+        user_role=user_role,
+        message=clean_query,
+        agent_used=target_agent,
+        intent=domain,
+        response_text=str(response_text),
+        latency_ms=latency_ms,
+    )
 
     return final_response

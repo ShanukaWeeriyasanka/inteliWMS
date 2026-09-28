@@ -7,8 +7,10 @@ from agents.fulfillment.schemas import FulfillmentIntent, FulfillmentIntentResul
 import time
 import jwt
 
+from config.settings import settings
+
 client = TestClient(app)
-TEST_SECRET = "dev-secret-change-in-production"
+TEST_SECRET = settings.JWT_SECRET
 
 @pytest.fixture
 def valid_staff_token():
