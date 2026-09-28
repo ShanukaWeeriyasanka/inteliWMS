@@ -1,5 +1,6 @@
 import sys
 import os
+from datetime import datetime, timezone, timedelta
 
 # Ensure project root is in Python path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
@@ -170,6 +171,30 @@ def seed_database():
                 is_hazardous=True,
                 max_stack_tier=2,
             ),
+            Product(
+                sku="SKU-3300",
+                name="High-Temp Poly Strapping Band",
+                category="Packaging Consumables",
+                quantity=0,
+                reserved_quantity=0,
+                safety_stock=20,
+                reorder_point=40,
+                reorder_quantity=100,
+                unit="rolls",
+                daily_burn_rate=8.0,
+                lead_time_days=4,
+                unit_price=120.00,
+                weight_kg=14.5,
+                location="Aisle 2, Bay A-05, Shelf A2",
+                aisle=2,
+                shelf="A2",
+                tier="A",
+                bay="Bay A-05",
+                occupancy_pct=5.0,
+                temperature="20.0 °C (Ambient)",
+                is_hazardous=False,
+                max_stack_tier=4,
+            ),
         ]
         db.add_all(products)
 
@@ -178,23 +203,43 @@ def seed_database():
             Order(
                 order_id="ORD-1001",
                 customer_name="Acme Logistics",
+                customer_email="dispatch@acmelogistics.com",
                 status="delayed",
-                priority="standard",
+                priority="rush",
                 total_amount=5500.00,
+                delay_reason="Carrier dispatch backlog at customs checkpoint",
+                carrier_name="DHL Express",
+                revised_delivery_date=datetime.now(timezone.utc) + timedelta(days=3),
+                shipping_address="742 Evergreen Terrace, Sector 7, Springfield",
             ),
             Order(
                 order_id="ORD-1002",
                 customer_name="Global Express",
+                customer_email="logistics@globalexpress.com",
                 status="pending",
                 priority="standard",
                 total_amount=1550.00,
+                shipping_address="1200 Industrial Parkway, Dock 4, Chicago, IL",
             ),
             Order(
                 order_id="ORD-1003",
                 customer_name="Apex Freight",
+                customer_email="ops@apexfreight.com",
                 status="shipped",
                 priority="standard",
                 total_amount=56.00,
+                carrier_name="FedEx Ground",
+                shipping_address="88 Terminal Way, Suite 10, Newark, NJ",
+            ),
+            Order(
+                order_id="ORD-1004",
+                customer_name="Prime Retail Logistics",
+                customer_email="procurement@primeretail.com",
+                status="delayed",
+                priority="rush",
+                total_amount=1200.00,
+                delay_reason=None,
+                shipping_address="500 Distribution Boulevard, Atlanta, GA",
             ),
         ]
         db.add_all(orders)
@@ -222,6 +267,14 @@ def seed_database():
                 product_name="Heavy Duty Pallet Wrap",
                 quantity=2,
                 unit_price=28.00,
+                status="picked",
+            ),
+            OrderItem(
+                order_id="ORD-1004",
+                sku="SKU-3300",
+                product_name="High-Temp Poly Strapping Band",
+                quantity=10,
+                unit_price=120.00,
                 status="pending",
             ),
         ]

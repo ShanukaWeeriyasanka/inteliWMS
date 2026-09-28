@@ -106,12 +106,46 @@ class Order(Base):
     priority = Column(String(30), default="standard")
     total_amount = Column(Numeric(12, 2), default=0.00)
     shipping_address = Column(Text, nullable=True)
-    # --- Recommendation 2: Delay root-cause tracking fields ---
-    delay_reason = Column(String(255), nullable=True)   # e.g. "Carrier bottleneck", "Weather hold"
-    carrier_name = Column(String(150), nullable=True)   # e.g. "FedEx", "DHL", "UPS"
-    revised_delivery_date = Column(DateTime(timezone=True), nullable=True)  # Updated ETA after delay
+    # --- Delay root-cause tracking fields ---
+    delay_reason = Column(String(255), nullable=True)
+    carrier_name = Column(String(150), nullable=True)
+    revised_delivery_date = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    items = relationship("OrderItem", backref="order", lazy="selectin", cascade="all, delete-orphan")
+
+    @property
+    def sku(self):
+        """Primary SKU (from first order item) for single-item order access."""
+        if self.items and len(self.items) > 0:
+            return self.items[0].sku
+        return None
+
+    @sku.setter
+    def sku(self, val):
+        if not val:
+            return
+        if self.items and len(self.items) > 0:
+            self.items[0].sku = val
+        else:
+            self.items = [OrderItem(sku=val, quantity=1)]
+
+    @property
+    def quantity(self):
+        """Total quantity ordered across items for single-item/total order access."""
+        if self.items and len(self.items) > 0:
+            return sum(item.quantity for item in self.items if item.quantity is not None)
+        return None
+
+    @quantity.setter
+    def quantity(self, val):
+        if val is None:
+            return
+        if self.items and len(self.items) > 0:
+            self.items[0].quantity = val
+        else:
+            self.items = [OrderItem(sku="", quantity=val)]
 
 class OrderItem(Base):
     """Line items for customer orders."""

@@ -72,25 +72,61 @@ class FulfillmentAgent:
             elif intent == FulfillmentIntent.ORDER_DELAY:
                 if order.status == "delayed":
                     base_message = f"Order {order_id} is currently delayed."
-                    if order.sku:
+
+                    delay_reason = getattr(order, "delay_reason", None)
+                    carrier_name = getattr(order, "carrier_name", None)
+                    revised_date = getattr(order, "revised_delivery_date", None)
+
+                    carrier_detail = ""
+                    if carrier_name:
+                        carrier_detail += f" Carrier: {carrier_name}."
+                    if revised_date:
+                        carrier_detail += f" Revised delivery date: {str(revised_date)[:10]}."
+
+                    if delay_reason:
+                        message = f"{base_message} Reason: {delay_reason}.{carrier_detail}"
+                    elif order.sku:
                         try:
+                            import re
                             inv_resp = await self._call_inventory(order.sku, request.user_id, request.role, db)
                             inv_text = inv_resp.get("response", "").lower()
-                            
-                            if "out of stock" in inv_text or "stock: 0" in inv_text or "0 units" in inv_text:
-                                message = f"{base_message} The related {order.sku} is currently out of stock. This may be contributing to the delay, but the order record does not contain a specific delay reason."
-                            elif "stock:" in inv_text or "units on hand" in inv_text or "available" in inv_text:
-                                message = f"{base_message} The related {order.sku} currently has stock available, so the available inventory data does not by itself explain the delay. The order record does not contain a specific delay reason."
+
+                            # Check structured inventory details first if present
+                            inv_items = inv_resp.get("inventory_details", {}).get("items", [])
+                            if inv_items and isinstance(inv_items, list) and len(inv_items) > 0:
+                                qty = inv_items[0].get("quantity_on_hand", 0)
+                                is_out_of_stock = (qty == 0)
+                                is_available = (qty > 0)
                             else:
-                                message = f"{base_message} A specific delay reason is not available in the order record."
+                                is_out_of_stock = (
+                                    "out of stock" in inv_text
+                                    or "stock: 0" in inv_text
+                                    or "stock depleted" in inv_text
+                                    or bool(re.search(r"\b0\s*(?:units|rolls|items|pieces)?\b", inv_text))
+                                )
+                                is_available = (
+                                    "currently has stock available" in inv_text
+                                    or "units on hand" in inv_text
+                                    or "available" in inv_text
+                                    or "in stock" in inv_text
+                                    or ("stock:" in inv_text and not is_out_of_stock)
+                                )
+
+                            if is_out_of_stock:
+                                message = f"{base_message} The related {order.sku} is currently out of stock. This may be contributing to the delay, but the order record does not contain a specific delay reason.{carrier_detail}"
+                            elif is_available:
+                                message = f"{base_message} The related {order.sku} currently has stock available, so the available inventory data does not by itself explain the delay. The order record does not contain a specific delay reason.{carrier_detail}"
+                            else:
+                                message = f"{base_message} A specific delay reason is not available in the order record.{carrier_detail}"
                         except Exception as e:
                             logger.log_event("CROSS_AGENT_INVENTORY_ERROR", {"error": str(e), "sku": order.sku})
-                            message = f"{base_message} A specific delay reason is not available in the order record."
+                            message = f"{base_message} A specific delay reason is not available in the order record.{carrier_detail}"
                     else:
-                        message = f"{base_message} A specific delay reason is not available in the order record."
+                        message = f"{base_message} A specific delay reason is not available in the order record.{carrier_detail}"
                 else:
                     message = f"Order {order_id} is currently {order.status} and is not marked as delayed."
                 return FulfillmentResponse(success=True, order_id=order_id, intent=intent, message=message)
+
 
             elif intent == FulfillmentIntent.ORDER_DETAILS:
                 message = (

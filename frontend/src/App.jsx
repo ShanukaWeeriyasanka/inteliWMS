@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { api } from './services/api'
+import ToastContainer from './components/Toast'
 import {
   Sidebar,
   PromptCapsule,
@@ -57,6 +58,16 @@ export default function App() {
   // Security SOC Telemetry
   const [auditLogs, setAuditLogs] = useState([])
   const [auditStats, setAuditStats] = useState(null)
+
+  // Toast Notifications
+  const [toasts, setToasts] = useState([])
+  const addToast = useCallback((toast) => {
+    const id = Date.now() + Math.random()
+    setToasts((prev) => [...prev, { id, ...toast }])
+  }, [])
+  const removeToast = useCallback((id) => {
+    setToasts((prev) => prev.filter((t) => t.id !== id))
+  }, [])
 
   const messagesEndRef = useRef(null)
 
@@ -258,11 +269,39 @@ export default function App() {
       
       fetchAuditData()
     } catch (err) {
+      const rawMsg = err.response?.data?.detail || err.message || ''
+      const isQuotaError = (
+        err.response?.status === 429 ||
+        /quota|resource_exhausted|rate.?limit|api.?key|tokens?.?limit|exceeded/i.test(rawMsg)
+      )
+
+      if (isQuotaError) {
+        addToast({
+          type: 'error',
+          title: 'API Key Quota Exhausted',
+          message: 'The LLM API key has run out of tokens or hit its rate limit. Check your GEMINI_API_KEY or GROQ_API_KEY in the .env file and retry.',
+        })
+      } else if (err.response?.status === 401) {
+        addToast({
+          type: 'warning',
+          title: 'Session Expired',
+          message: 'Your login session has expired. Please log out and log back in.',
+        })
+      } else {
+        addToast({
+          type: 'error',
+          title: 'Agent Error',
+          message: rawMsg || 'Could not reach the Coordinator Agent. Make sure the backend is running on port 8000.',
+        })
+      }
+
       const errorMsg = {
         id: Date.now() + 1,
         role: 'assistant',
         status: 'error',
-        content: `Error contacting Coordinator Agent: ${err.response?.data?.detail || err.message}`,
+        content: isQuotaError
+          ? 'API key quota exhausted. The LLM could not respond. Please check your API key limits.'
+          : `Error contacting Coordinator Agent: ${rawMsg}`,
         timestamp: new Date()
       }
       setMessages((prev) => [...prev, errorMsg])
@@ -532,6 +571,9 @@ export default function App() {
           setIsCommercializationOpen(false)
         }}
       />
+
+      {/* Global Toast Notifications */}
+      <ToastContainer toasts={toasts} remove={removeToast} />
     </div>
   )
 }
