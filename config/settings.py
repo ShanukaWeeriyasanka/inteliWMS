@@ -34,11 +34,36 @@ class Settings:
     # Database (Defaults to SQLite for local development without Docker)
     DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///./intelliwms.db")
     
+    # Warehouse Digital Twin (needs PostgreSQL; disabled when no Postgres URL is set)
+    TWIN_DATABASE_URL: str = os.getenv("TWIN_DATABASE_URL", "")
+    TWIN_DB_SCHEMA: str = os.getenv("TWIN_DB_SCHEMA", "twin")
+    TWIN_SQL_DIR: Path = BASE_DIR / "database" / "twin"
+    TWIN_AUTO_SETUP: bool = os.getenv("TWIN_AUTO_SETUP", "true").lower() == "true"
+    TWIN_NOTIFY_CHANNEL: str = os.getenv("TWIN_NOTIFY_CHANNEL", "twin_changes")
+    TWIN_SSE_KEEPALIVE_S: float = float(os.getenv("TWIN_SSE_KEEPALIVE_S", "15"))
+    TWIN_LISTEN_RETRY_S: float = float(os.getenv("TWIN_LISTEN_RETRY_S", "3"))
+
     # Security / JWT
     JWT_SECRET: str = os.getenv("JWT_SECRET", "dev-secret-minimum-32-characters-long")
-    
+
     # Logging
     LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO")
+    # Per-logger overrides, e.g. "mcp=WARNING,agents.inventory_agent=DEBUG"
+    LOG_LEVELS: str = os.getenv("LOG_LEVELS", "mcp=WARNING,httpx=WARNING")
+    # Message / response text is omitted from logs unless this is true
+    LOG_INCLUDE_CONTENT: bool = os.getenv("LOG_INCLUDE_CONTENT", "false").lower() == "true"
+    LOG_MAX_FIELD_LEN: int = int(os.getenv("LOG_MAX_FIELD_LEN", "500"))
+
+    # Metrics (GET /metrics, Prometheus text format; optional bearer token)
+    METRICS_ENABLED: bool = os.getenv("METRICS_ENABLED", "true").lower() == "true"
+    METRICS_TOKEN: str = os.getenv("METRICS_TOKEN", "")
+
+    # Upper bound for one LLM call made by the coordinator (rewrite / classify / reply text)
+    LLM_TIMEOUT_S: float = float(os.getenv("LLM_TIMEOUT_S", "8"))
+
+    # Chat threads
+    CHAT_HISTORY_CONTEXT_TURNS: int = int(os.getenv("CHAT_HISTORY_CONTEXT_TURNS", "6"))
+    CHAT_MAX_MESSAGE_CHARS: int = int(os.getenv("CHAT_MAX_MESSAGE_CHARS", "4000"))
 
 # Singleton instance for the app to import
 settings = Settings()

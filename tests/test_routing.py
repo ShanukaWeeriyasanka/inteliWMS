@@ -77,12 +77,13 @@ def test_classify_knowledge_query(mock_llm_knowledge):
     assert confidence > 0.8
     assert "SOP" in reasoning or "KNOWLEDGE" in intent
 
-def test_classify_low_confidence_escalates_to_knowledge(mock_llm_low_confidence):
-    """Test that classifications with confidence < 0.60 default safely to KNOWLEDGE."""
+def test_classify_low_confidence_asks_to_clarify(mock_llm_low_confidence):
+    """An LLM suggestion with confidence < 0.60 is not used: no rule matched, so the user is asked to clarify."""
     classifier = IntentClassifier(llm=mock_llm_low_confidence)
     res = classifier.classify("maybe something somewhere")
-    assert res.domain == "KNOWLEDGE"
-    assert "Escalated to KNOWLEDGE" in res.reasoning
+    assert res.domain == "COORDINATOR"
+    assert res.rule_id == "clarify.domain"
+    assert res.decided_by == "fallback" and res.llm_status == "low_confidence"
 
 def test_classify_heuristic_fallback_stock():
     """Test rule heuristic classifies stock queries correctly without LLM."""

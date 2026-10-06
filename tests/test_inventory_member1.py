@@ -67,8 +67,11 @@ def test_reorder_predictor_regulated_compliance():
 
 def test_anomaly_watcher_shrinkage():
     """Verify shrinkage anomaly detection and financial loss exposure calculation."""
-    alert = anomaly_watcher.check_sku_anomalies("SKU-9012")
+    # No live transactions in the dev DB: the curated scenario is opt-in and flagged as demo data
+    assert anomaly_watcher.check_sku_anomalies("SKU-9012", include_demo=False) is None
+    alert = anomaly_watcher.check_sku_anomalies("SKU-9012", include_demo=True)
     assert alert is not None
+    assert alert.is_demo is True
     assert alert.anomaly_type == "UNEXPLAINED_SHRINKAGE"
     assert alert.variance == -20
     assert alert.loss_value_est > 0
@@ -116,8 +119,9 @@ def test_warehouse_spatial_map():
     assert len(full_map["agv_fleet"]) >= 3
 
 
-def test_inventory_agent_end_to_end_dispatcher():
+def test_inventory_agent_end_to_end_dispatcher(monkeypatch):
     """Test unified agent dispatch across all Member 1 sub-intents."""
+    monkeypatch.setenv("INVENTORY_DEMO_DATA", "true")  # anomaly scenarios are demo data, labelled as such
     # 1. Document parser query
     resp1 = handle_inventory_query("supplier email: Apex shipped 200 units of SKU-4521 arriving tomorrow")
     assert resp1["sub_intent"] == "document_parser"
@@ -133,6 +137,8 @@ def test_inventory_agent_end_to_end_dispatcher():
     resp3 = handle_inventory_query("detect inventory shrinkage for SKU-9012")
     assert resp3["sub_intent"] == "anomaly_watcher"
     assert resp3["anomaly_result"] is not None
+    assert resp3["anomaly_result"]["is_demo"] is True
+    assert "Demo scenario" in resp3["response"]
 
     # 4. Transfer query
     resp4 = handle_inventory_query("can we transfer surplus stock of SKU-4521 from sibling warehouse?")

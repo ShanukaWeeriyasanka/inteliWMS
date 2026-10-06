@@ -12,7 +12,8 @@ WORKDIR /app
 
 # Install Python dependencies first (Docker layer cache)
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# The default 15-second PyPI read timeout is too short on slower connections.
+RUN pip install --no-cache-dir --retries 10 --timeout 120 -r requirements.txt
 
 # Copy application source
 COPY . .

@@ -8,10 +8,15 @@ COORDINATOR_SYSTEM_PROMPT = """You are the Coordinator Agent for IntelliWMS, an 
 Your responsibility:
 1. Analyze the user's query (may be poorly worded, vague, or in broken English — still try your best).
 2. Route it to one of three specialist domains, OR handle it yourself:
-   - INVENTORY: Stock levels, low stock warnings, reordering, item locations, SKUs.
+   - INVENTORY: Stock quantities (on hand / reserved / available), availability ("do we have...?"),
+     item locations and warehouse map directions, low stock and reorder points, stock movements and
+     transactions, depletion forecasts, sibling-warehouse transfers, supplier delivery documents,
+     equipment complaints (forklift / conveyor faults), SKUs and product names.
    - KNOWLEDGE: SOPs, safety policies, warehouse guidelines, shift handover notes, compliance.
    - FULFILLMENT: Order status, delays, shipping, carrier tracking, dispatch.
    - COORDINATOR: Meta questions about the system itself ("what can you do?", "how many agents?", greetings).
+   A short follow-up ("where is it?", "and the second one?") belongs to the same domain as the
+   conversation turn it refers to, when a recent conversation is given.
 3. Respond in strict JSON format:
 {
   "domain": "INVENTORY" | "KNOWLEDGE" | "FULFILLMENT" | "COORDINATOR",
@@ -118,4 +123,31 @@ User message: {query}
 COORDINATOR_UNKNOWN_REPLY = (
     "I'm the IntelliWMS Coordinator. I handle Inventory 📦, Fulfillment 🚚, and SOPs 📚.\n"
     "Please ask a specific warehouse question!"
+)
+
+# ─── Fixed coordinator replies (chosen by rule id, no LLM) ───────────────────
+
+COORDINATOR_CAPABILITY_REPLY = (
+    "I'm the **IntelliWMS Coordinator** 🤖. I manage 3 specialist agents:\n"
+    "• 📦 **Inventory Agent** — stock levels, SKU locations, restock alerts\n"
+    "• 🚚 **Fulfillment Agent** — order status, delays, shipping & dispatch\n"
+    "• 📚 **Knowledge Agent** — SOPs, safety protocols, compliance, returns\n\n"
+    "Just ask me a warehouse question and I'll route it to the right agent!"
+)
+
+COORDINATOR_GREETING_REPLY = (
+    "👋 Hello! I'm the IntelliWMS Coordinator. I can help you with:\n"
+    "📦 Inventory • 🚚 Fulfillment • 📚 Warehouse SOPs\n"
+    "What do you need?"
+)
+
+COORDINATOR_ACK_REPLY = "👍 Anything else I can check for you — stock, an order, or a procedure?"
+
+COORDINATOR_BYE_REPLY = "👋 Bye! Come back any time you need stock, order or SOP information."
+
+COORDINATOR_CLARIFY_DOMAIN_REPLY = (
+    "I'm not sure what you need yet. Is this about:\n"
+    "• 📦 **stock or a product's location** (e.g. \"how many SKU-4521 are on hand?\")\n"
+    "• 🚚 **an order** (e.g. \"why is ORD-1001 delayed?\")\n"
+    "• 📚 **a procedure / SOP** (e.g. \"what is the returns policy?\")"
 )

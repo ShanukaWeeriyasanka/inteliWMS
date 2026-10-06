@@ -7,9 +7,11 @@ Monitors live InventoryTransaction records to detect:
   - High-frequency manual override adjustments
   - Off-hours unauthorized movements
 
-When no real transaction anomalies exist (e.g. demo/fresh DB), falls back to
-curated simulation scenarios so the UI always has meaningful data.
+Curated demo scenarios are only returned when explicitly enabled
+(INVENTORY_DEMO_DATA=true or include_demo=True) and are flagged is_demo, so they
+can never be mistaken for live stock movements.
 """
+import os
 import uuid
 from datetime import datetime, timedelta
 from typing import Optional, List
@@ -71,6 +73,11 @@ _DEMO_ANOMALIES = [
     },
 ]
 
+def demo_data_enabled() -> bool:
+    """Read at call time so tests and operators can switch it without a restart."""
+    return os.getenv("INVENTORY_DEMO_DATA", "false").lower() == "true"
+
+
 _SHRINKAGE_THRESHOLD = -5    # flag transactions with quantity_change <= this
 _ADJUSTMENT_WINDOW_HRS = 48  # look-back window for repeated-adjustment detection
 
@@ -88,6 +95,7 @@ def _alert_from_dict(d: dict) -> AnomalyAlert:
         loss_value_est=d["loss_val"],
         description=d["desc"],
         recommended_action=d["action"],
+        is_demo=True,
     )
 
 
@@ -135,7 +143,7 @@ class AnomalyWatcher:
     """Detects inventory movement irregularities and shrinkage from the live DB."""
 
     def _query_live_anomalies(
-        self, sku: Optional[str], db: Session
+        self, sku: Optional[str], db: Session, raise_errors: bool = False
     ) -> List[AnomalyAlert]:
         """Query InventoryTransaction table for suspicious negative adjustments."""
         alerts: List[AnomalyAlert] = []
@@ -161,46 +169,54 @@ class AnomalyWatcher:
                 unit_price = float(prod.unit_price) if prod and prod.unit_price else 0.0
                 alerts.append(_build_alert_from_transactions(sku_key, item_name, unit_price, txs))
         except Exception as exc:
-            logger.log_event("ANOMALY_DB_ERROR", {"error": str(exc)})
+            logger.log_event("ANOMALY_DB_ERROR", {"error": str(exc)}, level="ERROR")
+            if raise_errors:
+                raise
         return alerts
 
     def check_sku_anomalies(
-        self, sku: str, db: Optional[Session] = None
+        self, sku: str, db: Optional[Session] = None, include_demo: Optional[bool] = None,
+        raise_errors: bool = False,
     ) -> Optional[AnomalyAlert]:
         """Check if a particular SKU has anomalous movements in the live DB."""
         own = db is None
         if own:
             db = SessionLocal()
         try:
-            live = self._query_live_anomalies(sku, db)
+            live = self._query_live_anomalies(sku, db, raise_errors=raise_errors)
             if live:
                 return live[0]
         finally:
             if own:
                 db.close()
 
-        # Demo fallback
+        if not (demo_data_enabled() if include_demo is None else include_demo):
+            return None
+        # Demo scenario (explicitly enabled, flagged is_demo)
         for d in _DEMO_ANOMALIES:
             if d["sku"].upper() == sku.strip().upper():
                 return _alert_from_dict(d)
         return None
 
     def scan_all_anomalies(
-        self, db: Optional[Session] = None
+        self, db: Optional[Session] = None, include_demo: Optional[bool] = None,
+        raise_errors: bool = False,
     ) -> List[AnomalyAlert]:
         """Return all active stock anomalies across warehouse inventory."""
         own = db is None
         if own:
             db = SessionLocal()
         try:
-            live = self._query_live_anomalies(None, db)
+            live = self._query_live_anomalies(None, db, raise_errors=raise_errors)
             if live:
                 return live
         finally:
             if own:
                 db.close()
 
-        # Demo fallback
+        if not (demo_data_enabled() if include_demo is None else include_demo):
+            return []
+        # Demo scenarios (explicitly enabled, flagged is_demo)
         return [_alert_from_dict(d) for d in _DEMO_ANOMALIES]
 
 

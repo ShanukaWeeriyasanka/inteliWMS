@@ -1,4 +1,6 @@
-from sqlalchemy import Column, Integer, String, DateTime, Text, Boolean, Numeric, ForeignKey
+from datetime import datetime, timezone
+
+from sqlalchemy import Column, Integer, String, DateTime, Text, Boolean, Numeric, ForeignKey, JSON, Index
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from database.connection import Base
@@ -192,3 +194,40 @@ class ConversationLog(Base):
     response = Column(Text, nullable=True)
     latency_ms = Column(Integer, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
+
+
+def _utcnow() -> datetime:
+    return datetime.now(timezone.utc)
+
+
+class ChatThread(Base):
+    """One chat conversation, owned by one authenticated user (JWT user_id)."""
+    __tablename__ = "chat_threads"
+
+    id = Column(String(36), primary_key=True)  # canonical lowercase UUID4
+    user_id = Column(String(100), nullable=False, index=True)
+    title = Column(String(120), nullable=False, default="New conversation")
+    last_agent = Column(String(100), nullable=True)
+    # Conversation state the router / inventory agent reuse for follow-ups (see backend/threads/schemas.py)
+    context_json = Column(JSON, nullable=True)
+    message_count = Column(Integer, nullable=False, default=0)
+    created_at = Column(DateTime(timezone=True), nullable=False, default=_utcnow)
+    updated_at = Column(DateTime(timezone=True), nullable=False, default=_utcnow, index=True)
+
+    __table_args__ = (Index("ix_chat_threads_user_updated", "user_id", "updated_at"),)
+
+
+class ChatMessageRecord(Base):
+    """A single user or assistant message inside a chat thread (ordered by id)."""
+    __tablename__ = "chat_messages"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    thread_id = Column(String(36), ForeignKey("chat_threads.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id = Column(String(100), nullable=False, index=True)
+    role = Column(String(20), nullable=False)  # 'user' | 'assistant'
+    content = Column(Text, nullable=False)
+    agent_used = Column(String(100), nullable=True)
+    status = Column(String(30), nullable=True)
+    request_id = Column(String(64), nullable=True, index=True)
+    meta_json = Column(JSON, nullable=True)
+    created_at = Column(DateTime(timezone=True), nullable=False, default=_utcnow)

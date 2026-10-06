@@ -1,0 +1,368 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ui_command.schema.json",
+  "title": "Warehouse UI Command",
+  "description": "What the multi-agent system sends to the warehouse UI (stored in ui_commands.payload). The agent sends IDs only; the UI fetches live quantities and positions from the database itself, so the map can never show a number the agent made up.",
+  "type": "object",
+  "required": [
+    "version",
+    "action",
+    "answer_text"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "enum": [
+        "1.0",
+        "1.1"
+      ],
+      "description": "1.1 adds navigate, multi-floor routes and route.prefer."
+    },
+    "action": {
+      "enum": [
+        "locate_product",
+        "show_location",
+        "navigate",
+        "count",
+        "heatmap",
+        "show_alerts",
+        "clarify",
+        "not_found",
+        "clear"
+      ],
+      "description": "locate_product: where is a product. show_location: where is a rack/zone/floor/shelf/bin (from resolve_location). navigate: directions between two places. The UI draws every route with the find_route() and get_directions() database functions, so map and spoken directions always match."
+    },
+    "answer_text": {
+      "type": "string",
+      "description": "Short natural-language answer shown in the result card, e.g. 'Power Adapter 65W is in 3 bins across 2 floors.'"
+    },
+    "product_ids": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/productId"
+      }
+    },
+    "location_ids": {
+      "type": "array",
+      "description": "Any level of the hierarchy: warehouse, floor, zone, rack, shelf or bin. For locate_product, optional — leave empty to show ALL bins holding the product.",
+      "items": {
+        "$ref": "#/$defs/locationId"
+      }
+    },
+    "floor_id": {
+      "$ref": "#/$defs/floorId",
+      "description": "Floor to open first. If omitted the UI picks the floor holding the most stock."
+    },
+    "scope": {
+      "type": "object",
+      "description": "For count / heatmap: what area the question is about. 'the stack' or 'rack 7' → rack; 'this floor' → floor.",
+      "required": [
+        "level",
+        "id"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "level": {
+          "enum": [
+            "warehouse",
+            "floor",
+            "zone",
+            "rack",
+            "shelf",
+            "bin"
+          ]
+        },
+        "id": {
+          "$ref": "#/$defs/locationId"
+        }
+      }
+    },
+    "metric": {
+      "enum": [
+        "fill_ratio",
+        "total_units",
+        "product_quantity",
+        "distinct_products"
+      ],
+      "default": "total_units",
+      "description": "For heatmap / count."
+    },
+    "route": {
+      "type": "object",
+      "description": "Walking route, possibly across floors. Include it whenever the user asks how to get somewhere; the UI also offers a 'Show route' button when it is absent.",
+      "additionalProperties": false,
+      "properties": {
+        "from_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/locationId"
+            },
+            {
+              "$ref": "#/$defs/navNodeId"
+            },
+            {
+              "$ref": "#/$defs/productId"
+            }
+          ],
+          "description": "Start point. Omit to start at the building's main entrance."
+        },
+        "to_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/locationId"
+            },
+            {
+              "$ref": "#/$defs/navNodeId"
+            },
+            {
+              "$ref": "#/$defs/productId"
+            }
+          ],
+          "description": "Destination. Omit to use the main target of the command (for a product: the bin holding the most units)."
+        },
+        "prefer": {
+          "enum": [
+            "lift",
+            "stairs",
+            "fastest"
+          ],
+          "default": "lift",
+          "description": "lift = safe with goods/trolleys (default). If the preferred way is blocked the route falls back to the fastest open one and says so."
+        }
+      }
+    },
+    "alert_types": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "low_stock",
+          "out_of_stock",
+          "bin_over_capacity"
+        ]
+      }
+    },
+    "candidates": {
+      "type": "array",
+      "description": "For clarify: products OR locations the agent could not choose between (e.g. 'Rack 2' exists on Floor 1 and Floor 2).",
+      "items": {
+        "type": "object",
+        "required": [
+          "label"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "product_id": {
+            "$ref": "#/$defs/productId"
+          },
+          "location_id": {
+            "$ref": "#/$defs/locationId"
+          },
+          "label": {
+            "type": "string"
+          },
+          "score": {
+            "type": "number"
+          }
+        },
+        "oneOf": [
+          {
+            "required": [
+              "product_id"
+            ]
+          },
+          {
+            "required": [
+              "location_id"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "action": {
+            "const": "locate_product"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "product_ids"
+        ],
+        "properties": {
+          "product_ids": {
+            "minItems": 1
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "action": {
+            "const": "count"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "scope"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "action": {
+            "const": "heatmap"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "floor_id"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "action": {
+            "const": "show_location"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "location_ids"
+        ],
+        "properties": {
+          "location_ids": {
+            "minItems": 1
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "action": {
+            "const": "clarify"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "candidates"
+        ],
+        "properties": {
+          "candidates": {
+            "minItems": 2
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "action": {
+            "const": "navigate"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "route"
+        ],
+        "properties": {
+          "route": {
+            "required": [
+              "to_id"
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "productId": {
+      "type": "string",
+      "pattern": "^PRD-\\d{5}$"
+    },
+    "floorId": {
+      "type": "string",
+      "pattern": "^WH\\d+-F\\d+$"
+    },
+    "navNodeId": {
+      "type": "string",
+      "pattern": "^WH\\d+-F\\d+-N\\d{3}$"
+    },
+    "locationId": {
+      "type": "string",
+      "pattern": "^WH\\d+(-F\\d+(-Z\\d{2}(-R\\d{2}(-S\\d{2}(-B\\d{2})?)?)?)?)?$"
+    }
+  },
+  "examples": [
+    {
+      "version": "1.1",
+      "action": "locate_product",
+      "answer_text": "Product #2, Power Adapter 65W, is in 3 bins. Most of it (30) is on Floor 2, Rack 2, shelf 3, bin 4.",
+      "product_ids": [
+        "PRD-00002"
+      ],
+      "route": {
+        "prefer": "lift"
+      }
+    },
+    {
+      "version": "1.1",
+      "action": "show_location",
+      "answer_text": "Cold 3 is on Floor 3, in the cold storage zone. Take Lift A up to Floor 3, then follow the main aisle.",
+      "location_ids": [
+        "WH1-F3-Z01-R03"
+      ],
+      "floor_id": "WH1-F3",
+      "route": {
+        "to_id": "WH1-F3-Z01-R03"
+      }
+    },
+    {
+      "version": "1.1",
+      "action": "clarify",
+      "answer_text": "There's a Rack 2 on Floor 1 and on Floor 2. Which one?",
+      "candidates": [
+        {
+          "location_id": "WH1-F1-Z01-R02",
+          "label": "Rack 2, Floor 1 (Bulk pallets)"
+        },
+        {
+          "location_id": "WH1-F2-Z01-R02",
+          "label": "Rack 2, Floor 2 (Pallets)"
+        }
+      ]
+    },
+    {
+      "version": "1.1",
+      "action": "navigate",
+      "answer_text": "From Rack 2 on Floor 2 to Cold 3 on Floor 3 takes about 1.5 minutes using Lift A.",
+      "route": {
+        "from_id": "WH1-F2-Z01-R02",
+        "to_id": "WH1-F3-Z01-R03",
+        "prefer": "lift"
+      }
+    },
+    {
+      "version": "1.1",
+      "action": "count",
+      "answer_text": "Rack 2 on Floor 2 holds 30 units across 1 product.",
+      "scope": {
+        "level": "rack",
+        "id": "WH1-F2-Z01-R02"
+      },
+      "metric": "total_units"
+    }
+  ]
+}

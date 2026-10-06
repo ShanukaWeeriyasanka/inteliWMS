@@ -5,11 +5,34 @@ Maps classified user intents to specialist agent identities:
 - FULFILLMENT  -> fulfillment_agent
 - KNOWLEDGE    -> knowledge_agent
 - COORDINATOR  -> answered directly (no delegation)
-Logs routing reasoning for Responsible AI audit compliance.
+
+Decision pipeline (rules first, in code):
+  1. Code rules on the user's original text.
+  2. Only if no rule decides: a guarded LLM rewrite, then the rules again on the rewrite.
+  3. Only if still undecided: the LLM may suggest a domain; code accepts it only when
+     valid and confident, otherwise a fixed fallback applies (see intent_classifier.py).
+Coordinator replies come from a fixed table keyed by rule id; LLM wording is used only
+for small talk the LLM itself classified, with a timeout and a fixed fallback.
+Every step is recorded as a decision (utils/decisions.py) for logs, metrics and the response.
 """
-from typing import Optional, Dict, Any
+import inspect
+from typing import Any, Callable, Dict, Optional, Tuple
+
+from agents.coordinator.intent_classifier import IntentClassifier, IntentResult, intent_classifier
+from agents.coordinator.llm_calls import OK, call_llm
+from agents.coordinator.query_normalizer import ACCEPTED, normalize_with_outcome
+from config.prompts import (
+    COORDINATOR_ACK_REPLY,
+    COORDINATOR_BYE_REPLY,
+    COORDINATOR_CAPABILITY_REPLY,
+    COORDINATOR_CLARIFY_DOMAIN_REPLY,
+    COORDINATOR_GREETING_REPLY,
+    COORDINATOR_UNKNOWN_REPLY,
+)
+from utils.decisions import FALLBACK, LLM, RULE, record_decision
 from utils.logger import StructuredLogger
-from agents.coordinator.intent_classifier import intent_classifier, IntentClassifier
+from utils.metrics import ROUTING_DECISIONS
+from utils.tracing import span
 
 logger = StructuredLogger(__name__)
 
@@ -21,6 +44,22 @@ INTENT_TO_AGENT_MAP = {
 }
 
 DEFAULT_FALLBACK_AGENT = "knowledge_agent"
+
+# Fixed coordinator replies by the rule that decided the route
+REPLY_BY_RULE = {
+    "empty": COORDINATOR_GREETING_REPLY,
+    "meta.greeting": COORDINATOR_GREETING_REPLY,
+    "meta.capability": COORDINATOR_CAPABILITY_REPLY,
+    "meta.help": COORDINATOR_CAPABILITY_REPLY,
+    "meta.weak": COORDINATOR_CAPABILITY_REPLY,
+    "social.ack": COORDINATOR_ACK_REPLY,
+    "social.bye": COORDINATOR_BYE_REPLY,
+    "clarify.domain": COORDINATOR_CLARIFY_DOMAIN_REPLY,
+}
+_REPLY_MAX_CHARS = 600
+# accepted rewrite = the LLM's output was used; guard rejections and skips = code decided;
+# LLM failure / timeout = fixed fallback (original text kept)
+_NORMALIZE_DECIDER = {ACCEPTED: LLM, "failed": FALLBACK, "timeout": FALLBACK}
 
 
 def route_to_agent(intent: str) -> str:
@@ -35,101 +74,115 @@ def route_to_agent(intent: str) -> str:
     return INTENT_TO_AGENT_MAP.get(normalized, DEFAULT_FALLBACK_AGENT)
 
 
-def build_coordinator_direct_response(query: str) -> str:
+def select_coordinator_reply(query: str, result: Optional[IntentResult] = None) -> Tuple[str, str, str, Optional[str]]:
     """
-    Returns a direct reply for meta/system questions without specialist delegation.
-
-    Uses an expanded keyword fast-path map to avoid LLM API calls for common
-    coordinator questions. Falls back to LLM only for truly novel questions.
+    Reply text for a COORDINATOR decision → (text, reply_rule, decided_by, llm_status).
+    Fixed text for every rule; LLM wording only when the LLM itself classified the message.
     """
-    import re
-    q_lower = query.lower().strip()
+    rule_id = getattr(result, "rule_id", None)
+    if rule_id is None and getattr(result, "decided_by", None) != LLM:
+        matched = intent_classifier.match_rules(query)
+        rule_id = matched.rule_id if matched is not None else None
+    if rule_id in REPLY_BY_RULE:
+        return REPLY_BY_RULE[rule_id], f"reply.{rule_id}", RULE, None
 
-    # --- Expanded fast-path map (instant, no API call) ---
-    CAPABILITY_RESPONSE = (
-        "I'm the **IntelliWMS Coordinator** 🤖. I manage 3 specialist agents:\n"
-        "• 📦 **Inventory Agent** — stock levels, SKU locations, restock alerts\n"
-        "• 🚚 **Fulfillment Agent** — order status, delays, shipping & dispatch\n"
-        "• 📚 **Knowledge Agent** — SOPs, safety protocols, compliance, returns\n\n"
-        "Just ask me a warehouse question and I'll route it to the right agent!"
-    )
-    GREETING_RESPONSE = (
-        "👋 Hello! I'm the IntelliWMS Coordinator. I can help you with:\n"
-        "📦 Inventory • 🚚 Fulfillment • 📚 Warehouse SOPs\n"
-        "What do you need?"
-    )
+    if getattr(result, "decided_by", None) == LLM:
+        from config.llm_config import llm_config
+        from config.prompts import COORDINATOR_DIRECT_REPLY_PROMPT
+        status, text = call_llm("reply", lambda: llm_config.hybrid_complete(
+            prompt=COORDINATOR_DIRECT_REPLY_PROMPT.format(query=query), max_tokens=200),
+            available=bool(llm_config.gemini_key or llm_config.groq_key))
+        if status == OK and len(str(text).strip()) > 1:
+            return str(text).strip()[:_REPLY_MAX_CHARS], "reply.llm_small_talk", LLM, status
+        return COORDINATOR_UNKNOWN_REPLY, "reply.unknown", FALLBACK, status
 
-    # Greetings
-    if re.match(r"^(hi+|hello+|hey+|yo+|greetings|sup|howdy|hiya)[\s\!\?\.]*$", q_lower):
-        return GREETING_RESPONSE
-
-    # Capability / what-can-you-do questions
-    capability_patterns = [
-        r"\bwhat can you do\b", r"\bwhat do you do\b", r"\bwhat are you\b",
-        r"\bwho are you\b", r"\bintroduce yourself\b", r"\bwhat is intelliwms\b",
-        r"\bhow many agents\b", r"\bhow many subagents\b", r"\blist.*agents\b",
-        r"\bwhat agents\b", r"\bwhat subagents\b", r"\byour (agents|subagents|capabilities)\b",
-        r"\bwhat.*system\b", r"\btell me about yourself\b",
-    ]
-    if any(re.search(p, q_lower) for p in capability_patterns):
-        return CAPABILITY_RESPONSE
-
-    # Help
-    if re.match(r"^help[\s\!\?\.]*$", q_lower) or re.match(r"^what\?*$", q_lower):
-        return CAPABILITY_RESPONSE
-
-    # --- LLM fallback for genuinely novel questions ---
-    from config.llm_config import llm_config
-    from config.prompts import COORDINATOR_DIRECT_REPLY_PROMPT, COORDINATOR_UNKNOWN_REPLY
-
-    try:
-        prompt = COORDINATOR_DIRECT_REPLY_PROMPT.format(query=query)
-        reply = llm_config.hybrid_complete(prompt=prompt, max_tokens=200)
-        if reply and len(reply.strip()) > 1:
-            return reply.strip()
-    except Exception as e:
-        logger.log_event("COORDINATOR_DIRECT_REPLY_FAILED", {"error": str(e)})
-
-    return COORDINATOR_UNKNOWN_REPLY
+    return COORDINATOR_UNKNOWN_REPLY, "reply.unknown", RULE, None
 
 
-def decide_route(query: str, classifier: Optional[IntentClassifier] = None) -> Dict[str, Any]:
+def build_coordinator_direct_response(query: str, result: Optional[IntentResult] = None) -> str:
+    """Direct reply for meta/system questions (see select_coordinator_reply)."""
+    return select_coordinator_reply(query, result)[0]
+
+
+def _classify(classifier, query: str, context: Optional[Dict[str, Any]]):
+    # Custom / mocked classifiers may not accept conversation context
+    if context is not None and "context" in inspect.signature(classifier.classify).parameters:
+        return classifier.classify(query, context=context)
+    return classifier.classify(query)
+
+
+def decide_route(query: str, classifier: Optional[IntentClassifier] = None,
+                 context: Optional[Dict[str, Any]] = None,
+                 normalizer: Callable[..., Tuple[str, str]] = normalize_with_outcome) -> Dict[str, Any]:
     """
-    Classifies a query and computes the full routing decision with reasoning.
+    Computes the full routing decision: rules on the original text, then (only if needed)
+    a guarded rewrite and the rules again, then (only if still needed) the LLM's suggestion.
 
     Args:
-        query: Sanitized (and optionally normalized) user query message
+        query: Sanitized user query message (original wording)
         classifier: Optional custom IntentClassifier instance
+        context: Optional thread context (last domain, pending clarification, recent turns)
+        normalizer: rewrite step, (text, context) -> (rewritten_text, outcome)
 
     Returns:
-        dict: {
-            "target_agent": "...",
-            "intent": "...",
-            "domain": "...",
-            "confidence": float,
-            "reasoning": "...",
-            "direct_response": str | None   # Only set for COORDINATOR domain
-        }
+        dict with target_agent, intent/domain, confidence, reasoning, source, follow_up,
+        rule_id, decided_by, llm_consulted, llm_status, normalized_query, direct_response,
+        decisions (the decisions recorded by this call)
     """
-    active_classifier = classifier or intent_classifier
-    intent_result = active_classifier.classify(query)
+    active = classifier or intent_classifier
+    decisions = []
+    normalized_query = None
 
-    domain = intent_result.domain
-    confidence = intent_result.confidence
-    reasoning = intent_result.reasoning
+    with span("routing.decide") as sp:
+        if isinstance(active, IntentClassifier):
+            result = active.match_rules(query, context)
+            if result is None:
+                rewritten, outcome = normalizer(query, context)
+                decisions.append(record_decision(
+                    "normalize", outcome, _NORMALIZE_DECIDER.get(outcome, RULE), f"normalize.{outcome}",
+                    llm_consulted=not outcome.startswith("skipped")))
+                if outcome == ACCEPTED and rewritten and rewritten != query:
+                    normalized_query = rewritten
+                    result = active.match_rules(rewritten, context)
+                if result is None:
+                    result = active.classify(normalized_query or query, context)
+        else:
+            result = _classify(active, query, context)
+        source = getattr(result, "source", "heuristic")
+        rule_id = getattr(result, "rule_id", None)
+        decided_by = getattr(result, "decided_by", RULE)
+        sp.set(domain=result.domain, decided_by=decided_by, rule_id=rule_id)
+
+    domain = result.domain
+    confidence = result.confidence
     target_agent = route_to_agent(domain)
-    direct_response = None
+    llm_consulted = bool(getattr(result, "llm_consulted", False))
+    llm_status = getattr(result, "llm_status", None)
+    ROUTING_DECISIONS.inc(domain=domain, source=source)
+    decisions.append(record_decision(
+        "route", domain, decided_by, rule_id, llm_consulted=llm_consulted, llm_status=llm_status,
+        confidence=confidence, target_agent=target_agent, normalized=normalized_query is not None))
 
-    # COORDINATOR domain: generate a direct reply from LLM, no specialist delegation
+    direct_response = None
     if domain == "COORDINATOR":
-        direct_response = build_coordinator_direct_response(query)
+        with span("routing.reply") as rsp:
+            direct_response, reply_rule, reply_by, reply_status = select_coordinator_reply(query, result)
+            rsp.set(rule_id=reply_rule, decided_by=reply_by)
+        decisions.append(record_decision("reply", reply_rule.split(".", 1)[1], reply_by, reply_rule,
+                                         llm_consulted=reply_status is not None, llm_status=reply_status))
 
     logger.log_event("COORDINATOR_ROUTING_DECISION", {
-        "query_preview": query[:60],
         "intent": domain,
         "target_agent": target_agent,
         "confidence": confidence,
-        "reasoning": reasoning,
+        "rule_id": rule_id,
+        "decided_by": decided_by,
+        "source": source,
+        "llm_consulted": llm_consulted,
+        "llm_status": llm_status,
+        "llm_reasoning": result.reasoning if decided_by == LLM else None,
+        "follow_up": source == "context",
+        "normalized": normalized_query is not None,
         "direct": direct_response is not None
     })
 
@@ -138,6 +191,14 @@ def decide_route(query: str, classifier: Optional[IntentClassifier] = None) -> D
         "intent": domain,
         "domain": domain,
         "confidence": confidence,
-        "reasoning": reasoning,
-        "direct_response": direct_response
+        "reasoning": result.reasoning,
+        "source": source,
+        "follow_up": source == "context",
+        "rule_id": rule_id,
+        "decided_by": decided_by,
+        "llm_consulted": llm_consulted,
+        "llm_status": llm_status,
+        "normalized_query": normalized_query,
+        "direct_response": direct_response,
+        "decisions": [d.__dict__ for d in decisions],
     }

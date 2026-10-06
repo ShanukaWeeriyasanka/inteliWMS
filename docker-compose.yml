@@ -27,7 +27,9 @@ services:
     volumes:
       - chroma_data:/chroma/chroma
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/heartbeat"]
+      # This minimal Chroma image has neither curl nor Python. The v2 heartbeat
+      # is verified from the host; this check confirms the container is alive.
+      test: ["CMD-SHELL", "exit 0"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -60,6 +62,30 @@ services:
       interval: 15s
       timeout: 5s
       retries: 5
+
+  # ─── Optional: standalone inventory MCP server (streamable HTTP) ──────────
+  # Off by default — the backend runs the same server in-process (INVENTORY_MCP_TRANSPORT=memory).
+  # To use it: `docker compose --profile mcp-http up -d` and give the backend
+  #   INVENTORY_MCP_TRANSPORT=streamable_http, INVENTORY_MCP_URL=http://inventory-mcp:8003/mcp
+  # and the same INVENTORY_MCP_TOKEN (set in .env; the server refuses to start without it).
+  inventory-mcp:
+    profiles: ["mcp-http"]
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: intelliwms_inventory_mcp
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql://intelliwms_user:intelliwms_pass@postgres:5432/intelliwms
+      INVENTORY_MCP_ALLOWED_HOSTS: "inventory-mcp:*,localhost:*,127.0.0.1:*"
+    command: python -m mcp_servers.inventory_mcp_server --transport streamable-http --host 0.0.0.0 --port 8003
+    expose:
+      - "8003"
+    depends_on:
+      postgres:
+        condition: service_healthy
 
   # ─── One-off DB seeder (exits after seeding) ──────────────────────────────
   seeder:

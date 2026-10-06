@@ -14,14 +14,16 @@ import {
   ThumbsUp,
   ThumbsDown,
   Paperclip,
-  Activity
+  Activity,
+  Map as MapIcon
 } from 'lucide-react'
 
 export default function ChatMessage({
   message,
   onOpenArtifact,
   onInspectLocation,
-  onInspectOrder
+  onInspectOrder,
+  onShowOnMap
 }) {
   const [copied, setCopied] = useState(false)
   const isUser = message.role === 'user'
@@ -121,12 +123,12 @@ export default function ChatMessage({
           {!isUser && !isBlocked && (
             <div className="specialist-embedded-cards">
               {/* SKU Location Callout */}
-              {(message.skuData || meta.sku) && (
+              {message.skuData && (
                 <div className="embedded-sku-card">
                   <div className="embedded-card-header">
                     <div className="card-header-left">
                       <ScanBarcode size={15} className="text-amber" />
-                      <strong>Inventory Bay Manifest: {meta.sku || message.skuData?.sku || 'SKU-4521'}</strong>
+                      <strong>Inventory Bay Manifest: {message.skuData.sku || '—'}</strong>
                     </div>
                     <span className="hud-status-badge badge-emerald">HIGH-BAY VERIFIED</span>
                   </div>
@@ -135,15 +137,15 @@ export default function ChatMessage({
                       <div className="spec-tile">
                         <span className="spec-label">HIGH-BAY COORDINATES:</span>
                         <div className="coords-badge-group">
-                          <span className="coord-chip">AISLE {message.skuData?.aisle || 12}</span>
-                          <span className="coord-chip">SHELF {message.skuData?.shelf || 'B3'}</span>
-                          <span className="coord-chip accent">{message.skuData?.bay ? message.skuData.bay.toUpperCase() : `TIER ${message.skuData?.tier || 'B'}`}</span>
+                          <span className="coord-chip">AISLE {message.skuData.aisle ?? '—'}</span>
+                          <span className="coord-chip">SHELF {message.skuData.shelf || '—'}</span>
+                          <span className="coord-chip accent">{message.skuData.bay ? message.skuData.bay.toUpperCase() : `TIER ${message.skuData.tier || '—'}`}</span>
                         </div>
                       </div>
                       <div className="spec-tile">
                         <span className="spec-label">VERIFIED FLOOR STOCK:</span>
                         <div className="stock-level-container">
-                          <span className="spec-val stock-val">{message.skuData?.stock || 'Physical stock verified'}</span>
+                          <span className="spec-val stock-val">{message.skuData?.stock || '—'}</span>
                           <div className="stock-progress-track">
                             <div className="stock-progress-fill" style={{ width: message.skuData?.status === 'OUT_OF_STOCK' ? '8%' : (message.skuData?.status === 'LOW_STOCK' ? '30%' : '85%') }} />
                           </div>
@@ -151,7 +153,7 @@ export default function ChatMessage({
                       </div>
                     </div>
                     <button
-                      onClick={() => onInspectLocation(message.skuData || { sku: meta.sku || 'SKU-4521' })}
+                      onClick={() => onInspectLocation(message.skuData)}
                       className="btn-inspect-artifact"
                     >
                       <Warehouse size={13} className="text-amber" />
@@ -196,6 +198,14 @@ export default function ChatMessage({
                 </div>
               )}
             </div>
+          )}
+
+          {/* Digital Twin: replay this answer on the warehouse map */}
+          {!isUser && message.uiCommand && onShowOnMap && (
+            <button onClick={() => onShowOnMap(message)} className="btn-inspect-artifact twin-show-on-map">
+              <MapIcon size={13} className="text-emerald" />
+              <span>Show on warehouse map</span>
+            </button>
           )}
 
           {/* Footer Controls for Assistant */}

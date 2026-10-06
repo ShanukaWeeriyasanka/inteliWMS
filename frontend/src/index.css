@@ -5490,3 +5490,20 @@ spline-viewer a {
 .btn-dispatch-maintenance:hover {
   background: #fbbf24;
 }
+
+/* =========================================================================
+   WAREHOUSE DIGITAL TWIN AS THE CHAT BACKGROUND
+   For inventory answers the floor plan replaces the 3D scene behind the
+   conversation. The chat keeps its layout; only text that sits directly on
+   the (now light) background gets a darker ink so it stays readable.
+   ========================================================================= */
+.twin-bg-active.spline-active-canvas { background: #E8EBED; }
+.twin-bg-active .ambient-canvas-glow { display: none; }
+.twin-bg-active .bottom-sticky-prompt-bar { background: transparent; border-top-color: transparent; }
+.twin-bg-active .assistant-name { color: #1E2226; }
+.twin-bg-active .assistant-bubble,
+.twin-bg-active .claude-capsule-box { background: rgba(24, 23, 22, 0.95); }
+.twin-bg-active .quick-chip-btn { background: rgba(28, 28, 30, 0.92); }
+.twin-bg-active .message-timestamp { color: #5B636A; }
+.claude-main-stage:has(.twin-bg-active) .topbar-icon-btn { color: #1E2226; }
+.twin-show-on-map { margin-top: 10px; }

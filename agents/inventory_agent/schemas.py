@@ -1,5 +1,5 @@
-from pydantic import BaseModel, Field
-from typing import Optional, List, Dict, Any
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator
+from typing import Annotated, Optional, List, Dict, Any, Literal
 from datetime import datetime
 
 class StockItemInfo(BaseModel):
@@ -17,9 +17,10 @@ class StockItemInfo(BaseModel):
     available_quantity: int = Field(0, ge=0, description="Immediately pickable inventory (on_hand - reserved)")
     safety_stock: int = Field(10, ge=0, description="Minimum safe threshold before emergency restock")
     reorder_point: int = Field(25, ge=0, description="Stock level triggering automatic reorder")
-    reorder_quantity: int = Field(100, gt=0, description="Standard replenishment batch quantity")
+    reorder_quantity: int = Field(100, ge=0, description="Standard replenishment batch quantity")
     unit: str = Field("units", description="Unit of measure (units, rolls, boxes)")
-    status: str = Field("IN_STOCK", description="'IN_STOCK' | 'LOW_STOCK' | 'OUT_OF_STOCK' | 'OVERSTOCKED'")
+    status: str = Field("IN_STOCK", description="'IN_STOCK' | 'LOW_STOCK' (at/below reorder point) | 'OUT_OF_STOCK' | 'OVERSTOCKED'")
+    below_safety_stock: bool = Field(False, description="True when on-hand stock is at or below the safety stock")
     occupancy_pct: Optional[float] = Field(None, description="Bay volumetric occupancy %")
     weight_kg: Optional[float] = Field(None, description="Unit or pallet weight in kg")
     temperature: Optional[str] = Field(None, description="Ambient storage condition")
@@ -85,6 +86,7 @@ class AnomalyAlert(BaseModel):
     detection_timestamp: str = Field(default_factory=lambda: datetime.utcnow().isoformat())
     description: str
     recommended_action: str
+    is_demo: bool = Field(False, description="True for curated demo scenarios (INVENTORY_DEMO_DATA), never live data")
 
 
 # ─── 4. Transfer Advisor Schemas (Sibling Warehouse Surplus) ───
@@ -148,7 +150,17 @@ class InventoryQueryResponse(BaseModel):
     anomaly_result: Optional[AnomalyAlert] = None
     transfer_result: Optional[TransferRecommendation] = None
     equipment_health_result: Optional[EquipmentHealthReport] = None
-    
+
+    # Warehouse Digital Twin: command the map UI should play (see UiCommand)
+    ui_command: Optional[Dict[str, Any]] = Field(None, description="Validated UiCommand payload for the twin map")
+    ui_command_id: Optional[str] = Field(None, description="ui_commands row id when the command was stored")
+
+    # How the request ended, so the coordinator can tell an answer from a failure
+    outcome: Literal["answered", "not_found", "empty", "clarification_needed", "needs_product", "error"] = "answered"
+    error_code: Optional[str] = Field(None, description="Tool / transport failure code when outcome == 'error'")
+    context_update: Optional[Dict[str, Any]] = Field(None, description="Canonical product ids for the thread context")
+    clarification_candidates: List[Dict[str, Any]] = Field(default_factory=list)
+
     execution_time_ms: Optional[float] = Field(None, description="Total execution time in milliseconds")
 
 class ReorderCheckRequest(BaseModel):
@@ -171,3 +183,88 @@ class ReorderCheckResponse(BaseModel):
     items_needing_reorder: int
     alerts: List[ReorderItemAlert]
     timestamp: str = Field(default_factory=lambda: datetime.utcnow().isoformat())
+
+
+# ─── 6. Warehouse Digital Twin UI Command (mirrors database/twin/ui_command.schema.json) ───
+ProductId = Annotated[str, StringConstraints(pattern=r"^PRD-\d{5}$")]
+FloorId = Annotated[str, StringConstraints(pattern=r"^WH\d+-F\d+$")]
+NavNodeId = Annotated[str, StringConstraints(pattern=r"^WH\d+-F\d+-N\d{3}$")]
+LocationId = Annotated[str, StringConstraints(pattern=r"^WH\d+(-F\d+(-Z\d{2}(-R\d{2}(-S\d{2}(-B\d{2})?)?)?)?)?$")]
+RouteEndpointId = Annotated[
+    str,
+    StringConstraints(pattern=r"^(PRD-\d{5}|WH\d+-F\d+-N\d{3}|WH\d+(-F\d+(-Z\d{2}(-R\d{2}(-S\d{2}(-B\d{2})?)?)?)?)?)$"),
+]
+
+UiAction = Literal["locate_product", "show_location", "navigate", "count", "heatmap",
+                   "show_alerts", "clarify", "not_found", "clear"]
+
+
+class UiScope(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    level: Literal["warehouse", "floor", "zone", "rack", "shelf", "bin"]
+    id: LocationId
+
+
+class UiRoute(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    from_id: Optional[RouteEndpointId] = Field(None, description="Start; omitted = main entrance")
+    to_id: Optional[RouteEndpointId] = Field(None, description="Destination; omitted = main target")
+    prefer: Optional[Literal["lift", "stairs", "fastest"]] = None
+
+
+class UiCandidate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    product_id: Optional[ProductId] = None
+    location_id: Optional[LocationId] = None
+    label: str
+    score: Optional[float] = None
+
+    @model_validator(mode="after")
+    def _exactly_one_target(self) -> "UiCandidate":
+        if (self.product_id is None) == (self.location_id is None):
+            raise ValueError("a candidate needs exactly one of product_id or location_id")
+        return self
+
+
+class UiCommand(BaseModel):
+    """What the agents send to the twin map. IDs only — the UI fetches live numbers itself."""
+    model_config = ConfigDict(extra="forbid")
+
+    version: Literal["1.0", "1.1"]
+    action: UiAction
+    answer_text: str
+    product_ids: Optional[List[ProductId]] = None
+    location_ids: Optional[List[LocationId]] = None
+    floor_id: Optional[FloorId] = None
+    scope: Optional[UiScope] = None
+    metric: Optional[Literal["fill_ratio", "total_units", "product_quantity", "distinct_products"]] = None
+    route: Optional[UiRoute] = None
+    alert_types: Optional[List[Literal["low_stock", "out_of_stock", "bin_over_capacity"]]] = None
+    candidates: Optional[List[UiCandidate]] = None
+
+    @model_validator(mode="after")
+    def _action_requirements(self) -> "UiCommand":
+        a = self.action
+        if a == "locate_product" and not self.product_ids:
+            raise ValueError("locate_product needs at least one product_id")
+        if a == "count" and self.scope is None:
+            raise ValueError("count needs a scope")
+        if a == "heatmap" and self.floor_id is None:
+            raise ValueError("heatmap needs a floor_id")
+        if a == "show_location" and not self.location_ids:
+            raise ValueError("show_location needs at least one location_id")
+        if a == "clarify" and len(self.candidates or []) < 2:
+            raise ValueError("clarify needs at least two candidates")
+        if a == "navigate" and (self.route is None or self.route.to_id is None):
+            raise ValueError("navigate needs route.to_id")
+        return self
+
+    def to_payload(self) -> Dict[str, Any]:
+        return self.model_dump(exclude_none=True)
+
+
+class UiCommandCreate(BaseModel):
+    """POST /twin/commands body: an agent (or the UI) stores a command for a browser session."""
+    session_id: str = Field(..., min_length=1, max_length=128)
+    query_text: str = Field(..., min_length=1, max_length=2000)
+    payload: UiCommand

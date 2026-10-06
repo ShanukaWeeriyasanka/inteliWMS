@@ -5,6 +5,7 @@ Orchestrates:
 - Task 2: Intent Classification & Routing
 - Task 3: API Gateway & MCP Delegation
 """
+from contextlib import asynccontextmanager
 from typing import Optional
 from fastapi import FastAPI, HTTPException, Header
 from fastapi.middleware.cors import CORSMiddleware
@@ -17,15 +18,42 @@ from security.rbac import rbac_manager, PERMISSION_MATRIX
 from security.auth import auth_service
 from security.audit_logger import audit_logger
 from backend.routes.query import router as query_router
+from backend.routes.metrics import router as metrics_router
+from backend.threads.routes import router as threads_router
 from backend.middleware.error_handler import register_error_handlers
+from backend.middleware.request_context import RequestContextMiddleware
+from mcp_servers.mcp_tool_client import inventory_tool_gateway
+from backend.twin.routes import router as twin_router
+from backend.twin.realtime import twin_broker
+from database.twin import ensure_twin_schema, is_enabled as twin_is_enabled
+
+logger = StructuredLogger(__name__)
+
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    # Warehouse Digital Twin: create + seed the `twin` schema on first start (PostgreSQL only)
+    if settings.TWIN_AUTO_SETUP and twin_is_enabled():
+        try:
+            ensure_twin_schema()
+        except Exception as e:
+            logger.log_event("TWIN_SETUP_FAILED", {"error": str(e)})
+    # Inventory MCP connection settings (no secrets); problems are named exactly
+    mcp_config = inventory_tool_gateway.describe()
+    logger.log_event("INVENTORY_MCP_CONFIG", mcp_config, level="INFO" if mcp_config["configured"] else "ERROR")
+    if settings.JWT_SECRET == "dev-secret-minimum-32-characters-long":
+        logger.log_event("JWT_SECRET_DEFAULT", {"message": "JWT_SECRET is the development default; set it in .env"},
+                         level="WARNING")
+    yield
+    twin_broker.stop()
+
 
 app = FastAPI(
     title="IntelliWMS API Gateway - Coordinator Agent",
     description="Intelligent Agentic Warehouse Management System (Task 1 Security & Task 3 API Gateway)",
-    version="0.3.0"
+    version="0.3.0",
+    lifespan=lifespan
 )
-
-logger = StructuredLogger(__name__)
 
 # Register Global Exception & Error Handlers (Task 3)
 register_error_handlers(app)
@@ -37,7 +65,11 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["X-Request-ID", "X-Trace-ID"],
 )
+
+# Request / trace correlation ids for every request (added last = outermost)
+app.add_middleware(RequestContextMiddleware)
 
 # Helper function to extract user from Authorization header
 def get_current_user(authorization: Optional[str] = Header(None)) -> Optional[dict]:
@@ -62,7 +94,8 @@ def health_check():
         "message": "IntelliWMS API Gateway is running smoothly",
         "primary_llm": settings.LLM_PRIMARY,
         "security_layer": "Task 1 Active (JWT + RBAC + Sanitizer + Audit Logger)",
-        "gateway_layer": "Task 3 Active (MCP Client + Global Error Handler)"
+        "gateway_layer": "Task 3 Active (MCP Client + Global Error Handler)",
+        "inventory_mcp": inventory_tool_gateway.describe(),
     }
 
 # ==================== Task 1 Security & Auth Endpoints ====================
@@ -203,6 +236,16 @@ def get_audit_logs(limit: int = 50, event_type: Optional[str] = None):
 
 app.include_router(query_router)
 
+# ==================== Conversation threads & observability ====================
+
+app.include_router(threads_router)
+app.include_router(metrics_router)
+
+# ==================== Warehouse Digital Twin (map, routes, live updates) ====================
+
+app.include_router(twin_router)
+
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("backend.main:app", host="127.0.0.1", port=8000, reload=True)
+    # The twin map keeps a live stream open; without a limit a reload waits for it forever
+    uvicorn.run("backend.main:app", host="127.0.0.1", port=8000, reload=True, timeout_graceful_shutdown=3)

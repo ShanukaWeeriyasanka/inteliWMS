@@ -2,201 +2,297 @@
 FastAPI route for Coordinator Agent Query Gateway (Task 3).
 Orchestrates:
 1. Security validation (JWT verification + prompt injection defense)
-2. Intent classification and routing (Task 2)
-3. MCP delegation to specialist agents (Task 3)
-4. Standardized response formatting and audit metadata
+2. Conversation threads (stable thread_id per conversation, owner-scoped history)
+3. Intent classification and routing (Task 2), using the thread's context for follow-ups
+4. MCP delegation to specialist agents (Task 3)
+5. Standardized response formatting and audit metadata
+
+Identifiers are kept separate: thread_id is the conversation (stable across messages),
+request_id / trace_id identify this one HTTP request, and session_id is the browser tab
+that receives Digital Twin map commands.
 """
+import time
 from datetime import datetime, timezone
-from typing import Optional, Dict, Any
-from fastapi import APIRouter, Request, HTTPException, Depends
-from pydantic import BaseModel, Field
-import jwt
+from typing import Any, Dict, Optional, Tuple
 
+import anyio
+from fastapi import APIRouter, Depends, Header, Request
+from pydantic import BaseModel, Field, ValidationError
 from sqlalchemy.orm import Session
-from database.connection import get_db
-
-from config.settings import settings
-from utils.logger import StructuredLogger
-from security.sanitizer import sanitize_input
-from agents.coordinator.intent_classifier import intent_classifier
-from agents.coordinator.router import decide_route, route_to_agent
-from agents.coordinator.query_normalizer import normalize_query
-from agents.coordinator.context_builder import build_context
-from mcp_servers.coordinator_client import coordinator_mcp_client
-from backend.middleware.error_handler import UnauthorizedException
 
 from agents.coordinator.agent_dispatcher import dispatch_to_agent
+from agents.coordinator.context_builder import build_context
+from agents.coordinator.router import decide_route
+from backend.auth import Identity, resolve_identity, verify_and_decode_token  # noqa: F401  (re-exported)
+from backend.threads.deps import get_thread_store
+from backend.threads.errors import ThreadAuthRequired, ThreadNotFound
+from backend.threads.schemas import InventoryThreadContext, ThreadContext
+from backend.threads.store import ThreadStore
+from config.settings import settings
+from database.connection import get_db
+from database.models import ChatThread
+from security.sanitizer import sanitize_input
+from utils import request_context
+from utils.logger import StructuredLogger
+from utils.decisions import RULE, collected, record_decision, start_collecting, stop_collecting
+from utils.metrics import AGENT_DURATION, AGENT_REQUESTS, THREAD_OPERATIONS
+from utils.tracing import span
 
 logger = StructuredLogger(__name__)
 router = APIRouter(tags=["Coordinator Query Gateway"])
 
+BLOCKED_PLACEHOLDER = "[message blocked by the security filter]"
+
+
 class QueryRequest(BaseModel):
     token: Optional[str] = None
-    message: Optional[str] = None
-    query: Optional[str] = None
+    message: Optional[str] = Field(None, max_length=settings.CHAT_MAX_MESSAGE_CHARS)
+    query: Optional[str] = Field(None, max_length=settings.CHAT_MAX_MESSAGE_CHARS)
+    session_id: Optional[str] = Field(None, max_length=128,
+                                      description="Browser session for Digital Twin map commands (not the conversation)")
+    thread_id: Optional[str] = Field(None, max_length=64,
+                                     description="Conversation id from a previous response; omit to start a new one")
 
-DOMAIN_TO_AGENT_MAP = {
-    "INVENTORY": "inventory_agent",
-    "FULFILLMENT": "fulfillment_agent",
-    "KNOWLEDGE": "knowledge_agent"
-}
 
-def verify_and_decode_token(token_str: str) -> Dict[str, Any]:
-    """Validates JWT token against known configuration secrets."""
-    if not token_str or token_str == "invalid_token":
-        raise UnauthorizedException("Invalid authentication token")
+def _ids() -> Dict[str, Optional[str]]:
+    ids = request_context.current()
+    return {"request_id": ids.get("request_id"), "trace_id": ids.get("trace_id")}
 
-    secrets_to_try = [
-        settings.JWT_SECRET,
-        "dev-secret-change-in-production",
-        "your-secret-key-minimum-32-characters-long",
-        "dev-secret-minimum-32-characters-long"
-    ]
 
-    for secret in secrets_to_try:
+def _persist(store: ThreadStore, thread: Optional[ChatThread], identity: Identity, *, title: str,
+             user_text: str, assistant_text: str, agent_used: Optional[str], status: str,
+             meta: Optional[Dict[str, Any]], context: ThreadContext) -> Tuple[bool, Optional[str]]:
+    """Save the exchange to the conversation (creating it on the first message). Returns (persisted, thread_id)."""
+    if not identity.authenticated:
+        return False, None
+    is_new = thread is None
+    try:
+        if is_new:
+            thread = store.create(identity.user_id, title=title)
+        store.append_exchange(thread, user_text=user_text, assistant_text=assistant_text or "",
+                              agent_used=agent_used, status=status, request_id=request_context.get("request_id"),
+                              meta=meta, context=context)
+        return True, thread.id
+    except ThreadNotFound:
+        # Deleted (e.g. "clear history" in another tab) while this request was running
+        logger.log_event("THREAD_PERSIST_FAILED", {"reason": "thread_deleted"}, level="WARNING")
+        return False, None
+    except Exception as exc:
+        THREAD_OPERATIONS.inc(op="persist", outcome="error")
+        logger.log_event("THREAD_PERSIST_FAILED", {"reason": "db_error", "error_type": type(exc).__name__},
+                         level="ERROR")
+        return False, (None if is_new else thread.id)
+
+
+def _message_meta(body: Dict[str, Any]) -> Dict[str, Any]:
+    """What the UI needs to re-render an assistant message from history."""
+    routing = body.get("routing") or {}
+    meta = {
+        "agent_used": body.get("agent_used"),
+        "status": body.get("status"),
+        "routing": {k: routing.get(k) for k in ("target_agent", "domain", "confidence", "reasoning", "source",
+                                                "follow_up", "rule_id", "decided_by", "llm_consulted",
+                                                "llm_status", "decisions") if k in routing},
+    }
+    for key in ("inventory_details", "fulfillment_details", "ui_command", "error_code"):
+        if body.get(key) is not None:
+            meta[key] = body[key]
+    return meta
+
+
+def _next_context(ctx: ThreadContext, domain: str, target_agent: str, agent_result: Dict[str, Any]) -> ThreadContext:
+    nxt = ctx.model_copy(deep=True)
+    nxt.turn_count += 1
+    nxt.last_domain = domain
+    nxt.last_agent = target_agent
+    update = agent_result.get("context_update") if target_agent == "inventory_agent" else None
+    if update is not None:
         try:
-            return jwt.decode(token_str, secret, algorithms=["HS256"])
-        except jwt.InvalidSignatureError:
-            continue
-        except jwt.ExpiredSignatureError:
-            raise UnauthorizedException("Authentication token has expired")
-        except Exception:
-            continue
-
-    # Attempt decode without signature check to differentiate signature mismatch from format error
-    try:
-        jwt.decode(token_str, options={"verify_signature": False})
-        raise UnauthorizedException("Token signature verification failed")
-    except UnauthorizedException:
-        raise
-    except Exception as e:
-        raise UnauthorizedException(f"Malformed or invalid token: {str(e)}")
-
-def classify_intent_with_fallback(clean_query: str) -> Dict[str, Any]:
-    """Classifies user intent using IntentClassifier with local heuristic fallback."""
-    try:
-        decision = intent_classifier.classify(clean_query)
-        if decision and decision.get("domain") in DOMAIN_TO_AGENT_MAP:
-            return decision
-    except Exception as e:
-        logger.log_event("CLASSIFICATION_FALLBACK_TRIGGERED", {"error": str(e)})
-
-    # Robust keyword fallback
-    q_lower = clean_query.lower()
-    if any(k in q_lower for k in ["stock", "inventory", "sku", "battery", "label", "aisle"]):
-        return {
-            "domain": "INVENTORY",
-            "confidence": 0.92,
-            "reasoning": "Classified as INVENTORY based on warehouse SKU and stock signals."
-        }
-    elif any(k in q_lower for k in ["order", "delay", "delayed", "track", "dispatch", "ship"]):
-        return {
-            "domain": "FULFILLMENT",
-            "confidence": 0.94,
-            "reasoning": "Classified as FULFILLMENT based on order tracking and dispatch signals."
-        }
+            nxt.inventory = InventoryThreadContext.model_validate(update)
+        except ValidationError:
+            logger.log_event("THREAD_CONTEXT_UPDATE_REJECTED", {"agent": target_agent}, level="WARNING")
+            nxt.inventory.pending_clarification = None
     else:
-        return {
-            "domain": "KNOWLEDGE",
-            "confidence": 0.90,
-            "reasoning": "Classified as KNOWLEDGE based on SOP, policy, and instructional signals."
-        }
+        # A clarification offer is only valid for the very next message
+        nxt.inventory.pending_clarification = None
+    return nxt
+
 
 @router.post("/query")
-async def handle_coordinator_query(payload: QueryRequest, request: Request, db: Session = Depends(get_db)):
+async def handle_coordinator_query(payload: QueryRequest, request: Request, db: Session = Depends(get_db),
+                                   store: ThreadStore = Depends(get_thread_store),
+                                   authorization: Optional[str] = Header(None)):
     """
     Main Coordinator entry point.
-    Receives user natural language query, enforces security, classifies intent,
-    and delegates to specialist agents via MCP.
+    Receives user natural language query, enforces security, resolves the conversation thread,
+    classifies intent (with the thread's context), and delegates to specialist agents via MCP.
     """
-    # 1. Resolve query text
-    user_query = payload.message or payload.query or ""
-    user_id = "anonymous"
-    user_role = "staff"
+    tokens = []
+    decision_token = start_collecting()  # every decision of this request: routing.decisions in the response
+    try:
+        with span("query.handle") as sp:
+            # 1. Resolve query text and identity (body token for the legacy payload, or Authorization header)
+            user_query = payload.message or payload.query or ""
+            identity = resolve_identity(payload.token, authorization)
+            user_id, user_role = identity.user_id, identity.role
 
-    # 2. Token Validation (Task 1 interface)
-    if payload.token:
-        claims = verify_and_decode_token(payload.token)
-        user_id = claims.get("user_id") or claims.get("sub") or "user_authenticated"
-        user_role = claims.get("role", "staff")
+            # 2. Conversation thread: reuse the one the client sent, or start a new one on first save
+            thread: Optional[ChatThread] = None
+            if payload.thread_id is not None:
+                if not identity.authenticated:
+                    THREAD_OPERATIONS.inc(op="lookup", outcome="unauthenticated")
+                    raise ThreadAuthRequired()
+                thread_id = store.parse_thread_id(payload.thread_id)
+                tokens = request_context.bind(thread_id=thread_id)
+                thread = store.get_owned(thread_id, user_id)
+            ctx = store.context(thread) if thread is not None else ThreadContext()
+            history = store.recent_history(thread, settings.CHAT_HISTORY_CONTEXT_TURNS) if thread is not None else []
+            sp.set(authenticated=identity.authenticated, new_thread=thread is None)
 
-    # 3. Prompt Injection Defense
-    is_safe, sanitized_or_reason = sanitize_input(user_query)
-    if not is_safe:
-        logger.log_event("SECURITY_BLOCKED", {
-            "user_id": user_id,
-            "query": user_query,
-            "reason": sanitized_or_reason
-        })
-        return {
-            "status": "error",
-            "error_code": "PROMPT_INJECTION_DETECTED",
-            "message": sanitized_or_reason,
-            "audit": {
-                "user_id": user_id,
-                "timestamp": datetime.now(timezone.utc).isoformat(),
-                "path": request.url.path
-            }
-        }
+            # 3. Prompt Injection Defense
+            is_safe, sanitized_or_reason = sanitize_input(user_query)
+            if not is_safe:
+                record_decision("security", "blocked", RULE, "security.prompt_injection")
+                logger.log_event("SECURITY_BLOCKED", {
+                    "user_id": user_id,
+                    "query": user_query,
+                    "reason": sanitized_or_reason
+                })
+                body = {
+                    "status": "error",
+                    "error_code": "PROMPT_INJECTION_DETECTED",
+                    "message": sanitized_or_reason,
+                    "audit": {
+                        "user_id": user_id,
+                        "timestamp": datetime.now(timezone.utc).isoformat(),
+                        "path": request.url.path,
+                        **_ids(),
+                    },
+                    "routing": {"rule_id": "security.prompt_injection", "decided_by": RULE,
+                                "decisions": collected()},
+                }
+                blocked_ctx = ctx.model_copy(deep=True)
+                blocked_ctx.inventory.pending_clarification = None
+                # The blocked text itself is never stored: history is fed back to the LLM classifier
+                persisted, tid = _persist(store, thread, identity, title="Blocked message",
+                                          user_text=BLOCKED_PLACEHOLDER, assistant_text=sanitized_or_reason,
+                                          agent_used="coordinator", status="blocked",
+                                          meta=_message_meta(body), context=blocked_ctx)
+                body.update(thread_id=tid, persisted=persisted, **_ids())
+                return body
 
-    # 3.5. Query Normalization — convert broken English / vague inputs to clear queries
-    #      Uses Gemini → Groq hybrid. Falls back to original on failure.
-    clean_query = normalize_query(sanitized_or_reason)
+            # 4. Routing: code rules decide on the original text; only when no rule applies does a
+            #    guarded LLM rewrite / LLM suggestion get a turn (validated, with fixed fallbacks).
+            #    Runs off the event loop because those LLM steps block. Thread context lets
+            #    "where is it?" stay with inventory.
+            routing_ctx = {**ctx.for_routing(), "history": history} if thread is not None else None
+            routing_decision = await anyio.to_thread.run_sync(
+                lambda: decide_route(sanitized_or_reason, context=routing_ctx))
+            clean_query = routing_decision.get("normalized_query") or sanitized_or_reason
+            target_agent = routing_decision["target_agent"]
+            domain = routing_decision["domain"]
+            confidence = routing_decision["confidence"]
+            sp.set(domain=domain, target_agent=target_agent, rule_id=routing_decision.get("rule_id"),
+                   decided_by=routing_decision.get("decided_by"))
 
-    # 4. Intent Classification & Routing
-    routing_decision = decide_route(clean_query)
-    target_agent = routing_decision["target_agent"]
-    domain = routing_decision["domain"]
-    confidence = routing_decision["confidence"]
+            # 4.5. Coordinator Direct Reply — meta/system questions answered without delegation
+            if routing_decision.get("direct_response"):
+                routing_decision["decisions"] = collected()
+                body = {
+                    "status": "success",
+                    "agent_used": "coordinator",
+                    "response": routing_decision["direct_response"],
+                    "routing": routing_decision,
+                    "audit": {
+                        "user_id": user_id,
+                        "timestamp": datetime.now(timezone.utc).isoformat(),
+                        "routing_confidence": confidence,
+                        "domain": domain,
+                        "normalized_query": clean_query,
+                        **_ids(),
+                    }
+                }
+                direct_ctx = ctx.model_copy(deep=True)
+                direct_ctx.turn_count += 1
+                direct_ctx.inventory.pending_clarification = None
+                persisted, tid = _persist(store, thread, identity, title=sanitized_or_reason,
+                                          user_text=sanitized_or_reason, assistant_text=body["response"],
+                                          agent_used="coordinator", status="success",
+                                          meta=_message_meta(body), context=direct_ctx)
+                body.update(thread_id=tid, persisted=persisted, **_ids())
+                return body
 
-    # 4.5. Coordinator Direct Reply — meta/system questions answered without delegation
-    if routing_decision.get("direct_response"):
-        return {
-            "status": "success",
-            "agent_used": "coordinator",
-            "response": routing_decision["direct_response"],
-            "routing": routing_decision,
-            "audit": {
+            # 5. Context Builder & MCP Delegation (the conversation travels with the hand-off)
+            # Agents get the user's own wording; ids from an accepted rewrite are only hints
+            context_payload = build_context(
+                user_id=user_id,
+                message=sanitized_or_reason,
+                intent=domain,
+                role=user_role,
+                session_id=payload.session_id,
+                thread_id=thread.id if thread is not None else None,
+                conversation=ctx.inventory.model_dump() if domain == "INVENTORY" else None,
+                entity_text=routing_decision.get("normalized_query"),
+            )
+
+            dispatch_start = time.perf_counter()
+            with span("agent.dispatch", agent=target_agent) as dsp:
+                agent_result = await dispatch_to_agent(target_agent, context_payload, db)
+                dsp.set(status="error" if agent_result.get("status") == "error" else "ok")
+            if target_agent != "inventory_agent":  # the inventory hand-off records its own outcome
+                AGENT_REQUESTS.inc(agent=target_agent, outcome=agent_result.get("status", "success"))
+                AGENT_DURATION.observe(time.perf_counter() - dispatch_start, agent=target_agent)
+
+            # 6. Structured Response
+            audit_meta = {
                 "user_id": user_id,
                 "timestamp": datetime.now(timezone.utc).isoformat(),
                 "routing_confidence": confidence,
                 "domain": domain,
-                "normalized_query": clean_query
+                "original_query": user_query,
+                "normalized_query": clean_query,
+                **_ids(),
             }
-        }
 
-    # 5. Context Builder & MCP Delegation
-    context_payload = build_context(
-        user_id=user_id,
-        message=clean_query,
-        intent=domain,
-        role=user_role
-    )
+            final_response = {
+                "status": agent_result.get("status", "success"),
+                "agent_used": target_agent,
+                "response": agent_result.get("response"),
+                "routing": routing_decision,
+                "audit": audit_meta
+            }
+            if agent_result.get("error_code"):
+                final_response["error_code"] = agent_result["error_code"]
 
-    agent_result = await dispatch_to_agent(target_agent, context_payload, db)
+            if "fulfillment_details" in agent_result:
+                final_response["fulfillment_details"] = agent_result["fulfillment_details"]
 
-    # 6. Structured Response
-    audit_meta = {
-        "user_id": user_id,
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-        "routing_confidence": confidence,
-        "domain": domain,
-        "original_query": user_query,
-        "normalized_query": clean_query
-    }
+            if "inventory_details" in agent_result:
+                final_response["inventory_details"] = agent_result["inventory_details"]
+                # Digital Twin map command (only inventory answers drive the map)
+                ui_payload = agent_result["inventory_details"].get("ui_command")
+                if ui_payload:
+                    final_response["ui_command"] = {
+                        "id": agent_result["inventory_details"].get("ui_command_id"),
+                        "session_id": payload.session_id,
+                        "payload": ui_payload,
+                    }
 
-    final_response = {
-        "status": "success",
-        "agent_used": target_agent,
-        "response": agent_result.get("response"),
-        "routing": routing_decision,
-        "audit": audit_meta
-    }
-    
-    if "fulfillment_details" in agent_result:
-        final_response["fulfillment_details"] = agent_result["fulfillment_details"]
+            routing_decision["decisions"] = collected()  # routing + the agent's own decisions
 
-    if "inventory_details" in agent_result:
-        final_response["inventory_details"] = agent_result["inventory_details"]
-
-    return final_response
+            # 7. Save the exchange to the conversation and carry its context forward
+            persisted, tid = _persist(store, thread, identity, title=sanitized_or_reason,
+                                      user_text=sanitized_or_reason, assistant_text=final_response["response"],
+                                      agent_used=target_agent, status=final_response["status"],
+                                      meta=_message_meta(final_response),
+                                      context=_next_context(ctx, domain, target_agent, agent_result))
+            final_response.update(thread_id=tid, persisted=persisted, **_ids())
+            sp.set(status="error" if final_response["status"] == "error" else "ok", persisted=persisted)
+            logger.log_event("QUERY_COMPLETED", {
+                "agent": target_agent, "domain": domain, "status": final_response["status"],
+                "persisted": persisted, "new_thread": thread is None and persisted,
+            })
+            return final_response
+    finally:
+        stop_collecting(decision_token)
+        request_context.reset(tokens)

@@ -30,5 +30,14 @@ class InventoryConfig:
     MAX_QUERY_RESULTS: int = int(os.getenv("INVENTORY_MAX_RESULTS", "10"))
     REQUEST_TIMEOUT_SECONDS: int = int(os.getenv("INVENTORY_TIMEOUT_SEC", "15"))
 
+    # Warehouse Digital Twin — choosing between resolve_product / resolve_location candidates
+    TWIN_ENABLED: bool = os.getenv("INVENTORY_TWIN_ENABLED", "true").lower() == "true"
+    TWIN_COMMAND_VERSION: str = os.getenv("INVENTORY_TWIN_COMMAND_VERSION", "1.1")
+    TWIN_PICK_MIN_SCORE: float = float(os.getenv("INVENTORY_TWIN_PICK_MIN_SCORE", "0.9"))
+    TWIN_PICK_MARGIN: float = float(os.getenv("INVENTORY_TWIN_PICK_MARGIN", "0.1"))
+    TWIN_DEFAULT_PREFER: str = os.getenv("INVENTORY_TWIN_DEFAULT_PREFER", "lift")
+    TWIN_MAX_CANDIDATES: int = int(os.getenv("INVENTORY_TWIN_MAX_CANDIDATES", "5"))
+    TWIN_ANSWER_STEPS: int = int(os.getenv("INVENTORY_TWIN_ANSWER_STEPS", "3"))
+
 # Global singleton
 inventory_config = InventoryConfig()

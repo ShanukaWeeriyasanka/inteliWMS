@@ -42,7 +42,11 @@ def build_context(
     user_id: str,
     message: str,
     intent: str,
-    role: str = "staff"
+    role: str = "staff",
+    session_id: Optional[str] = None,
+    thread_id: Optional[str] = None,
+    conversation: Optional[Dict[str, Any]] = None,
+    entity_text: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     Builds structured context payload for target specialist agent.
@@ -52,12 +56,17 @@ def build_context(
         message: Sanitized natural language user message
         intent: Classified domain (INVENTORY, FULFILLMENT, KNOWLEDGE)
         role: User role (staff, manager, admin)
-        
+        session_id: Browser session that receives Digital Twin map commands
+        thread_id: Chat conversation this message belongs to (not a request or trace id)
+        conversation: What the inventory agent last discussed in this thread (follow-ups)
+        entity_text: An accepted rewrite of the message; ids found only there are used as hints
+            (the rewrite guard guarantees their digits were typed by the user)
+
     Returns:
         Structured context payload dictionary with audit metadata
     """
-    extracted_sku = extract_sku(message)
-    extracted_order = extract_order_id(message)
+    extracted_sku = extract_sku(message) or (extract_sku(entity_text) if entity_text else None)
+    extracted_order = extract_order_id(message) or (extract_order_id(entity_text) if entity_text else None)
 
     return {
         "user_id": user_id,
@@ -67,6 +76,9 @@ def build_context(
         "intent": intent,
         "extracted_sku": extracted_sku,
         "extracted_order_id": extracted_order,
+        "session_id": session_id,
+        "thread_id": thread_id,
+        "conversation": conversation,
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "audit_log": "routed_by_coordinator"
     }

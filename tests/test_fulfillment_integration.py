@@ -8,7 +8,10 @@ import time
 import jwt
 
 client = TestClient(app)
-TEST_SECRET = "dev-secret-change-in-production"
+from config.settings import settings
+
+# /query only accepts tokens signed with the configured secret (no hard-coded fallbacks)
+TEST_SECRET = settings.JWT_SECRET
 
 @pytest.fixture
 def valid_staff_token():

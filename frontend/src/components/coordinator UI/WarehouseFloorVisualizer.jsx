@@ -169,6 +169,8 @@ export default function WarehouseFloorVisualizer({ selectedMessage, currentUser 
   const [searchFilter, setSearchFilter] = useState('')
   const [selectedAisle, setSelectedAisle] = useState(12)
   const [actionNotice, setActionNotice] = useState('')
+  // Live item from the inventory agent's answer; its numbers win over the static catalog
+  const [liveItem, setLiveItem] = useState(null)
 
   // Interactive Document Parser state
   const [docInputText, setDocInputText] = useState(
@@ -189,6 +191,7 @@ export default function WarehouseFloorVisualizer({ selectedMessage, currentUser 
     if (inv) {
       if (inv.items && inv.items.length > 0) {
         const item = inv.items[0]
+        setLiveItem(item)
         setSelectedSku(item.sku)
         if (item.aisle) setSelectedAisle(item.aisle)
       }
@@ -215,8 +218,33 @@ export default function WarehouseFloorVisualizer({ selectedMessage, currentUser 
     }
   }, [selectedMessage])
 
-  // Current active item
-  const activeItem = WAREHOUSE_ITEMS.find((i) => i.sku === selectedSku) || WAREHOUSE_ITEMS[0]
+  // Current active item: the agent's live numbers for the selected SKU (never another SKU's data)
+  const catalogItem = WAREHOUSE_ITEMS.find((i) => i.sku === selectedSku)
+  const live = liveItem && liveItem.sku === selectedSku ? {
+    sku: liveItem.sku,
+    name: liveItem.name,
+    category: liveItem.category,
+    location: liveItem.location,
+    ...(liveItem.aisle != null && { aisle: liveItem.aisle }),
+    ...(liveItem.shelf && { shelf: liveItem.shelf }),
+    ...(liveItem.tier && { tier: liveItem.tier }),
+    ...(liveItem.bay && { bay: liveItem.bay }),
+    quantity: liveItem.quantity_on_hand,
+    available: liveItem.available_quantity,
+    reserved: liveItem.reserved_quantity,
+    safety_stock: liveItem.safety_stock,
+    reorder_point: liveItem.reorder_point,
+    reorder_qty: liveItem.reorder_quantity,
+    unit: liveItem.unit,
+    status: liveItem.status,
+    ...(liveItem.occupancy_pct != null && { occupancy_pct: liveItem.occupancy_pct }),
+    ...(liveItem.weight_kg != null && { weight_kg: liveItem.weight_kg }),
+    ...(liveItem.temperature && { temperature: liveItem.temperature }),
+  } : null
+  const activeItem = live
+    ? { ...(catalogItem || { zone: liveItem.category || '—', cycle_count: '—', rack_color: '#94a3b8',
+                             occupancy_pct: null, temperature: '—', weight_kg: '—' }), ...live }
+    : (catalogItem || WAREHOUSE_ITEMS[0])
 
   const handleSelectAisle = (aisleNum) => {
     setSelectedAisle(aisleNum)
@@ -571,7 +599,7 @@ export default function WarehouseFloorVisualizer({ selectedMessage, currentUser 
             <div className="occupancy-gauge-card">
               <div className="gauge-header">
                 <span className="gauge-lbl">Bay Volumetric Fill Rate</span>
-                <span className="gauge-val font-mono">{activeItem.occupancy_pct}% Occupied</span>
+                <span className="gauge-val font-mono">{activeItem.occupancy_pct ?? '—'}% Occupied</span>
               </div>
               <div className="gauge-track">
                 <div

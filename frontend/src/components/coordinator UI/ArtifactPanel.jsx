@@ -39,7 +39,7 @@ export default function ArtifactPanel({
     confidence: 0.98,
     latency_ms: 38,
     extracted_params: {
-      sku: 'SKU-4521',
+      sku: null,
       action: 'query_location'
     },
     coordinator_status: 'dispatched_mcp'
@@ -162,7 +162,7 @@ export default function ArtifactPanel({
               <div className="entity-pills-row">
                 <div className="entity-chip">
                   <span className="entity-k">Target SKU:</span>
-                  <span className="entity-v">{routingData.extracted_params?.sku || 'SKU-4521'}</span>
+                  <span className="entity-v">{routingData.extracted_params?.sku || '—'}</span>
                 </div>
                 <div className="entity-chip">
                   <span className="entity-k">Target Consignment:</span>
