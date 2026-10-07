@@ -234,6 +234,8 @@ export default function App() {
         stock: '340 units available'
       } : null)
 
+      const fulfillmentDetails = res.fulfillment_details || null
+
       const assistantMsg = {
         id: Date.now() + 1,
         role: 'assistant',
@@ -244,16 +246,13 @@ export default function App() {
           latency_ms: 28
         },
         inventory_details: invDetails,
+        fulfillment_details: fulfillmentDetails,
         skuData,
-        orderData: hasOrder ? {
-          id: '#4521',
-          status: 'In Transit — On Schedule',
-          carrier: 'FreightExpress • Priority 1'
-        } : null,
         metadata: {
           agent_used: res.agent_used,
           audit: res.audit,
-          inventory_details: invDetails
+          inventory_details: invDetails,
+          fulfillment_details: fulfillmentDetails
         },
         timestamp: new Date()
       }
@@ -497,12 +496,22 @@ export default function App() {
                       setArtifactOpen(true)
                     }}
                     onInspectLocation={() => {
+                      setSelectedArtifactMessage(msg)
                       setArtifactTab('bay_visualizer')
                       setArtifactOpen(true)
                     }}
                     onInspectOrder={() => {
+                      setSelectedArtifactMessage(msg)
                       setArtifactTab('order_timeline')
                       setArtifactOpen(true)
+                    }}
+                    onSendQuery={(queryText) => {
+                      handleSendMessage({
+                        text: queryText,
+                        attachments: [],
+                        mode: 'auto',
+                        targetAgent: 'auto'
+                      })
                     }}
                   />
                 ))}

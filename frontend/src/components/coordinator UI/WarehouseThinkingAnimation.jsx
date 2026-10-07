@@ -29,9 +29,9 @@ export default function WarehouseThinkingAnimation({ queryText }) {
       ]
     : isOrder
     ? [
-        { label: 'Parsing consignment & tracking ID...', icon: ScanBarcode, color: 'text-amber' },
-        { label: 'Connecting to Fulfillment Agent via MCP...', icon: Bot, color: 'text-blue' },
-        { label: 'Querying Freight carrier & dispatch telemetry...', icon: Truck, color: 'text-emerald' }
+        { label: 'Parsing order identifier & dispatch context...', icon: ScanBarcode, color: 'text-amber' },
+        { label: 'Routing request to Fulfillment Agent...', icon: Bot, color: 'text-blue' },
+        { label: 'Checking order records & delay status...', icon: Truck, color: 'text-emerald' }
       ]
     : isSop
     ? [

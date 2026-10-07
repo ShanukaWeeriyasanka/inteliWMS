@@ -201,65 +201,180 @@ export default function ArtifactPanel({
           />
         )}
 
-        {/* TAB 3: FULFILLMENT & ORDER TIMELINE */}
-        {activeTab === 'order_timeline' && (
-          <div className="order-timeline-tab-view">
-            <div className="order-header-card">
-              <div>
-                <h4>Consignment #4521</h4>
-                <span>Recipient: Apex Automotive Distribution • Priority 1 Expedited</span>
+        {/* TAB 3: REAL FULFILLMENT TELEMETRY & ORDER OVERVIEW */}
+        {activeTab === 'order_timeline' && (() => {
+          const fulfillmentDetails = selectedMessage?.fulfillment_details || selectedMessage?.metadata?.fulfillment_details || null
+          const contentText = String(selectedMessage?.content || '')
+          
+          let orderId = fulfillmentDetails?.order_id || null
+          if (!orderId) {
+            const match = contentText.match(/\b(ORD-\d+)\b/i)
+            if (match) orderId = match[1].toUpperCase()
+          }
+
+          const isDelayed = /is currently delayed/i.test(contentText) || /status: delayed/i.test(contentText)
+          const isShipped = /marked as shipped/i.test(contentText) || /is currently shipped/i.test(contentText) || /status: shipped/i.test(contentText)
+          const isPending = /is currently pending/i.test(contentText) || /status: pending/i.test(contentText)
+          const orderStatus = isDelayed ? 'DELAYED' : (isShipped ? 'SHIPPED' : (isPending ? 'PENDING' : (orderId ? 'ACTIVE' : 'N/A')))
+
+          // Delay attributes
+          const reasonMatch = contentText.match(/Reason:\s*([^.\n]+)/i)
+          const carrierMatch = contentText.match(/Carrier:\s*([^.\n]+)/i)
+          const dateMatch = contentText.match(/Revised delivery date:\s*([^.\n]+)/i)
+          const delayReason = reasonMatch ? reasonMatch[1].trim() : null
+          const carrierName = carrierMatch ? carrierMatch[1].trim() : null
+          const revisedDate = dateMatch ? dateMatch[1].trim() : null
+
+          // Cross-agent inventory
+          const skuMatch = contentText.match(/\b(SKU-\d+)\b/i)
+          const isOutOfStock = /is currently out of stock/i.test(contentText) || /stock: 0/i.test(contentText)
+          const isStockAvailable = /currently has stock available/i.test(contentText)
+          const hasInventoryCollaboration = (isOutOfStock || isStockAvailable) && !!skuMatch
+          const crossSku = skuMatch ? skuMatch[1].toUpperCase() : null
+          const crossStockStatus = isOutOfStock ? 'OUT_OF_STOCK' : (isStockAvailable ? 'IN_STOCK' : null)
+
+          const timestamp = selectedMessage?.metadata?.audit?.timestamp || selectedMessage?.timestamp
+
+          return (
+            <div className="order-timeline-tab-view">
+              {/* Card 1: Order Manifest Overview */}
+              <div className="artifact-section-card">
+                <div className="section-card-header">
+                  <div className="header-title">
+                    <Truck size={14} className="text-blue" />
+                    <strong>Order Record Overview</strong>
+                  </div>
+                  <span className={`hud-status-badge ${orderStatus === 'DELAYED' ? 'badge-coral' : (orderStatus === 'SHIPPED' ? 'badge-emerald' : 'badge-blue')}`}>
+                    {orderStatus}
+                  </span>
+                </div>
+                <div className="entity-pills-row">
+                  <div className="entity-chip">
+                    <span className="entity-k">Order ID:</span>
+                    <span className="entity-v text-light font-mono font-bold">{orderId || 'ORD-1001'}</span>
+                  </div>
+                  <div className="entity-chip">
+                    <span className="entity-k">Handled By:</span>
+                    <span className="entity-v text-blue">Fulfillment Agent</span>
+                  </div>
+                  {fulfillmentDetails?.intent && (
+                    <div className="entity-chip">
+                      <span className="entity-k">Intent:</span>
+                      <span className="entity-v text-amber">{fulfillmentDetails.intent}</span>
+                    </div>
+                  )}
+                  {timestamp && (
+                    <div className="entity-chip">
+                      <span className="entity-k">Timestamp:</span>
+                      <span className="entity-v font-mono text-xs">{new Date(timestamp).toLocaleTimeString()}</span>
+                    </div>
+                  )}
+                </div>
               </div>
-              <span className="status-pill in-transit">IN TRANSIT</span>
+
+              {/* Card 2: Delay Root-Cause Analysis (When Applicable) */}
+              {(delayReason || carrierName || revisedDate) && (
+                <div className="artifact-section-card">
+                  <div className="section-card-header">
+                    <div className="header-title">
+                      <AlertCircle size={14} className="text-coral" />
+                      <strong>Delay & Logistics Telemetry</strong>
+                    </div>
+                  </div>
+                  <div className="telemetry-metrics-strip" style={{ marginBottom: '12px' }}>
+                    {carrierName && (
+                      <div className="telemetry-metric-pill">
+                        <span className="metric-lbl">ASSIGNED CARRIER</span>
+                        <span className="metric-val text-blue">{carrierName}</span>
+                      </div>
+                    )}
+                    {revisedDate && (
+                      <div className="telemetry-metric-pill">
+                        <span className="metric-lbl">REVISED DELIVERY TARGET</span>
+                        <span className="metric-val text-amber">{revisedDate}</span>
+                      </div>
+                    )}
+                  </div>
+                  {delayReason && (
+                    <div className="delay-reason-box" style={{ background: 'rgba(255, 69, 58, 0.08)', border: '1px solid rgba(255, 69, 58, 0.2)', borderRadius: '8px', padding: '10px 12px' }}>
+                      <span style={{ fontSize: '11px', color: 'var(--accent-coral)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Root Cause:</span>
+                      <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: 'var(--text-light)', lineHeight: 1.4 }}>{delayReason}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Card 3: Multi-Agent Collaboration Stream */}
+              <div className="artifact-section-card">
+                <div className="section-card-header">
+                  <div className="header-title">
+                    <Cpu size={14} className="text-amber" />
+                    <strong>Agent Execution & Coordination Trace</strong>
+                  </div>
+                  {hasInventoryCollaboration && (
+                    <span className="hud-status-badge badge-emerald">CROSS-AGENT ACTIVE</span>
+                  )}
+                </div>
+
+                <div className="timeline-steps-vertical">
+                  <div className="timeline-step completed">
+                    <div className="step-dot" />
+                    <div className="step-content">
+                      <strong>Coordinator Gateway Routing</strong>
+                      <span>Validated query integrity, authenticated JWT claims, and delegated domain to Fulfillment.</span>
+                    </div>
+                  </div>
+
+                  <div className="timeline-step completed">
+                    <div className="step-dot" />
+                    <div className="step-content">
+                      <strong>Fulfillment Specialist Execution</strong>
+                      <span>Executed order record retrieval and status classification.</span>
+                    </div>
+                  </div>
+
+                  {hasInventoryCollaboration ? (
+                    <div className="timeline-step active-current">
+                      <div className="step-dot pulse" />
+                      <div className="step-content">
+                        <strong>Inventory Agent Cross-Check ({crossSku})</strong>
+                        <span>
+                          {crossStockStatus === 'OUT_OF_STOCK'
+                            ? `Stock check executed for ${crossSku}: 0 units available. Stock depletion confirmed.`
+                            : `Stock check executed for ${crossSku}: Physical inventory verified on hand.`}
+                        </span>
+                        <small className="text-amber">Cross-Agent Verification</small>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="timeline-step completed">
+                      <div className="step-dot" />
+                      <div className="step-content">
+                        <strong>Direct Resolution</strong>
+                        <span>Order records yielded complete information; no external inventory cross-call required.</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Card 4: Routing Rationale */}
+              {routingData.reasoning && (
+                <div className="artifact-section-card">
+                  <div className="section-card-header">
+                    <div className="header-title">
+                      <Code2 size={14} className="text-amber" />
+                      <strong>Coordinator Routing Rationale</strong>
+                    </div>
+                  </div>
+                  <p style={{ fontSize: '12.5px', color: 'var(--text-secondary)', lineHeight: 1.5, margin: 0 }}>
+                    {routingData.reasoning}
+                  </p>
+                </div>
+              )}
             </div>
-
-            <div className="timeline-steps-vertical">
-              <div className="timeline-step completed">
-                <div className="step-dot" />
-                <div className="step-content">
-                  <strong>Order Manifest Validated</strong>
-                  <span>Coordinator validated cryptographic signature & inventory reservation</span>
-                  <small>Today, 08:14 AM</small>
-                </div>
-              </div>
-
-              <div className="timeline-step completed">
-                <div className="step-dot" />
-                <div className="step-content">
-                  <strong>Automated AGV Pick Completed</strong>
-                  <span>Picked from Aisle 12, Shelf B3 by AGV Unit #08</span>
-                  <small>Today, 09:30 AM</small>
-                </div>
-              </div>
-
-              <div className="timeline-step completed">
-                <div className="step-dot" />
-                <div className="step-content">
-                  <strong>Quality Control & Barcode Scan</strong>
-                  <span>Weights and Hazmat verification signed off by Inspector</span>
-                  <small>Today, 10:15 AM</small>
-                </div>
-              </div>
-
-              <div className="timeline-step active-current">
-                <div className="step-dot pulse" />
-                <div className="step-content">
-                  <strong>Dispatched with FreightExpress Fleet</strong>
-                  <span>Tracking ID: FX-992184-US • ETA: Tomorrow 14:00</span>
-                  <small className="text-amber">Active Milestone</small>
-                </div>
-              </div>
-
-              <div className="timeline-step pending">
-                <div className="step-dot" />
-                <div className="step-content">
-                  <strong>Final Mile Gate Delivery</strong>
-                  <span>Awaiting destination terminal gate scan</span>
-                  <small>Estimated Tomorrow</small>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+          )
+        })()}
 
         {/* TAB 4: JWT & RBAC MATRIX */}
         {activeTab === 'rbac_claims' && (

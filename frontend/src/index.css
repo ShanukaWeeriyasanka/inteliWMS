@@ -5577,3 +5577,490 @@ spline-viewer a {
 .toast-close:hover {
   color: rgba(235,235,245,0.8);
 }
+
+/* =========================================================================
+   INTELLIWMS — FULFILLMENT AGENT SPECIALIST UI & HUD BADGES
+   ========================================================================= */
+
+.hud-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: 9999px;
+  font-family: var(--font-mono, monospace);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.hud-status-badge.badge-blue {
+  background: rgba(10, 132, 255, 0.15);
+  color: #0a84ff;
+  border: 1px solid rgba(10, 132, 255, 0.3);
+}
+
+.hud-status-badge.badge-emerald {
+  background: rgba(48, 209, 88, 0.15);
+  color: #30d158;
+  border: 1px solid rgba(48, 209, 88, 0.3);
+}
+
+.hud-status-badge.badge-coral {
+  background: rgba(255, 69, 58, 0.15);
+  color: #ff453a;
+  border: 1px solid rgba(255, 69, 58, 0.3);
+}
+
+.hud-status-badge.badge-amber {
+  background: rgba(245, 158, 11, 0.15);
+  color: #f59e0b;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.hud-status-badge.badge-muted {
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(235, 235, 245, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+/* Fulfillment Card Container */
+.fulfillment-card-container {
+  width: 100%;
+  margin-top: 10px;
+  margin-bottom: 10px;
+  background: rgba(18, 18, 22, 0.75);
+  backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(10, 132, 255, 0.22);
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(255, 255, 255, 0.04);
+  transition: border-color 0.2s var(--apple-ease);
+}
+
+.fulfillment-card-container:hover {
+  border-color: rgba(10, 132, 255, 0.38);
+}
+
+/* Card Header */
+.fulfillment-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px 14px;
+  background: rgba(10, 132, 255, 0.06);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.fulfillment-header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.agent-identity-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 700;
+  color: #0a84ff;
+  letter-spacing: 0.04em;
+}
+
+.fulfillment-order-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+
+.order-id-text {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.btn-mini-copy {
+  background: none;
+  border: none;
+  color: rgba(235, 235, 245, 0.45);
+  cursor: pointer;
+  padding: 2px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: color 0.15s, background-color 0.15s;
+}
+
+.btn-mini-copy:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.fulfillment-header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.confidence-chip {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: rgba(235, 235, 245, 0.55);
+  background: rgba(255, 255, 255, 0.05);
+  padding: 2px 7px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Card Body */
+.fulfillment-card-body {
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* State Boxes */
+.fulfillment-state-box {
+  padding: 12px 14px;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.state-not-found {
+  background: rgba(255, 69, 58, 0.08);
+  border: 1px solid rgba(255, 69, 58, 0.25);
+}
+
+.state-missing-id {
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+}
+
+.state-clarification {
+  background: rgba(10, 132, 255, 0.08);
+  border: 1px solid rgba(10, 132, 255, 0.25);
+}
+
+.state-box-header {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  color: #ffffff;
+}
+
+.state-box-desc {
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  line-height: 1.45;
+  margin: 0;
+}
+
+.format-hint {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+.format-hint code {
+  background: rgba(255, 255, 255, 0.08);
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: var(--accent-gold);
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+/* Delay Investigation Section */
+.delay-investigation-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.delay-root-cause-banner {
+  background: rgba(255, 69, 58, 0.08);
+  border: 1px solid rgba(255, 69, 58, 0.25);
+  border-left: 3px solid #ff453a;
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.banner-title-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.banner-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #ff453a;
+}
+
+.banner-reason-text {
+  font-size: 13px;
+  color: #ffffff;
+  line-height: 1.4;
+}
+
+/* Meta Tile Grid */
+.fulfillment-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px;
+}
+
+.meta-tile {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 8px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.meta-tile-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.meta-tile-value {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  color: #ffffff;
+}
+
+/* Cross-Agent Collaboration Stepper */
+.cross-agent-investigation-card {
+  background: rgba(245, 158, 11, 0.05);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+  border-radius: 10px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.collaboration-stepper-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.stepper-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #f59e0b;
+}
+
+.agent-collaboration-stepper {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding: 6px 8px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.stepper-node {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 6px;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.stepper-node.active {
+  background: rgba(10, 132, 255, 0.15);
+  border: 1px solid rgba(10, 132, 255, 0.3);
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.stepper-arrow {
+  color: rgba(235, 235, 245, 0.35);
+  display: inline-flex;
+  align-items: center;
+}
+
+.investigation-findings-text {
+  font-size: 12.5px;
+  color: var(--text-light);
+  line-height: 1.4;
+}
+
+/* Order Details Spec Grid */
+.order-details-spec-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 8px;
+}
+
+/* Progress Note Box */
+.fulfillment-progress-note-box {
+  background: rgba(10, 132, 255, 0.06);
+  border: 1px solid rgba(10, 132, 255, 0.18);
+  border-radius: 8px;
+  padding: 8px 12px;
+}
+
+.note-title-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #0a84ff;
+  margin-bottom: 2px;
+}
+
+.note-body {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* Button to inspect full telemetry in sidebar */
+.btn-inspect-fulfillment-artifact {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  width: 100%;
+  padding: 8px 12px;
+  background: rgba(10, 132, 255, 0.08);
+  border: 1px solid rgba(10, 132, 255, 0.22);
+  border-radius: 8px;
+  color: #0a84ff;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s, border-color 0.15s, transform 0.15s;
+}
+
+.btn-inspect-fulfillment-artifact:hover {
+  background: rgba(10, 132, 255, 0.16);
+  border-color: rgba(10, 132, 255, 0.4);
+  transform: translateY(-1px);
+}
+
+/* Follow-up Action Chips */
+.fulfillment-followup-container {
+  padding: 8px 14px 12px 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.followup-label {
+  font-size: 10.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.followup-chips-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.btn-followup-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 9999px;
+  color: var(--text-light);
+  font-family: var(--font-sans);
+  font-size: 11.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s var(--apple-ease);
+}
+
+.btn-followup-chip:hover {
+  background: rgba(10, 132, 255, 0.15);
+  border-color: rgba(10, 132, 255, 0.35);
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+.chip-arrow {
+  color: var(--accent-blue);
+  opacity: 0.7;
+  transition: transform 0.15s var(--apple-ease);
+}
+
+.btn-followup-chip:hover .chip-arrow {
+  transform: translateX(2px);
+  opacity: 1;
+}
+
+/* Responsive adjustments */
+@media (max-width: 480px) {
+  .fulfillment-card-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .fulfillment-meta-grid,
+  .order-details-spec-grid {
+    grid-template-columns: 1fr;
+  }
+  .agent-collaboration-stepper {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .stepper-arrow {
+    transform: rotate(90deg);
+    margin: 2px 0 2px 8px;
+  }
+}

@@ -16,12 +16,14 @@ import {
   Paperclip,
   Activity
 } from 'lucide-react'
+import FulfillmentCard from './FulfillmentCard'
 
 export default function ChatMessage({
   message,
   onOpenArtifact,
   onInspectLocation,
-  onInspectOrder
+  onInspectOrder,
+  onSendQuery
 }) {
   const [copied, setCopied] = useState(false)
   const isUser = message.role === 'user'
@@ -35,8 +37,13 @@ export default function ChatMessage({
   // Parse structured details if present
   const meta = message.metadata || {}
   const routing = message.routing || meta.routing || {}
-  const agentTarget = routing.target_agent || meta.target_agent || 'coordinator'
+  const agentTarget = routing.target_agent || meta.target_agent || message.agent_used || 'coordinator'
   const isBlocked = message.status === 'blocked' || routing.status === 'blocked'
+  const isFulfillment = agentTarget === 'fulfillment_agent' ||
+    routing.domain === 'FULFILLMENT' ||
+    routing.intent === 'FULFILLMENT' ||
+    !!message.fulfillment_details ||
+    !!meta.fulfillment_details
 
   return (
     <div className={`chat-message-row ${isUser ? 'user-row' : 'assistant-row'}`}>
@@ -120,7 +127,7 @@ export default function ChatMessage({
           {/* Structured Specialization Cards for Coordinator */}
           {!isUser && !isBlocked && (
             <div className="specialist-embedded-cards">
-              {/* SKU Location Callout */}
+              {/* SKU Location Callout (Inventory Agent) */}
               {(message.skuData || meta.sku) && (
                 <div className="embedded-sku-card">
                   <div className="embedded-card-header">
@@ -161,39 +168,13 @@ export default function ChatMessage({
                 </div>
               )}
 
-              {/* Order Status Callout */}
-              {(message.orderData || meta.order_id) && (
-                <div className="embedded-order-card">
-                  <div className="embedded-card-header">
-                    <div className="card-header-left">
-                      <Truck size={15} className="text-blue" />
-                      <strong>Fulfillment Consignment: {meta.order_id || message.orderData?.id || '#4521'}</strong>
-                    </div>
-                    <span className="hud-status-badge badge-blue">ON-SCHEDULE DISPATCH</span>
-                  </div>
-                  <div className="embedded-card-body">
-                    <div className="sku-spec-grid">
-                      <div className="spec-tile">
-                        <span className="spec-label">DISPATCH TELEMETRY:</span>
-                        <span className="spec-val status-in-transit">{message.orderData?.status || 'In Transit (On Schedule)'}</span>
-                        <div className="transit-progress-track">
-                          <div className="transit-progress-fill" style={{ width: '68%' }} />
-                        </div>
-                      </div>
-                      <div className="spec-tile">
-                        <span className="spec-label">ASSIGNED CARRIER FLEET:</span>
-                        <span className="spec-val carrier-val">{message.orderData?.carrier || 'FreightExpress Logistics • Priority 1'}</span>
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => onInspectOrder(message.orderData || { id: meta.order_id || '#4521' })}
-                      className="btn-inspect-artifact"
-                    >
-                      <Truck size={13} className="text-blue" />
-                      <span>Inspect Carrier Fleet Transit Timeline</span>
-                    </button>
-                  </div>
-                </div>
+              {/* Dynamic Fulfillment Agent Card (Real Data) */}
+              {isFulfillment && (
+                <FulfillmentCard
+                  message={message}
+                  onSendQuery={onSendQuery}
+                  onInspectOrder={onInspectOrder}
+                />
               )}
             </div>
           )}
