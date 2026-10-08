@@ -11,8 +11,9 @@ Verifies:
 import json
 import sys
 import requests
+import os
 
-BASE_URL = "http://127.0.0.1:8000"
+BASE_URL = os.environ.get("ML_API_URL", sys.argv[1] if len(sys.argv) > 1 else "http://127.0.0.1:8001")
 
 
 def run_sanity_tests():
