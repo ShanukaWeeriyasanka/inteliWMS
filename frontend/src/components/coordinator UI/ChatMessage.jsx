@@ -16,13 +16,12 @@ import {
   Paperclip,
   Activity
 } from 'lucide-react'
-import FulfillmentCard from './FulfillmentCard'
 
 export default function ChatMessage({
   message,
   onOpenArtifact,
   onInspectLocation,
-  onInspectOrder,
+  onOpenFulfillmentDashboard,
   onSendQuery
 }) {
   const [copied, setCopied] = useState(false)
@@ -39,11 +38,27 @@ export default function ChatMessage({
   const routing = message.routing || meta.routing || {}
   const agentTarget = routing.target_agent || meta.target_agent || message.agent_used || 'coordinator'
   const isBlocked = message.status === 'blocked' || routing.status === 'blocked'
-  const isFulfillment = agentTarget === 'fulfillment_agent' ||
-    routing.domain === 'FULFILLMENT' ||
-    routing.intent === 'FULFILLMENT' ||
-    !!message.fulfillment_details ||
-    !!meta.fulfillment_details
+
+  // Strict fulfillment detection: only genuine fulfillment responses
+  const isFulfillment =
+    !isUser &&
+    !isBlocked &&
+    (agentTarget === 'fulfillment_agent' ||
+      message.agent_used === 'fulfillment_agent' ||
+      meta.agent_used === 'fulfillment_agent' ||
+      !!message.fulfillment_details ||
+      !!meta.fulfillment_details ||
+      (routing.domain === 'FULFILLMENT' &&
+        agentTarget !== 'inventory_agent' &&
+        agentTarget !== 'knowledge_agent'))
+
+  // Conservative order ID resolution for the button label
+  const parsedOrderId =
+    message.fulfillment_details?.order_id ||
+    meta.fulfillment_details?.order_id ||
+    (typeof message.content === 'string'
+      ? message.content.match(/\b(ORD-\d+)\b/i)?.[1]?.toUpperCase()
+      : null)
 
   return (
     <div className={`chat-message-row ${isUser ? 'user-row' : 'assistant-row'}`}>
@@ -86,7 +101,11 @@ export default function ChatMessage({
           </div>
         )}
 
-        <div className={`message-bubble ${isUser ? 'user-bubble' : 'assistant-bubble'} ${isBlocked ? 'blocked-bubble' : ''}`}>
+        <div
+          className={`message-bubble ${isUser ? 'user-bubble' : 'assistant-bubble'} ${
+            isBlocked ? 'blocked-bubble' : ''
+          }`}
+        >
           {/* If security blocked */}
           {isBlocked && (
             <div className="security-block-notice">
@@ -95,7 +114,9 @@ export default function ChatMessage({
                 <strong>Responsible AI Shield Activated</strong>
               </div>
               <p className="security-notice-desc">
-                {message.content || routing.message || 'Potential prompt injection or privileged data extraction detected and neutralized.'}
+                {message.content ||
+                  routing.message ||
+                  'Potential prompt injection or privileged data extraction detected and neutralized.'}
               </p>
               {routing.rule && (
                 <div className="security-rule-tag">
@@ -112,6 +133,27 @@ export default function ChatMessage({
             </div>
           )}
 
+          {/* Prominent Fulfillment Dashboard Navigation Button (Directly after response) */}
+          {isFulfillment && (
+            <div className="fulfillment-chat-action-container">
+              <button
+                type="button"
+                onClick={() => onOpenFulfillmentDashboard && onOpenFulfillmentDashboard(message)}
+                className="btn-view-fulfillment-dashboard"
+                title="Open dedicated Fulfillment Operations Control Center"
+              >
+                <div className="btn-icon-wrapper">
+                  <Truck size={15} />
+                </div>
+                <span className="btn-text">
+                  View Fulfillment Dashboard
+                  {parsedOrderId ? ` (${parsedOrderId})` : ''}
+                </span>
+                <ExternalLink size={13} className="btn-ext-icon" />
+              </button>
+            </div>
+          )}
+
           {/* Attached Files (User) */}
           {message.attachments && message.attachments.length > 0 && (
             <div className="message-attachments-list">
@@ -124,72 +166,82 @@ export default function ChatMessage({
             </div>
           )}
 
-          {/* Structured Specialization Cards for Coordinator */}
-          {!isUser && !isBlocked && (
+          {/* Structured Inventory Specialization Card (Inventory Agent) */}
+          {!isUser && !isBlocked && (message.skuData || meta.sku) && (
             <div className="specialist-embedded-cards">
-              {/* SKU Location Callout (Inventory Agent) */}
-              {(message.skuData || meta.sku) && (
-                <div className="embedded-sku-card">
-                  <div className="embedded-card-header">
-                    <div className="card-header-left">
-                      <ScanBarcode size={15} className="text-amber" />
-                      <strong>Inventory Bay Manifest: {meta.sku || message.skuData?.sku || 'SKU-4521'}</strong>
-                    </div>
-                    <span className="hud-status-badge badge-emerald">HIGH-BAY VERIFIED</span>
+              <div className="embedded-sku-card">
+                <div className="embedded-card-header">
+                  <div className="card-header-left">
+                    <ScanBarcode size={15} className="text-amber" />
+                    <strong>Inventory Bay Manifest: {meta.sku || message.skuData?.sku || 'SKU-4521'}</strong>
                   </div>
-                  <div className="embedded-card-body">
-                    <div className="sku-spec-grid">
-                      <div className="spec-tile">
-                        <span className="spec-label">HIGH-BAY COORDINATES:</span>
-                        <div className="coords-badge-group">
-                          <span className="coord-chip">AISLE {message.skuData?.aisle || 12}</span>
-                          <span className="coord-chip">SHELF {message.skuData?.shelf || 'B3'}</span>
-                          <span className="coord-chip accent">{message.skuData?.bay ? message.skuData.bay.toUpperCase() : `TIER ${message.skuData?.tier || 'B'}`}</span>
-                        </div>
+                  <span className="hud-status-badge badge-emerald">HIGH-BAY VERIFIED</span>
+                </div>
+                <div className="embedded-card-body">
+                  <div className="sku-spec-grid">
+                    <div className="spec-tile">
+                      <span className="spec-label">HIGH-BAY COORDINATES:</span>
+                      <div className="coords-badge-group">
+                        <span className="coord-chip">AISLE {message.skuData?.aisle || 12}</span>
+                        <span className="coord-chip">SHELF {message.skuData?.shelf || 'B3'}</span>
+                        <span className="coord-chip accent">
+                          {message.skuData?.bay
+                            ? message.skuData.bay.toUpperCase()
+                            : `TIER ${message.skuData?.tier || 'B'}`}
+                        </span>
                       </div>
-                      <div className="spec-tile">
-                        <span className="spec-label">VERIFIED FLOOR STOCK:</span>
-                        <div className="stock-level-container">
-                          <span className="spec-val stock-val">{message.skuData?.stock || 'Physical stock verified'}</span>
-                          <div className="stock-progress-track">
-                            <div className="stock-progress-fill" style={{ width: message.skuData?.status === 'OUT_OF_STOCK' ? '8%' : (message.skuData?.status === 'LOW_STOCK' ? '30%' : '85%') }} />
-                          </div>
+                    </div>
+                    <div className="spec-tile">
+                      <span className="spec-label">VERIFIED FLOOR STOCK:</span>
+                      <div className="stock-level-container">
+                        <span className="spec-val stock-val">
+                          {message.skuData?.stock || 'Physical stock verified'}
+                        </span>
+                        <div className="stock-progress-track">
+                          <div
+                            className="stock-progress-fill"
+                            style={{
+                              width:
+                                message.skuData?.status === 'OUT_OF_STOCK'
+                                  ? '8%'
+                                  : message.skuData?.status === 'LOW_STOCK'
+                                  ? '30%'
+                                  : '85%'
+                            }}
+                          />
                         </div>
                       </div>
                     </div>
+                  </div>
+                  {onInspectLocation && (
                     <button
+                      type="button"
                       onClick={() => onInspectLocation(message.skuData || { sku: meta.sku || 'SKU-4521' })}
                       className="btn-inspect-artifact"
                     >
                       <Warehouse size={13} className="text-amber" />
                       <span>Inspect Warehouse Floor & 3D Bay Map</span>
                     </button>
-                  </div>
+                  )}
                 </div>
-              )}
-
-              {/* Dynamic Fulfillment Agent Card (Real Data) */}
-              {isFulfillment && (
-                <FulfillmentCard
-                  message={message}
-                  onSendQuery={onSendQuery}
-                  onInspectOrder={onInspectOrder}
-                />
-              )}
+              </div>
             </div>
           )}
 
           {/* Footer Controls for Assistant */}
           {!isUser && (
             <div className="message-footer-bar">
-              <button
-                onClick={() => onOpenArtifact(message)}
-                className="btn-view-artifact-link"
-                title="View Routing Telemetry & Artifact"
-              >
-                <Layers size={13} className="text-amber" />
-                <span>Telemetry & Visual Artifact</span>
-              </button>
+              {onOpenArtifact && (
+                <button
+                  type="button"
+                  onClick={() => onOpenArtifact(message)}
+                  className="btn-view-artifact-link"
+                  title="View Routing Telemetry & Artifact"
+                >
+                  <Layers size={13} className="text-amber" />
+                  <span>Telemetry & Visual Artifact</span>
+                </button>
+              )}
 
               <div className="footer-actions-right">
                 <button onClick={copyContent} className="icon-action-btn" title="Copy response">
@@ -207,7 +259,10 @@ export default function ChatMessage({
         </div>
 
         <div className="message-timestamp">
-          {new Date(message.timestamp || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          {new Date(message.timestamp || Date.now()).toLocaleTimeString([], {
+            hour: '2-digit',
+            minute: '2-digit'
+          })}
         </div>
       </div>
     </div>

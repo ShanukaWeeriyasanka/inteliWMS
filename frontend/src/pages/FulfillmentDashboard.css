@@ -1,0 +1,762 @@
+/* =========================================================================
+   INTELLIWMS — FULFILLMENT AGENT CONTROL CENTER (COMPLETE LIGHT THEME)
+   High-specificity isolation against global dark styles in index.css
+   ========================================================================= */
+
+/* ── Root Page Container ── */
+.fulfillment-control-center-theme {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  z-index: 9999 !important;
+  -webkit-font-smoothing: antialiased !important;
+  -moz-osx-font-smoothing: grayscale !important;
+}
+
+/* Force light reset on all elements inside the fulfillment theme */
+.fulfillment-control-center-theme * {
+  box-sizing: border-box !important;
+}
+
+.fulfillment-control-center-theme h1,
+.fulfillment-control-center-theme h2,
+.fulfillment-control-center-theme h3,
+.fulfillment-control-center-theme h4 {
+  color: #0f172a !important;
+  font-weight: 700 !important;
+  margin: 0 !important;
+}
+
+.fulfillment-control-center-theme p {
+  color: #334155 !important;
+  margin: 0 !important;
+}
+
+/* =========================================================================
+   1. TOP NAVIGATION BAR (REFERENCE 1 STYLE)
+   ========================================================================= */
+.fulfillment-control-center-theme .fc-top-navbar {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 50 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 12px 28px !important;
+  background: #ffffff !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04) !important;
+  gap: 16px !important;
+  flex-wrap: wrap !important;
+  width: 100% !important;
+}
+
+.fulfillment-control-center-theme .fc-nav-left {
+  display: flex !important;
+  align-items: center !important;
+  gap: 16px !important;
+}
+
+.fulfillment-control-center-theme .fc-btn-back {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  padding: 7px 16px !important;
+  background: #f8fafc !important;
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 9999px !important;
+  color: #334155 !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: all 0.18s ease !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03) !important;
+}
+
+.fulfillment-control-center-theme .fc-btn-back:hover {
+  background: #f1f5f9 !important;
+  border-color: #94a3b8 !important;
+  color: #0f172a !important;
+  transform: translateX(-2px) !important;
+}
+
+.fulfillment-control-center-theme .fc-brand-wrap {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+}
+
+.fulfillment-control-center-theme .fc-brand-icon {
+  width: 34px !important;
+  height: 34px !important;
+  border-radius: 10px !important;
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  color: #ffffff !important;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25) !important;
+  flex-shrink: 0 !important;
+}
+
+.fulfillment-control-center-theme .fc-brand-text {
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.fulfillment-control-center-theme .fc-brand-title {
+  font-size: 15px !important;
+  font-weight: 750 !important;
+  color: #0f172a !important;
+  letter-spacing: -0.02em !important;
+  line-height: 1.2 !important;
+}
+
+.fulfillment-control-center-theme .fc-brand-sub {
+  font-size: 11px !important;
+  color: #2563eb !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  font-weight: 700 !important;
+}
+
+.fulfillment-control-center-theme .fc-nav-right {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  flex-wrap: wrap !important;
+}
+
+.fulfillment-control-center-theme .fc-order-chip {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  padding: 5px 14px !important;
+  background: #eff6ff !important;
+  border: 1px solid #bfdbfe !important;
+  border-radius: 9999px !important;
+  font-family: monospace !important;
+  font-size: 12.5px !important;
+  color: #1e40af !important;
+}
+
+.fulfillment-control-center-theme .fc-order-chip strong {
+  color: #0f172a !important;
+  font-weight: 750 !important;
+}
+
+.fulfillment-control-center-theme .fc-btn-copy {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: transparent !important;
+  border: none !important;
+  color: #64748b !important;
+  cursor: pointer !important;
+  padding: 2px !important;
+  border-radius: 4px !important;
+  transition: color 0.15s ease !important;
+}
+.fulfillment-control-center-theme .fc-btn-copy:hover { color: #0f172a !important; }
+
+/* Status Badges */
+.fulfillment-control-center-theme .fc-status-pill {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  padding: 5px 13px !important;
+  border-radius: 9999px !important;
+  font-size: 11px !important;
+  font-weight: 750 !important;
+  letter-spacing: 0.05em !important;
+  text-transform: uppercase !important;
+}
+
+.fulfillment-control-center-theme .fc-status-pill.status-delayed {
+  background: #fee2e2 !important;
+  border: 1px solid #fca5a5 !important;
+  color: #dc2626 !important;
+}
+
+.fulfillment-control-center-theme .fc-status-pill.status-shipped {
+  background: #dcfce7 !important;
+  border: 1px solid #86efac !important;
+  color: #15803d !important;
+}
+
+.fulfillment-control-center-theme .fc-status-pill.status-pending {
+  background: #eff6ff !important;
+  border: 1px solid #93c5fd !important;
+  color: #1d4ed8 !important;
+}
+
+.fulfillment-control-center-theme .fc-status-pill.status-cancelled {
+  background: #f1f5f9 !important;
+  border: 1px solid #cbd5e1 !important;
+  color: #64748b !important;
+}
+
+.fulfillment-control-center-theme .fc-intent-tag {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 5px !important;
+  padding: 4px 10px !important;
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 6px !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  color: #475569 !important;
+  font-family: monospace !important;
+  text-transform: uppercase !important;
+}
+
+.fulfillment-control-center-theme .fc-user-tag {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  padding: 5px 12px !important;
+  background: #f1f5f9 !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 9999px !important;
+  font-size: 12px !important;
+  color: #334155 !important;
+}
+
+/* =========================================================================
+   2. MAIN DASHBOARD CONTENT CONTAINER
+   ========================================================================= */
+.fulfillment-control-center-theme .fc-main-container {
+  flex: 1 !important;
+  max-width: 1440px !important;
+  width: 100% !important;
+  margin: 0 auto !important;
+  padding: 20px 28px 60px 28px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 20px !important;
+}
+
+/* ── Top Metrics Strip (Reference 1 Style) ── */
+.fulfillment-control-center-theme .fc-metrics-row {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)) !important;
+  gap: 14px !important;
+  width: 100% !important;
+}
+
+.fulfillment-control-center-theme .fc-metric-card {
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 14px !important;
+  padding: 14px 18px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 14px !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
+  transition: transform 0.18s ease, box-shadow 0.18s ease !important;
+}
+
+.fulfillment-control-center-theme .fc-metric-card:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.07) !important;
+  border-color: #cbd5e1 !important;
+}
+
+.fulfillment-control-center-theme .fc-metric-icon-box {
+  width: 40px !important;
+  height: 40px !important;
+  border-radius: 10px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+}
+
+.fulfillment-control-center-theme .fc-metric-icon-box.blue { background: #eff6ff !important; color: #2563eb !important; }
+.fulfillment-control-center-theme .fc-metric-icon-box.amber { background: #fffbeb !important; color: #d97706 !important; }
+.fulfillment-control-center-theme .fc-metric-icon-box.emerald { background: #ecfdf5 !important; color: #059669 !important; }
+.fulfillment-control-center-theme .fc-metric-icon-box.coral { background: #fef2f2 !important; color: #dc2626 !important; }
+.fulfillment-control-center-theme .fc-metric-icon-box.purple { background: #f5f3ff !important; color: #7c3aed !important; }
+
+.fulfillment-control-center-theme .fc-metric-content {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 2px !important;
+  min-width: 0 !important;
+}
+
+.fulfillment-control-center-theme .fc-metric-k {
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  color: #64748b !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.04em !important;
+}
+
+.fulfillment-control-center-theme .fc-metric-v {
+  font-size: 14.5px !important;
+  font-weight: 750 !important;
+  color: #0f172a !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+.fulfillment-control-center-theme .fc-metric-v.font-mono { font-family: monospace !important; }
+.fulfillment-control-center-theme .fc-metric-v.text-blue { color: #2563eb !important; }
+.fulfillment-control-center-theme .fc-metric-v.text-emerald { color: #059669 !important; }
+.fulfillment-control-center-theme .fc-metric-v.text-coral { color: #dc2626 !important; }
+.fulfillment-control-center-theme .fc-metric-v.text-amber { color: #d97706 !important; }
+
+/* =========================================================================
+   3. TWO-COLUMN OPERATIONAL STAGE (VISUALIZATION + ZONE INSPECTOR)
+   ========================================================================= */
+.fulfillment-control-center-theme .fc-ops-stage-grid {
+  display: grid !important;
+  grid-template-columns: 1fr 380px !important;
+  gap: 20px !important;
+  align-items: start !important;
+}
+
+@media (max-width: 1200px) {
+  .fulfillment-control-center-theme .fc-ops-stage-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ── Zone Detail Inspector Card (Right Column) ── */
+.fulfillment-control-center-theme .fc-inspector-card {
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 18px !important;
+  overflow: hidden !important;
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.03) !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.fulfillment-control-center-theme .fc-inspector-head {
+  padding: 16px 20px !important;
+  background: #f8fafc !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 10px !important;
+}
+
+.fulfillment-control-center-theme .fc-inspector-head-left {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+}
+
+.fulfillment-control-center-theme .fc-inspector-icon-wrap {
+  width: 32px !important;
+  height: 32px !important;
+  border-radius: 8px !important;
+  background: #eff6ff !important;
+  border: 1px solid #bfdbfe !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  color: #2563eb !important;
+  flex-shrink: 0 !important;
+}
+
+.fulfillment-control-center-theme .fc-inspector-title {
+  font-size: 14.5px !important;
+  font-weight: 750 !important;
+  color: #0f172a !important;
+}
+
+.fulfillment-control-center-theme .fc-inspector-body {
+  padding: 20px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 14px !important;
+}
+
+.fulfillment-control-center-theme .fc-tiles-grid {
+  display: grid !important;
+  grid-template-columns: repeat(2, 1fr) !important;
+  gap: 10px !important;
+}
+
+.fulfillment-control-center-theme .fc-tile {
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 10px !important;
+  padding: 10px 12px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 3px !important;
+}
+
+.fulfillment-control-center-theme .fc-tile.full {
+  grid-column: span 2 !important;
+}
+
+.fulfillment-control-center-theme .fc-tile-lbl {
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  color: #64748b !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.04em !important;
+}
+
+.fulfillment-control-center-theme .fc-tile-val {
+  font-size: 13.5px !important;
+  font-weight: 700 !important;
+  color: #0f172a !important;
+}
+
+.fulfillment-control-center-theme .fc-tile-val.font-mono { font-family: monospace !important; }
+.fulfillment-control-center-theme .fc-tile-val.text-amber { color: #d97706 !important; }
+.fulfillment-control-center-theme .fc-tile-val.text-blue { color: #2563eb !important; }
+
+.fulfillment-control-center-theme .fc-callout-box {
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+  border-left: 3px solid #2563eb !important;
+  border-radius: 8px !important;
+  padding: 12px 14px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 4px !important;
+}
+
+.fulfillment-control-center-theme .fc-callout-lbl {
+  font-size: 10.5px !important;
+  font-weight: 700 !important;
+  color: #2563eb !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+}
+
+.fulfillment-control-center-theme .fc-callout-txt {
+  font-size: 13px !important;
+  color: #334155 !important;
+  line-height: 1.5 !important;
+}
+
+/* Pipeline Flow Stepper in Inspector */
+.fulfillment-control-center-theme .fc-pipeline-flow {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  flex-wrap: wrap !important;
+  padding: 10px 12px !important;
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 10px !important;
+}
+
+.fulfillment-control-center-theme .fc-flow-node {
+  display: flex !important;
+  align-items: center !important;
+  gap: 5px !important;
+  padding: 4px 10px !important;
+  border-radius: 9999px !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  border: 1px solid #cbd5e1 !important;
+  background: #ffffff !important;
+  color: #334155 !important;
+}
+
+.fulfillment-control-center-theme .fc-flow-node.coord {
+  background: #fffbeb !important;
+  border-color: #fcd34d !important;
+  color: #b45309 !important;
+}
+
+.fulfillment-control-center-theme .fc-flow-node.fulfill {
+  background: #eff6ff !important;
+  border-color: #93c5fd !important;
+  color: #1d4ed8 !important;
+}
+
+.fulfillment-control-center-theme .fc-flow-node.inv {
+  background: #ecfdf5 !important;
+  border-color: #6ee7b7 !important;
+  color: #047857 !important;
+}
+
+/* =========================================================================
+   4. DELAY ROOT-CAUSE & VERBATIM RESPONSE CARDS
+   ========================================================================= */
+.fulfillment-control-center-theme .fc-delay-banner {
+  background: #fef2f2 !important;
+  border: 1px solid #fecaca !important;
+  border-left: 4px solid #ef4444 !important;
+  border-radius: 14px !important;
+  padding: 18px 22px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 8px !important;
+  box-shadow: 0 1px 3px rgba(239, 68, 68, 0.05) !important;
+}
+
+.fulfillment-control-center-theme .fc-delay-head {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 12px !important;
+  flex-wrap: wrap !important;
+}
+
+.fulfillment-control-center-theme .fc-delay-title {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  font-size: 14px !important;
+  font-weight: 750 !important;
+  color: #dc2626 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.03em !important;
+}
+
+.fulfillment-control-center-theme .fc-delay-text {
+  font-size: 15px !important;
+  font-weight: 600 !important;
+  color: #1e293b !important;
+  line-height: 1.5 !important;
+}
+
+.fulfillment-control-center-theme .fc-delay-note {
+  font-size: 12px !important;
+  color: #64748b !important;
+}
+
+/* Verbatim Response Card */
+.fulfillment-control-center-theme .fc-verbatim-card {
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 16px !important;
+  padding: 20px 24px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 12px !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
+}
+
+.fulfillment-control-center-theme .fc-verbatim-head {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 10px !important;
+}
+
+.fulfillment-control-center-theme .fc-verbatim-title-grp {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+.fulfillment-control-center-theme .fc-verbatim-title {
+  font-size: 14.5px !important;
+  font-weight: 750 !important;
+  color: #0f172a !important;
+}
+
+.fulfillment-control-center-theme .fc-verbatim-box {
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 10px !important;
+  padding: 14px 18px !important;
+  font-size: 14px !important;
+  color: #334155 !important;
+  line-height: 1.6 !important;
+}
+
+/* =========================================================================
+   5. FOLLOW-UP OPERATIONS COMMAND CONSOLE
+   ========================================================================= */
+.fulfillment-control-center-theme .fc-console-card {
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 18px !important;
+  padding: 22px 24px !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 14px !important;
+}
+
+.fulfillment-control-center-theme .fc-console-head {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 12px !important;
+  flex-wrap: wrap !important;
+}
+
+.fulfillment-control-center-theme .fc-console-title-grp {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+.fulfillment-control-center-theme .fc-console-title {
+  font-size: 15px !important;
+  font-weight: 750 !important;
+  color: #0f172a !important;
+}
+
+.fulfillment-control-center-theme .fc-console-chips-row {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 8px !important;
+}
+
+.fulfillment-control-center-theme .fc-btn-chip {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  padding: 7px 14px !important;
+  background: #f8fafc !important;
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 9999px !important;
+  color: #334155 !important;
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: all 0.18s ease !important;
+}
+
+.fulfillment-control-center-theme .fc-btn-chip:hover {
+  background: #eff6ff !important;
+  border-color: #93c5fd !important;
+  color: #1d4ed8 !important;
+  transform: translateY(-1px) !important;
+}
+
+.fulfillment-control-center-theme .fc-console-input-bar {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  background: #f8fafc !important;
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 12px !important;
+  padding: 6px 8px 6px 16px !important;
+}
+
+.fulfillment-control-center-theme .fc-console-input-bar:focus-within {
+  border-color: #2563eb !important;
+  background: #ffffff !important;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12) !important;
+}
+
+.fulfillment-control-center-theme .fc-console-input {
+  flex: 1 !important;
+  background: transparent !important;
+  border: none !important;
+  outline: none !important;
+  font-size: 14px !important;
+  color: #0f172a !important;
+  font-family: inherit !important;
+}
+.fulfillment-control-center-theme .fc-console-input::placeholder { color: #94a3b8 !important; }
+
+.fulfillment-control-center-theme .fc-btn-submit {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  padding: 8px 18px !important;
+  background: #2563eb !important;
+  border: 1px solid #1d4ed8 !important;
+  border-radius: 8px !important;
+  color: #ffffff !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: all 0.18s ease !important;
+}
+
+.fulfillment-control-center-theme .fc-btn-submit:hover:not(:disabled) {
+  background: #1d4ed8 !important;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3) !important;
+}
+.fulfillment-control-center-theme .fc-btn-submit:disabled { opacity: 0.5 !important; cursor: not-allowed !important; }
+
+/* =========================================================================
+   6. EMPTY / STANDBY STATES (LIGHT THEME)
+   ========================================================================= */
+.fulfillment-control-center-theme .fc-empty-state-card {
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 20px !important;
+  padding: 44px 32px !important;
+  text-align: center !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  gap: 16px !important;
+  max-width: 620px !important;
+  margin: 30px auto !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04) !important;
+}
+
+.fulfillment-control-center-theme .fc-empty-icon-wrap {
+  width: 60px !important;
+  height: 60px !important;
+  border-radius: 18px !important;
+  background: #eff6ff !important;
+  border: 1px solid #bfdbfe !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  color: #2563eb !important;
+}
+
+.fulfillment-control-center-theme .fc-empty-icon-wrap.error {
+  background: #fef2f2 !important;
+  border-color: #fecaca !important;
+  color: #dc2626 !important;
+}
+
+.fulfillment-control-center-theme .fc-empty-title {
+  font-size: 20px !important;
+  font-weight: 750 !important;
+  color: #0f172a !important;
+}
+
+.fulfillment-control-center-theme .fc-empty-desc {
+  font-size: 14px !important;
+  color: #64748b !important;
+  line-height: 1.6 !important;
+  max-width: 460px !important;
+}
+
+.fulfillment-control-center-theme .fc-format-chips-wrap {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  flex-wrap: wrap !important;
+  justify-content: center !important;
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+  padding: 10px 18px !important;
+  border-radius: 9999px !important;
+  font-size: 12px !important;
+  color: #64748b !important;
+}
+
+.fulfillment-control-center-theme .fc-format-chips-wrap code {
+  background: #eff6ff !important;
+  color: #1d4ed8 !important;
+  padding: 2px 8px !important;
+  border-radius: 4px !important;
+  font-family: monospace !important;
+  font-weight: 700 !important;
+}

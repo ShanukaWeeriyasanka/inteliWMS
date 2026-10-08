@@ -5,7 +5,6 @@ import {
   Sidebar,
   PromptCapsule,
   ChatMessage,
-  ArtifactPanel,
   OperationalModal,
   WarehouseThinkingAnimation
 } from './components/coordinator UI'
@@ -13,6 +12,7 @@ import CommercializationModal from './components/CommercializationModal'
 import PricingModal from './components/PricingModal'
 import SplineScene from './components/SplineScene'
 import LoginPage from './pages/LoginPage'
+import FulfillmentDashboard from './pages/FulfillmentDashboard'
 import {
   Menu,
   Layers,
@@ -34,9 +34,16 @@ export default function App() {
 
   // Layout & Navigation State
   const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth >= 1024)
-  const [artifactOpen, setArtifactOpen] = useState(false)
-  const [artifactTab, setArtifactTab] = useState('telemetry')
-  const [selectedArtifactMessage, setSelectedArtifactMessage] = useState(null)
+  const [currentView, setCurrentView] = useState('chat') // 'chat' | 'fulfillment_dashboard'
+  const [selectedFulfillmentMessage, setSelectedFulfillmentMessage] = useState(() => {
+    try {
+      const saved = sessionStorage.getItem('intelliwms_selected_fulfillment')
+      return saved ? JSON.parse(saved) : null
+    } catch {
+      return null
+    }
+  })
+
   const [operationalModal, setOperationalModal] = useState(null) // null | 'approvals' | 'injection_sandbox'
   const [isPricingModalOpen, setIsPricingModalOpen] = useState(false)
   const [isCommercializationOpen, setIsCommercializationOpen] = useState(false)
@@ -71,10 +78,12 @@ export default function App() {
 
   const messagesEndRef = useRef(null)
 
-  // Auto-scroll chat
+  // Auto-scroll chat when in chat view
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages, isLoading])
+    if (currentView === 'chat') {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    }
+  }, [messages, isLoading, currentView])
 
   // Restore session on mount
   useEffect(() => {
@@ -151,8 +160,18 @@ export default function App() {
     })
   }
 
+  const handleOpenFulfillmentDashboard = (message) => {
+    setSelectedFulfillmentMessage(message)
+    try {
+      sessionStorage.setItem('intelliwms_selected_fulfillment', JSON.stringify(message))
+    } catch (e) {
+      console.warn('Could not cache fulfillment message to sessionStorage:', e)
+    }
+    setCurrentView('fulfillment_dashboard')
+  }
+
   // Handle Query Submission through Coordinator API Gateway
-  const handleSendMessage = async ({ text, attachments, mode, targetAgent }) => {
+  const handleSendMessage = async ({ text, attachments = [], mode, targetAgent }) => {
     if (!text.trim() && attachments.length === 0) return
 
     setLastUserQuery(text)
@@ -172,7 +191,7 @@ export default function App() {
     try {
       // Execute query through real backend Coordinator API Gateway
       const res = await api.sendQuery(text, token)
-      
+
       // Update history if first message
       if (messages.length === 0) {
         const newHistItem = {
@@ -199,7 +218,6 @@ export default function App() {
           timestamp: new Date()
         }
         setMessages((prev) => [...prev, blockMsg])
-        setSelectedArtifactMessage(blockMsg)
         fetchAuditData()
         return
       }
@@ -207,32 +225,38 @@ export default function App() {
       // Helper parser for SKU or Order cards
       const invDetails = res.inventory_details || null
       const firstItem = invDetails?.items?.[0] || null
-      const isInventory = res.agent_used === 'inventory_agent' || !!invDetails
-      const hasSku = !!firstItem || text.toUpperCase().includes('SKU-') || res.response?.includes('SKU-') || (res.routing?.extracted_params?.sku)
-      const hasOrder = text.includes('#4521') || res.response?.includes('#4521') || (res.routing?.extracted_params?.order_id)
+      const hasSku =
+        !!firstItem ||
+        text.toUpperCase().includes('SKU-') ||
+        res.response?.includes('SKU-') ||
+        res.routing?.extracted_params?.sku
 
-      const skuData = firstItem ? {
-        sku: firstItem.sku,
-        name: firstItem.name,
-        location: firstItem.location,
-        aisle: firstItem.aisle || 12,
-        shelf: firstItem.shelf || 'B3',
-        tier: firstItem.tier || 'B',
-        bay: firstItem.bay || 'Bay 04',
-        stock: `${firstItem.quantity_on_hand} ${firstItem.unit} (${firstItem.status.replace('_', ' ')})`,
-        available: firstItem.available_quantity,
-        status: firstItem.status,
-        rawItem: firstItem
-      } : (hasSku ? {
-        sku: res.routing?.extracted_params?.sku || 'SKU-4521',
-        name: 'Warehouse Stock Item',
-        location: 'Aisle 12, Shelf B3, Bay 04',
-        aisle: 12,
-        shelf: 'B3',
-        tier: 'B',
-        bay: 'Bay 04',
-        stock: '340 units available'
-      } : null)
+      const skuData = firstItem
+        ? {
+            sku: firstItem.sku,
+            name: firstItem.name,
+            location: firstItem.location,
+            aisle: firstItem.aisle || 12,
+            shelf: firstItem.shelf || 'B3',
+            tier: firstItem.tier || 'B',
+            bay: firstItem.bay || 'Bay 04',
+            stock: `${firstItem.quantity_on_hand} ${firstItem.unit} (${firstItem.status.replace('_', ' ')})`,
+            available: firstItem.available_quantity,
+            status: firstItem.status,
+            rawItem: firstItem
+          }
+        : hasSku
+        ? {
+            sku: res.routing?.extracted_params?.sku || 'SKU-4521',
+            name: 'Warehouse Stock Item',
+            location: 'Aisle 12, Shelf B3, Bay 04',
+            aisle: 12,
+            shelf: 'B3',
+            tier: 'B',
+            bay: 'Bay 04',
+            stock: '340 units available'
+          }
+        : null
 
       const fulfillmentDetails = res.fulfillment_details || null
 
@@ -240,6 +264,7 @@ export default function App() {
         id: Date.now() + 1,
         role: 'assistant',
         content: res.response || 'Warehouse query coordinated and dispatched to specialist agent.',
+        agent_used: res.agent_used,
         routing: res.routing || {
           target_agent: res.agent_used || 'coordinator',
           confidence: 0.95,
@@ -248,6 +273,7 @@ export default function App() {
         inventory_details: invDetails,
         fulfillment_details: fulfillmentDetails,
         skuData,
+        audit: res.audit,
         metadata: {
           agent_used: res.agent_used,
           audit: res.audit,
@@ -258,39 +284,43 @@ export default function App() {
       }
 
       setMessages((prev) => [...prev, assistantMsg])
-      setSelectedArtifactMessage(assistantMsg)
-      
-      // Auto open visualizer for inventory inquiries
-      if (isInventory || skuData) {
-        setArtifactTab('bay_visualizer')
-        setArtifactOpen(true)
+
+      // If handled by fulfillment agent and currently on fulfillment dashboard, update selected context
+      if (
+        res.agent_used === 'fulfillment_agent' ||
+        res.routing?.target_agent === 'fulfillment_agent' ||
+        !!fulfillmentDetails
+      ) {
+        setSelectedFulfillmentMessage(assistantMsg)
+        try {
+          sessionStorage.setItem('intelliwms_selected_fulfillment', JSON.stringify(assistantMsg))
+        } catch {}
       }
-      
+
       fetchAuditData()
     } catch (err) {
       const rawMsg = err.response?.data?.detail || err.message || ''
-      const isQuotaError = (
+      const isQuotaError =
         err.response?.status === 429 ||
         /quota|resource_exhausted|rate.?limit|api.?key|tokens?.?limit|exceeded/i.test(rawMsg)
-      )
 
       if (isQuotaError) {
         addToast({
           type: 'error',
           title: 'API Key Quota Exhausted',
-          message: 'The LLM API key has run out of tokens or hit its rate limit. Check your GEMINI_API_KEY or GROQ_API_KEY in the .env file and retry.',
+          message: 'The LLM API key has run out of tokens or hit its rate limit. Check your GEMINI_API_KEY or GROQ_API_KEY in the .env file and retry.'
         })
       } else if (err.response?.status === 401) {
         addToast({
           type: 'warning',
           title: 'Session Expired',
-          message: 'Your login session has expired. Please log out and log back in.',
+          message: 'Your login session has expired. Please log out and log back in.'
         })
       } else {
         addToast({
           type: 'error',
           title: 'Agent Error',
-          message: rawMsg || 'Could not reach the Coordinator Agent. Make sure the backend is running on port 8000.',
+          message: rawMsg || 'Could not reach the Coordinator Agent. Make sure the backend is running on port 8000.'
         })
       }
 
@@ -341,11 +371,13 @@ export default function App() {
   const handleNewChat = () => {
     setMessages([])
     setActiveChatId(null)
+    setCurrentView('chat')
   }
 
   // Select Chat from History
   const handleSelectChat = (chatId) => {
     setActiveChatId(chatId)
+    setCurrentView('chat')
     const chat = chatHistory.find((c) => c.id === chatId)
     if (chat) {
       setMessages([
@@ -361,20 +393,28 @@ export default function App() {
           role: 'assistant',
           content: `Reopened session: ${chat.title}. All warehouse telemetry and specialist routing decisions restored.`,
           routing: {
-            target_agent: chat.title.includes('SKU') ? 'inventory_agent' : chat.title.includes('Order') ? 'fulfillment_agent' : 'knowledge_agent',
+            target_agent: chat.title.includes('SKU')
+              ? 'inventory_agent'
+              : chat.title.includes('Order') || chat.title.includes('Consignment')
+              ? 'fulfillment_agent'
+              : 'knowledge_agent',
             confidence: 0.98,
             latency_ms: 22
           },
-          skuData: chat.title.includes('SKU') ? {
-            sku: 'SKU-4521',
-            location: 'Aisle 12, Shelf B3, Bay 04',
-            stock: '350 units available'
-          } : null,
-          orderData: chat.title.includes('Order') ? {
-            id: '#4521',
-            status: 'In Transit — On Schedule',
-            carrier: 'FreightExpress • Priority 1'
-          } : null,
+          skuData: chat.title.includes('SKU')
+            ? {
+                sku: 'SKU-4521',
+                location: 'Aisle 12, Shelf B3, Bay 04',
+                stock: '350 units available'
+              }
+            : null,
+          fulfillment_details:
+            chat.title.includes('Order') || chat.title.includes('Consignment')
+              ? {
+                  order_id: 'ORD-1001',
+                  intent: 'SHIPPING_STATUS'
+                }
+              : null,
           timestamp: new Date()
         }
       ])
@@ -382,8 +422,9 @@ export default function App() {
   }
 
   const handleOpenArtifactTab = (tabName) => {
-    setArtifactTab(tabName)
-    setArtifactOpen(true)
+    if (tabName === 'order_timeline') {
+      setCurrentView('fulfillment_dashboard')
+    }
   }
 
   // View 1: Unauthenticated Session
@@ -399,7 +440,48 @@ export default function App() {
     )
   }
 
-  // View 2: Authenticated Claude.ai Operational Interface
+  // View 2: Dedicated Fulfillment Dashboard Page
+  if (currentView === 'fulfillment_dashboard') {
+    return (
+      <>
+        <FulfillmentDashboard
+          selectedMessage={selectedFulfillmentMessage}
+          currentUser={currentUser}
+          onBackToChat={() => setCurrentView('chat')}
+          onSendQuery={(queryText) => {
+            handleSendMessage({
+              text: queryText,
+              attachments: [],
+              mode: 'auto',
+              targetAgent: 'auto'
+            })
+          }}
+          isLoading={isLoading}
+        />
+
+        {/* Global Modals & Toast Notifications */}
+        <OperationalModal
+          isOpen={!!operationalModal}
+          modalType={operationalModal}
+          onClose={() => setOperationalModal(null)}
+          currentUser={currentUser}
+          onExecuteAction={handleExecuteRoleAction}
+          onTestInjection={handleTestInjection}
+          actionLoading={actionLoading}
+        />
+        <PricingModal
+          isOpen={isPricingModalOpen || isCommercializationOpen}
+          onClose={() => {
+            setIsPricingModalOpen(false)
+            setIsCommercializationOpen(false)
+          }}
+        />
+        <ToastContainer toasts={toasts} remove={removeToast} />
+      </>
+    )
+  }
+
+  // View 3: Authenticated Chat Interface (Right ArtifactPanel Sidebar Removed)
   return (
     <div className="claude-app-layout">
       {/* Collapsible Left Sidebar */}
@@ -490,20 +572,9 @@ export default function App() {
                   <ChatMessage
                     key={msg.id}
                     message={msg}
-                    onOpenArtifact={(m) => {
-                      setSelectedArtifactMessage(m)
-                      setArtifactTab('telemetry')
-                      setArtifactOpen(true)
-                    }}
+                    onOpenFulfillmentDashboard={handleOpenFulfillmentDashboard}
                     onInspectLocation={() => {
-                      setSelectedArtifactMessage(msg)
-                      setArtifactTab('bay_visualizer')
-                      setArtifactOpen(true)
-                    }}
-                    onInspectOrder={() => {
-                      setSelectedArtifactMessage(msg)
-                      setArtifactTab('order_timeline')
-                      setArtifactOpen(true)
+                      // Handled inline for inventory
                     }}
                     onSendQuery={(queryText) => {
                       handleSendMessage({
@@ -546,20 +617,6 @@ export default function App() {
           )}
         </main>
       </div>
-
-      {/* Right Slide-out Artifact & Telemetry Drawer */}
-      <ArtifactPanel
-        isOpen={artifactOpen}
-        onClose={() => setArtifactOpen(false)}
-        activeTab={artifactTab}
-        setActiveTab={setArtifactTab}
-        selectedMessage={selectedArtifactMessage}
-        token={token}
-        currentUser={currentUser}
-        auditLogs={auditLogs}
-        auditStats={auditStats}
-        onRefreshAuditLogs={fetchAuditData}
-      />
 
       {/* Operational Modal for Approvals and Sandbox */}
       <OperationalModal
