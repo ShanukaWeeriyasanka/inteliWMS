@@ -10,6 +10,7 @@ Production-grade FastAPI service with:
 
 from contextlib import asynccontextmanager
 import csv
+from datetime import date, datetime, timedelta
 import io
 import json
 import math
@@ -109,22 +110,26 @@ app.add_middleware(
 # ──────────────────────────────────────────────
 
 class PredictSkuPayload(BaseModel):
-    sku: str = Field(default="JNE3797-KR-M")
-    category: str = Field(default="kurta")
-    size: str = Field(default="M")
-    current_stock: int = Field(default=12, ge=0)
-    lead_time_days: int = Field(default=3, ge=1, le=14)
-    sales_last_7d: float = Field(default=15.0, ge=0.0)
-    sales_last_14d: float = Field(default=28.0, ge=0.0)
-    sales_lag_1: float = Field(default=3.0, ge=0.0)
-    zero_days_last_14d: float = Field(default=4.0, ge=0.0, le=14.0)
+    sku: str = Field(default="JNE3797-KR-M", min_length=1)
+    category: Optional[str] = Field(default="kurta")
+    size: Optional[str] = Field(default="M")
+    current_stock: Optional[int] = Field(default=12, ge=0)
+    lead_time_days: Optional[int] = Field(default=3, ge=1, le=14)
+    sales_last_7d: Optional[float] = Field(default=15.0, ge=0.0)
+    sales_last_14d: Optional[float] = Field(default=28.0, ge=0.0)
+    sales_lag_1: Optional[float] = Field(default=3.0, ge=0.0)
+    zero_days_last_14d: Optional[float] = Field(default=4.0, ge=0.0, le=14.0)
     unit_cost: Optional[float] = Field(default=18.0)
     unit_price: Optional[float] = Field(default=42.0)
     supplier: Optional[str] = Field(default="Primary Supplier")
+    history_days: Optional[int] = Field(default=None, description="Number of historical observation days")
+    forecast_date: Optional[str] = Field(default=None, description="Forecast origin date YYYY-MM-DD")
 
     @field_validator("category")
     @classmethod
-    def validate_category(cls, v: str) -> str:
+    def validate_category(cls, v: Optional[str]) -> str:
+        if not v:
+            return "kurta"
         valid_cats = app_state.get("allowed_categories") or [
             "Blouse", "Bottom", "Ethnic Dress", "Saree", "Set", "Top", "Western Dress", "kurta"
         ]
@@ -135,7 +140,9 @@ class PredictSkuPayload(BaseModel):
 
     @field_validator("size")
     @classmethod
-    def validate_size(cls, v: str) -> str:
+    def validate_size(cls, v: Optional[str]) -> str:
+        if not v:
+            return "M"
         valid_sizes = app_state.get("allowed_sizes") or [
             "3XL", "4XL", "5XL", "6XL", "Free", "L", "M", "S", "XL", "XS", "XXL"
         ]
@@ -264,6 +271,7 @@ def evaluate_single_sku(item: Dict[str, Any]) -> Dict[str, Any]:
         "unit_price": round(unit_price, 2),
         "supplier": supplier,
         "predicted_7d_demand": round(predicted_7d, 2),
+        "predicted_7d_raw": round(predicted_7d, 4),
         "daily_velocity": round(daily_rate, 2),
         "demand_during_lead_time": round(demand_during_lt, 2),
         "safety_stock": round(safety_buffer, 2),
@@ -955,11 +963,80 @@ def get_orion_overview():
 
 
 @app.post("/api/predict-sku")
+@app.post("/api/predict")
+@app.post("/predict")
 def predict_sku_endpoint(payload: PredictSkuPayload):
-    res = evaluate_single_sku(payload.model_dump())
+    # 1. Model Availability Guard (Test T6)
+    if app_state.get("model") is None:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Prediction unavailable: Forecasting model artifact is not loaded in the service."
+        )
+
+    # 2. Blank or Empty SKU Check (Test T4)
+    sku_val = (payload.sku or "").strip()
+    if not sku_val:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Validation error: SKU cannot be blank or empty."
+        )
+
+    # 3. Unknown SKU Lookup (Test T2)
+    active_items = app_state.get("active_inventory", [])
+    known_skus = {item["sku"] for item in active_items}
+    if sku_val not in known_skus:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"SKU '{sku_val}' not found in registered product list."
+        )
+
+    # 4. Insufficient History Validation (Test T3)
+    if payload.history_days is not None and payload.history_days < 15:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Insufficient history: SKU '{sku_val}' has fewer than 15 days of history ({payload.history_days} days provided). Minimum 15 days required."
+        )
+
+    # 5. Unsupported Forecast Date Validation (Test T5)
+    origin_date = date.today()
+    if payload.forecast_date:
+        try:
+            parsed_origin = datetime.strptime(payload.forecast_date.strip(), "%Y-%m-%d").date()
+            if parsed_origin.year < 2024 or parsed_origin.year > 2026:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Unsupported forecast date: '{payload.forecast_date}'. Forecast origin falls outside the feature snapshot window (2024-01-01 to 2026-12-31)."
+                )
+            origin_date = parsed_origin
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Malformed forecast date format: '{payload.forecast_date}'. Expected format YYYY-MM-DD."
+            )
+
+    # Merge payload with item data from catalog if some fields are not provided
+    cat_item = next((item for item in active_items if item["sku"] == sku_val), None)
+    item_payload = dict(cat_item) if cat_item else {}
+    for k, v in payload.model_dump(exclude_unset=True).items():
+        if v is not None:
+            item_payload[k] = v
+
+    res = evaluate_single_sku(item_payload)
     status_label = "HEALTHY" if res["risk_status"] == "Healthy" else ("LOW STOCK" if res["risk_status"] == "Reorder Advised" else "OVERDUE / CRITICAL")
+
+    # 7-day forecast dates (Test T1)
+    forecast_dates = [(origin_date + timedelta(days=d)).strftime("%Y-%m-%d") for d in range(1, 8)]
+    trajectory = []
+    for idx, t in enumerate(res.get("projected_trajectory", [])):
+        t_copy = dict(t)
+        t_copy["date"] = forecast_dates[idx] if idx < len(forecast_dates) else f"D{idx+1}"
+        trajectory.append(t_copy)
+
     return {
         "sku": res["sku"],
+        "model_name": "Tuned XGBoost Regressor",
+        "forecast_origin": origin_date.strftime("%Y-%m-%d"),
+        "forecast_dates": forecast_dates,
         "category": res["category"],
         "size": res["size"],
         "current_stock": res["current_stock"],
@@ -975,6 +1052,7 @@ def predict_sku_endpoint(payload: PredictSkuPayload):
         },
         "metrics": {
             "predicted_7d_demand": res["predicted_7d_demand"],
+            "predicted_7d_raw": res.get("predicted_7d_raw", res["predicted_7d_demand"]),
             "daily_velocity": res["daily_velocity"],
             "demand_during_lead_time": res["demand_during_lead_time"],
             "safety_stock": res["safety_stock"],
@@ -986,7 +1064,7 @@ def predict_sku_endpoint(payload: PredictSkuPayload):
             "stockout_timeline_days": res["days_runway"],
             "actionable_advice": res["actionable_advice"],
         },
-        "projected_trajectory": res["projected_trajectory"],
+        "projected_trajectory": trajectory,
         "model_governance": {
             "algorithm": "Tuned XGBoost Regressor",
             "features_count": 31,
@@ -994,11 +1072,6 @@ def predict_sku_endpoint(payload: PredictSkuPayload):
             "test_r2": 0.5352,
         }
     }
-
-
-@app.post("/api/predict")
-def predict_legacy(payload: PredictSkuPayload):
-    return predict_sku_endpoint(payload)
 
 
 @app.get("/api/procurement-queue")
