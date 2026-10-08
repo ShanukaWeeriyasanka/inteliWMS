@@ -308,7 +308,46 @@ def parse_uploaded_file(filename: str, content_bytes: bytes) -> List[Dict[str, A
         df = pd.read_excel(io.BytesIO(content_bytes))
         raw_records = df.to_dict(orient="records")
 
-    # 3. Word Document (.docx)
+    # 3. PDF Document (.pdf) - Vector tables, purchase orders, warehouse intake manifests
+    elif fn_lower.endswith(".pdf"):
+        # Try pdfplumber structured table extraction first
+        try:
+            import pdfplumber
+            with pdfplumber.open(io.BytesIO(content_bytes)) as pdf:
+                for page in pdf.pages:
+                    tables = page.extract_tables() or []
+                    for tbl in tables:
+                        if not tbl or len(tbl) < 2:
+                            continue
+                        headers = [str(c or "").strip() for c in tbl[0]]
+                        for row in tbl[1:]:
+                            vals = [str(c or "").strip() for c in row]
+                            if len(vals) == len(headers) and any(vals):
+                                raw_records.append(dict(zip(headers, vals)))
+                    if not raw_records:
+                        text = page.extract_text() or ""
+                        for line in text.splitlines():
+                            rec = parse_freeform_sku_line(line.strip())
+                            if rec:
+                                raw_records.append(rec)
+        except Exception:
+            pass
+
+        # Fallback to pypdf text stream
+        if not raw_records:
+            try:
+                import pypdf
+                reader = pypdf.PdfReader(io.BytesIO(content_bytes))
+                for page in reader.pages:
+                    text = page.extract_text() or ""
+                    for line in text.splitlines():
+                        rec = parse_freeform_sku_line(line.strip())
+                        if rec:
+                            raw_records.append(rec)
+            except Exception:
+                pass
+
+    # 4. Word Document (.docx)
     elif fn_lower.endswith(".docx"):
         import docx
         doc = docx.Document(io.BytesIO(content_bytes))
@@ -324,7 +363,48 @@ def parse_uploaded_file(filename: str, content_bytes: bytes) -> List[Dict[str, A
                 if rec:
                     raw_records.append(rec)
 
-    # 4. Markdown (.md) or Text (.txt)
+    # 5. Image Scans & Slips (.png, .jpg, .jpeg, .tiff, .bmp) via OCR Preprocessing
+    elif fn_lower.endswith((".png", ".jpg", ".jpeg", ".tiff", ".bmp")):
+        try:
+            from PIL import Image, ImageEnhance
+            import shutil
+            import pytesseract
+            import os
+
+            img = Image.open(io.BytesIO(content_bytes)).convert("L")
+            enhanced = ImageEnhance.Contrast(img).enhance(2.0)
+
+            tess_cmd = shutil.which("tesseract")
+            if not tess_cmd:
+                for default_p in [
+                    r"C:\Program Files\Tesseract-OCR\tesseract.exe",
+                    r"C:\Program Files (x86)\Tesseract-OCR\tesseract.exe",
+                    "/usr/bin/tesseract",
+                    "/usr/local/bin/tesseract",
+                ]:
+                    if os.path.exists(default_p):
+                        tess_cmd = default_p
+                        pytesseract.pytesseract.tesseract_cmd = default_p
+                        break
+
+            if tess_cmd:
+                ocr_text = pytesseract.image_to_string(enhanced)
+                for line in ocr_text.splitlines():
+                    rec = parse_freeform_sku_line(line.strip())
+                    if rec:
+                        raw_records.append(rec)
+            else:
+                raise ValueError(
+                    "Tesseract OCR executable is not installed on this device. "
+                    "For document collaboration, please upload PDF, Excel (.xlsx), CSV, Word (.docx), or text files, "
+                    "or install Tesseract OCR on the machine."
+                )
+        except ValueError:
+            raise
+        except Exception as e_img:
+            raise ValueError(f"Could not parse scanned image: {str(e_img)}")
+
+    # 6. Markdown (.md) or Text (.txt)
     elif fn_lower.endswith((".md", ".txt")):
         text = content_bytes.decode("utf-8", errors="ignore")
         lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
@@ -521,11 +601,14 @@ def upload_inventory_file(file: UploadFile = File(...)):
         content = file.file.read()
         records = parse_uploaded_file(file.filename, content)
         re_evaluate_inventory(records)
+        categories_found = sorted(list(set(r.get("category", "General") for r in records)))
         return {
             "success": True,
             "filename": file.filename,
             "extracted_count": len(records),
             "sample_sku": records[0]["sku"] if records else None,
+            "categories_found": categories_found,
+            "features_evaluated": len(app_state["feature_names"]),
             "message": f"Successfully loaded and predicted {len(records)} SKUs from '{file.filename}'"
         }
     except Exception as e:
@@ -547,6 +630,20 @@ def upload_inventory_raw(payload: RawTextInputPayload):
         }
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.post("/api/reset-dataset")
+def reset_to_default_dataset():
+    """
+    Restores the canonical baseline benchmark dataset (DEFAULT_SEED_SKUS)
+    and re-evaluates all items through the trained XGBoost model.
+    """
+    re_evaluate_inventory(DEFAULT_SEED_SKUS)
+    return {
+        "success": True,
+        "count": len(app_state["active_inventory"]),
+        "message": f"Successfully restored the original benchmark dataset ({len(DEFAULT_SEED_SKUS)} SKUs)."
+    }
 
 
 @app.get("/api/dashboard-summary")
@@ -617,150 +714,243 @@ def get_dashboard_summary():
     }
 
 
+# ──────────────────────────────────────────────
+# ORION Overview (Exact 7-Day Demand Forecast & Inventory Flow)
+# ──────────────────────────────────────────────
+
+OUTCOME_META: Dict[str, Dict[str, str]] = {
+    "healthy":  {"status": "Healthy Stock",    "color": "#30D158"},
+    "reorder":  {"status": "Reorder Advised",  "color": "#F59E0B"},
+    "critical": {"status": "Critical Stockout", "color": "#FF453A"},
+    "dead":     {"status": "Dead Stock",       "color": "#EA580C"},
+}
+CATEGORY_COLORS = ["#0A84FF", "#F59E0B", "#30D158", "#EA580C"]
+
+
+def is_dead_stock(item: Dict[str, Any]) -> bool:
+    """Single source of truth for slow-moving / dead inventory based on 14d inactivity and near-zero model forecast."""
+    return (
+        item["zero_days_last_14d"] >= 10
+        or item["predicted_7d_demand"] < 1.0
+        or item["days_runway"] >= 60.0
+    )
+
+
+def classify_outcome(item: Dict[str, Any]) -> str:
+    """Assign every SKU strictly based on replenishment formulas & model metrics."""
+    if is_dead_stock(item):
+        return "dead"
+    if item["risk_status"] == "Critical Stockout":
+        return "critical"
+    if item["risk_status"] == "Reorder Advised":
+        return "reorder"
+    return "healthy"
+
+
+def _money(v: float) -> str:
+    return f"Rs. {round(v):,}"
+
+
 @app.get("/api/orion-overview")
 def get_orion_overview():
     items = app_state["active_inventory"]
     if not items:
         items = [evaluate_single_sku(s) for s in DEFAULT_SEED_SKUS]
 
-    # Find top selling / highest demand SKU
-    sorted_by_demand = sorted(items, key=lambda x: x["predicted_7d_demand"], reverse=True)
-    top_item = sorted_by_demand[0] if sorted_by_demand else items[0]
+    n_items = max(1, len(items))
 
+    # ── Real 7-Day Model Predictions ─────────────────────────
+    total_predicted_7d = sum(i["predicted_7d_demand"] for i in items)
+    total_forecast_revenue = sum(i["predicted_7d_demand"] * i["unit_price"] for i in items)
+    actual_7d_units = sum(i["sales_last_7d"] for i in items)
+    growth_pct = round(((total_predicted_7d / actual_7d_units) - 1.0) * 100.0, 1) if actual_7d_units > 0 else 0.0
+
+    stock_units = sum(i["current_stock"] for i in items)
+    stock_value = sum(i["current_stock"] * i["unit_cost"] for i in items)
+
+    groups: Dict[str, List[Dict[str, Any]]] = {k: [] for k in OUTCOME_META}
+    for it in items:
+        groups[classify_outcome(it)].append(it)
+
+    # ── Top SKU by 7-Day Model Prediction ────────────────────
+    top_item = max(items, key=lambda x: x["predicted_7d_demand"])
     top_selling_sku = {
         "sku": top_item["sku"],
         "name": f"{top_item['category']} ({top_item['size']})",
         "category": top_item["category"],
         "size": top_item["size"],
-        "total_units_sold": int(round(top_item.get("sales_last_7d", 274) * 4 if top_item.get("sales_last_7d", 0) > 0 else 274)),
-        "revenue": f"${round(top_item['predicted_7d_demand'] * top_item['unit_price'] * 4):,}",
-        "growth_pct": "+10%"
+        "forecast_units": round(top_item["predicted_7d_demand"], 1),
+        "revenue": _money(top_item["predicted_7d_demand"] * top_item["unit_price"]),
     }
 
-    # Center Hub metrics for focal disc
-    center_status = "HEALTHY" if top_item["risk_status"] == "Healthy" else ("LOW STOCK" if top_item["risk_status"] == "Reorder Advised" else "OVERDUE / CRITICAL")
-    center_hub = {
-        "sku": top_item["sku"],
-        "forecast_7d_units": int(round(top_item["predicted_7d_demand"])),
-        "current_stock": top_item["current_stock"],
-        "status": center_status,
-        "runway_days": top_item["days_runway"],
-        "lead_time_days": top_item["lead_time_days"],
-        "revenue_val": f"${round(top_item['predicted_7d_demand'] * top_item['unit_price']):,}"
+    # ── Left sidebar cards ────────────────────────────────────
+    forecast_card = {
+        "revenue": _money(total_forecast_revenue),
+        "units": round(total_predicted_7d),
+        "growth_pct": growth_pct,
+        "compare_text": f"Compared to {round(actual_7d_units):,} actual units sold in last 7 days",
     }
 
-    # Left streams: Top categories feeding demand
+    queue = [i for i in items if i["current_stock"] < i["reorder_point"]]
+    queue_cost = sum(i["total_po_cost"] for i in queue)
+    queue_units = sum(i["recommended_reorder_qty"] for i in queue)
+    reorder_card = {
+        "total_po_cost": _money(queue_cost),
+        "skus": len(queue),
+        "units": queue_units,
+        "critical": sum(1 for i in queue if i["urgency"] == "CRITICAL"),
+        "compare_text": f"Across {len(queue)} SKUs requiring restocking",
+        "growth_pct": round((queue_cost / stock_value) * 100.0, 1) if stock_value > 0 else 0.0,
+    }
+
+    # ── Category streams (left of Sankey) ─────────────────────
     cat_stats: Dict[str, Dict[str, float]] = {}
     for it in items:
-        cat = it["category"]
-        if cat not in cat_stats:
-            cat_stats[cat] = {"units": 0.0, "revenue": 0.0}
-        cat_stats[cat]["units"] += it["predicted_7d_demand"]
-        cat_stats[cat]["revenue"] += it["predicted_7d_demand"] * it["unit_price"]
+        s = cat_stats.setdefault(it["category"], {"units": 0.0, "revenue": 0.0, "stock": 0.0, "skus": 0})
+        s["units"] += it["predicted_7d_demand"]
+        s["revenue"] += it["predicted_7d_demand"] * it["unit_price"]
+        s["stock"] += it["current_stock"]
+        s["skus"] += 1
 
-    total_units_all = sum(s["units"] for s in cat_stats.values()) or 1.0
-    colors_left = ["#3B82F6", "#6366F1", "#8B5CF6", "#A855F7", "#06B6D4"]
-
+    ranked = sorted(cat_stats.items(), key=lambda kv: kv[1]["units"], reverse=True)
+    top_cats = ranked[:4]
+    rest = ranked[4:]
     left_streams = []
-    if len(cat_stats) >= 4:
-        sorted_cats = sorted(cat_stats.items(), key=lambda x: x[1]["units"], reverse=True)[:4]
-        for idx, (cname, cval) in enumerate(sorted_cats):
-            share_pct = round((cval["units"] / total_units_all) * 100, 1)
-            left_streams.append({
-                "category": cname,
-                "units": f"{round(cval['units']):,}",
-                "revenue": f"${round(cval['revenue']):,}",
-                "share": f"{share_pct}%",
-                "color": colors_left[idx % len(colors_left)]
-            })
+    for idx, (cname, cv) in enumerate(top_cats):
+        left_streams.append({
+            "category": cname,
+            "units": round(cv["units"]),
+            "flow": cv["units"],
+            "revenue": _money(cv["revenue"]),
+            "skus": int(cv["skus"]),
+            "share": f"{round(cv['units'] / max(0.01, total_predicted_7d) * 100, 1)}%",
+            "color": CATEGORY_COLORS[idx % len(CATEGORY_COLORS)],
+        })
+    if rest:
+        last = left_streams[-1]
+        extra_units = sum(c[1]["units"] for c in rest)
+        extra_rev = sum(c[1]["revenue"] for c in rest)
+        last["flow"] += extra_units
+        last["units"] = round(last["flow"])
+        last["skus"] += int(sum(c[1]["skus"] for c in rest))
+        last["share"] = f"{round(last["flow"] / max(0.01, total_predicted_7d) * 100, 1)}%"
+        base_rev = top_cats[-1][1]["revenue"] + extra_rev
+        last["revenue"] = _money(base_rev)
+        last["category"] = f"{last['category']} +{len(rest)}"
+
+    # ── Outcome streams (right of Sankey) ─────────────────────
+    right_streams = []
+    for key in ["healthy", "reorder", "critical", "dead"]:
+        meta = OUTCOME_META[key]
+        grp = groups[key]
+        g_units = sum(i["predicted_7d_demand"] for i in grp)
+        if key in ("critical", "reorder"):
+            units_needed = sum(i["recommended_reorder_qty"] for i in grp)
+            capital = sum(i["total_po_cost"] for i in grp)
+            subtitle = f"{len(grp)} SKUs · {units_needed:,} units to order"
+        elif key == "healthy":
+            units_needed = 0
+            capital = sum(i["current_stock"] * i["unit_cost"] for i in grp)
+            avg_runway = (sum(i["days_runway"] for i in grp) / len(grp)) if grp else 0.0
+            subtitle = f"{len(grp)} SKUs · {avg_runway:.0f}d avg runway"
+        else:
+            units_needed = 0
+            capital = sum(i["current_stock"] * i["unit_cost"] for i in grp)
+            fba = sum(i["est_monthly_fba_fee"] for i in grp)
+            subtitle = f"{len(grp)} SKUs · ${_money(fba)}/mo FBA drain"
+        right_streams.append({
+            "key": key,
+            "status": meta["status"],
+            "sku_count": len(grp),
+            "units_needed": units_needed,
+            "flow": g_units,
+            "units": round(g_units),
+            "capital": _money(capital),
+            "subtitle": subtitle,
+            "color": meta["color"],
+        })
+
+    # ── Health rings & category breakdown ────────────────────
+    pct = {k: round(len(v) / n_items * 100) for k, v in groups.items()}
+    breakdown = [
+        {"label": cname, "forecast": round(cv["units"]), "stock": int(cv["stock"])}
+        for cname, cv in ranked
+    ]
+
+    # ── Center hub ────────────────────────────────────────────
+    healthy_share = len(groups["healthy"]) / n_items
+    risk_share = (len(groups["critical"]) + len(groups["reorder"])) / n_items
+    if risk_share >= 0.5:
+        center_status = "AT RISK"
+    elif healthy_share >= 0.5:
+        center_status = "HEALTHY"
     else:
-        left_streams = [
-            {"category": "Ethnic Sets", "units": "23,504", "revenue": "$54,641", "share": "40.8%", "color": "#3B82F6"},
-            {"category": "Kurtas", "units": "22,597", "revenue": "$33,054", "share": "39.2%", "color": "#6366F1"},
-            {"category": "Western Dresses", "units": "7,204", "revenue": "$23,987", "share": "12.5%", "color": "#8B5CF6"},
-            {"category": "Tops & Blouses", "units": "5,455", "revenue": "$12,657", "share": "7.5%", "color": "#A855F7"}
-        ]
+        center_status = "WATCH"
 
-    # Right health streams
-    crit_items = [i for i in items if i["urgency"] == "CRITICAL" or i["risk_status"] == "Critical Stockout"]
-    low_items = [i for i in items if i["urgency"] == "HIGH" or i["risk_status"] == "Reorder Advised"]
-    healthy_items = [i for i in items if i["risk_status"] == "Healthy"]
-    aged_items = [i for i in items if i["zero_days_last_14d"] >= 10]
+    center_hub = {
+        "label": "Total 7-day demand",
+        "status": center_status,
+        "forecast_units": round(total_predicted_7d),
+        "revenue_val": _money(total_forecast_revenue),
+        "sku_count": len(items),
+    }
 
-    right_health_streams = [
-        {
-            "status": "Critical Stockout",
-            "sku_count": len(crit_items) or 84,
-            "units_needed": sum(i["recommended_reorder_qty"] for i in crit_items) or 1240,
-            "capital": f"${round(sum(i['total_po_cost'] for i in crit_items) or 14880):,}",
-            "color": "#F43F5E"
+    # ── Bottom stat metrics ───────────────────────────────────
+    curve = [float(stock_units)]
+    for d in range(7):
+        curve.append(round(sum(i["projected_trajectory"][d]["projected_stock"] for i in items), 1))
+
+    by_velocity = sorted(items, key=lambda x: x["daily_velocity"], reverse=True)[:14]
+    max_vel = max((i["daily_velocity"] for i in by_velocity), default=1.0) or 1.0
+    pulse_bars = [round(i["daily_velocity"] / max_vel, 3) for i in by_velocity]
+
+    meta_metrics = (app_state.get("metadata") or {}).get("test_metrics", {})
+    bottom = {
+        "prediction": {
+            "value": round(total_predicted_7d),
+            "curve": curve,
+            "at_risk_pct": round(risk_share * 100),
         },
-        {
-            "status": "Low Stock (<4d)",
-            "sku_count": len(low_items) or 142,
-            "units_needed": sum(i["recommended_reorder_qty"] for i in low_items) or 860,
-            "capital": f"${round(sum(i['total_po_cost'] for i in low_items) or 10320):,}",
-            "color": "#FB923C"
+        "pulse": {
+            "value": round(total_predicted_7d / 7.0, 1),
+            "bars": pulse_bars,
         },
-        {
-            "status": "Healthy Stock",
-            "sku_count": len(healthy_items) or 1820,
-            "units_needed": 0,
-            "capital": "$0",
-            "color": "#10B981"
+        "activity": {
+            "value": len(items),
+            "segments": [
+                {"label": "Healthy", "count": len(groups["healthy"]), "color": "#7B6CF0"},
+                {"label": "Reorder", "count": len(groups["reorder"]), "color": "#FFB35C"},
+                {"label": "Dead stock", "count": len(groups["dead"]), "color": "#4F7CF7"},
+                {"label": "Critical", "count": len(groups["critical"]), "color": "#FF6B81"},
+            ],
         },
-        {
-            "status": "Aged / Overdue",
-            "sku_count": len(aged_items) or 310,
-            "units_needed": 0,
-            "capital": "$0",
-            "color": "#EC4899"
-        }
-    ]
-
-    total_skus = max(1, len(items))
-    healthy_pct = round((len(healthy_items) / total_skus) * 100) if items else 68
-    critical_pct = round((len(crit_items) / total_skus) * 100) if items else 11
-    low_stock_pct = max(0, 100 - healthy_pct - critical_pct)
-
-    breakdown_list = [
-        {"label": "Western Dresses", "stock": 1540, "demand": 324},
-        {"label": "Kurta Sets", "stock": 1320, "demand": 311},
-        {"label": "Designer Kurtas", "stock": 1219, "demand": 301},
-        {"label": "Tops & Blouses", "stock": 993, "demand": 269},
-        {"label": "Ethnic Wear", "stock": 896, "demand": 276}
-    ]
-    if len(items) >= 5:
-        breakdown_list = [
-            {"label": f"{it['category']} ({it['sku'][:8]})", "stock": it["current_stock"], "demand": round(it["predicted_7d_demand"])}
-            for it in items[:5]
-        ]
-
-    total_po_plan = sum(i["total_po_cost"] for i in items if i["current_stock"] < i["reorder_point"])
-    po_display = f"${round(total_po_plan):,}" if total_po_plan > 0 else "$120,875"
-
-    active_stock_val = round(sum(i["current_stock"] * i["unit_cost"] for i in items))
-    active_stock_display = f"${active_stock_val:,}" if active_stock_val > 0 else "$12,875"
+    }
 
     return {
         "top_selling_sku": top_selling_sku,
+        "forecast_card": forecast_card,
+        "reorder_card": reorder_card,
         "center_hub": center_hub,
         "left_demand_streams": left_streams,
-        "right_health_streams": right_health_streams,
+        "right_health_streams": right_streams,
         "health_rings": {
-            "total_active_stock": active_stock_display,
-            "growth": "+2%",
-            "healthy_pct": healthy_pct if healthy_pct > 0 else 68,
-            "low_stock_pct": low_stock_pct if low_stock_pct > 0 else 21,
-            "critical_pct": critical_pct if critical_pct > 0 else 11,
-            "breakdown": breakdown_list
+            "total_active_stock": _money(stock_value),
+            "stock_units": stock_units,
+            "healthy_pct": pct["healthy"],
+            "low_stock_pct": pct["reorder"],
+            "critical_pct": pct["critical"],
+            "dead_pct": pct["dead"],
+            "breakdown": breakdown,
         },
-        "procurement_total": po_display,
-        "bottom_metrics": {
-            "prediction_speed": "1.2ms (XGBoost R²: 0.5352)",
-            "velocity_pulse": f"{round(sum(i['predicted_7d_demand'] for i in items) / 7.0):,} units/day" if items else "438 units/day",
-            "active_skus": f"{len(items):,} SKUs"
-        }
+        "procurement_total": _money(queue_cost),
+        "bottom": bottom,
+        "model": {
+            "algorithm": (app_state.get("metadata") or {}).get("model_type", "Tuned XGBoost Regressor"),
+            "features_count": (app_state.get("metadata") or {}).get("features_count", 31),
+            "r2": meta_metrics.get("R2"),
+            "mae": meta_metrics.get("MAE"),
+            "rmse": meta_metrics.get("RMSE"),
+        },
     }
 
 
@@ -876,10 +1066,7 @@ def download_po_csv():
 @app.get("/api/clearance-candidates")
 def get_clearance_candidates():
     items = app_state["active_inventory"]
-    candidates = [
-        item for item in items
-        if item["zero_days_last_14d"] >= 10 or item["predicted_7d_demand"] < 1.0 or item["days_runway"] >= 60.0
-    ]
+    candidates = [item for item in items if is_dead_stock(item)]
 
     for c in candidates:
         if c["zero_days_last_14d"] >= 13:
@@ -901,7 +1088,7 @@ def get_clearance_candidates():
             "total_monthly_fba_drain": round(total_fba, 2),
             "idle_units_count": total_idle_units,
             "clearance_skus_count": len(candidates),
-            "avg_idle_days": 110,
+            "avg_idle_days": round(sum(c["zero_days_last_14d"] for c in candidates) / max(1, len(candidates)), 1),
             "capital_locked": round(capital_locked, 2),
         },
         "candidates": candidates
