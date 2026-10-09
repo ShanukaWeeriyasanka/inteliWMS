@@ -24,8 +24,6 @@ import './FulfillmentAction.css'
 
 export default function ChatMessage({
   message,
-  onOpenArtifact,
-  onInspectLocation,
   onInspectOrder,
   onShowOnMap,
   onOpenFulfillmentDashboard
@@ -235,15 +233,6 @@ export default function ChatMessage({
           {/* Footer Controls for Assistant */}
           {!isUser && (
             <div className="message-footer-bar">
-              <button
-                onClick={() => onOpenArtifact(message)}
-                className="btn-view-artifact-link"
-                title="View Warehouse Site Plan & Floor Map"
-              >
-                <Layers size={13} className="text-amber" />
-                <span>Warehouse Map & Artifact</span>
-              </button>
-
               <div className="footer-actions-right">
                 <button onClick={copyContent} className="icon-action-btn" title="Copy response">
                   {copied ? <Check size={13} className="text-emerald" /> : <Copy size={13} />}

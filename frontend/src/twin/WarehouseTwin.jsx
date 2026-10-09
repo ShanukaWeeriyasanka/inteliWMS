@@ -64,6 +64,7 @@ function useWidth() {
 
 export default function WarehouseTwin({
   token, sessionId, command, visible = true, onActivate, onClose, onAsk, agentReply, agentBusy,
+  mode = 'campus', onModeChange,
 }) {
   const reducedMotion = !!useReducedMotion()
   const api = useMemo(() => createTwinApi(token), [token])
@@ -91,7 +92,17 @@ export default function WarehouseTwin({
   const [routeVersion, setRouteVersion] = useState(0)
   const [toasts, setToasts] = useState([])
   const [ask, setAsk] = useState('')
-  const [twinMode, setTwinMode] = useState('campus') // Default to 'campus' for Knowledge Agent Spatial Twin
+  const [twinMode, setTwinMode] = useState(mode || 'campus') // 'campus' | 'inventory'
+
+  useEffect(() => {
+    if (mode) setTwinMode(mode)
+  }, [mode])
+
+  const handleSetTwinMode = (nextMode) => {
+    setTwinMode(nextMode)
+    onModeChange?.(nextMode)
+  }
+
   const narrow = rootW > 0 && rootW < NARROW_W
 
   // ── toasts ──
@@ -616,7 +627,7 @@ export default function WarehouseTwin({
         <KnowledgeCampusTwin
           visible={visible}
           onClose={onClose}
-          onSwitchToInventoryTwin={() => setTwinMode('inventory')}
+          onSwitchToInventoryTwin={() => handleSetTwinMode('inventory')}
         />
         {data.status === 'ready' && !visible && (
           <button className="twin-launcher" onClick={onActivate} title="Warehouse map" aria-label="Warehouse map">
@@ -713,7 +724,7 @@ export default function WarehouseTwin({
             onRacks={() => { setTab('racks'); setListOpen(true) }}
             onAlerts={() => { setTab('alerts'); setListOpen(true) }}
             onClose={onClose} onToggleList={narrow ? () => setListOpen((o) => !o) : null} listOpen={listOpen}
-            twinMode={twinMode} onToggleMode={() => setTwinMode('campus')} />
+            twinMode={twinMode} onToggleMode={() => handleSetTwinMode('campus')} />
 
           <div className={`twin-map-viewport${panel ? ' has-panel' : ''}`} ref={setMapEl}>
             <FloorMap svgRef={svgRef} layout={layout} edges={data.edges} floorId={currentFloor} vb={vp.vb}

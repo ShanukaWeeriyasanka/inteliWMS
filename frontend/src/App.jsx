@@ -10,7 +10,6 @@ import {
   Sidebar,
   PromptCapsule,
   ChatMessage,
-  ArtifactPanel,
   OperationalModal,
   WarehouseThinkingAnimation
 } from './components/coordinator UI'
@@ -91,9 +90,7 @@ export default function App() {
   // Up to 1024px the sidebar overlays the page (index.css), so it starts collapsed there
   const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth > 1024)
   const overlaySidebar = useOverlaySidebar()
-  const [artifactOpen, setArtifactOpen] = useState(false)
-  const [artifactTab, setArtifactTab] = useState('site_plan')
-  const [selectedArtifactMessage, setSelectedArtifactMessage] = useState(null)
+  const [twinMode, setTwinMode] = useState('campus') // 'campus' | 'inventory'
   const [operationalModal, setOperationalModal] = useState(null) // null | 'approvals' | 'injection_sandbox'
   const [isPricingModalOpen, setIsPricingModalOpen] = useState(false)
   const [isCommercializationOpen, setIsCommercializationOpen] = useState(false)
@@ -150,11 +147,6 @@ export default function App() {
     }
   }, [])
 
-  // A narrow window can't fit sidebar + chat + artifact panel: make room for the chat
-  useEffect(() => {
-    if (artifactOpen && window.innerWidth < 1200) setSidebarOpen(false)
-  }, [artifactOpen])
-
   // Where the sidebar floats over the page, the map gets the whole stage when it opens
   useEffect(() => {
     if (twinActive && overlaySidebar) setSidebarOpen(false)
@@ -187,8 +179,6 @@ export default function App() {
 
   const resetWorkspace = () => {
     setTwinCommand(null)
-    setSelectedArtifactMessage(null)
-    setArtifactOpen(false)
   }
 
   const loadThreads = async () => {
@@ -255,7 +245,8 @@ export default function App() {
     setTwinActive(route.view === 'map')
   }, [route.view])
 
-  const openMap = () => {
+  const openMap = (mode = null) => {
+    if (mode) setTwinMode(mode)
     setTwinActive(true)
     const current = threadNavigator.current()
     if (current.view !== 'map') threadNavigator.push({ threadId: current.threadId, view: 'map' }, { mapPushed: true })
@@ -409,8 +400,6 @@ export default function App() {
     if (res.thread_id) loadThreads()
     if (!stillOnScreen) return // saved in its own conversation; leave the current screen alone
 
-    setSelectedArtifactMessage(assistantMsg)
-
     // Check if backend returned security block
     if (assistantMsg.status === 'blocked') {
       fetchAuditData()
@@ -420,26 +409,6 @@ export default function App() {
     const uiCommand = assistantMsg.uiCommand
     if (uiCommand) {
       setTwinCommand(uiCommand)
-    }
-
-    // Auto open right artifact panel based on query intent & agent response
-    const isLocationQuery = 
-      res.agent_used === 'knowledge_agent' ||
-      !!res.knowledge_details ||
-      /where|location|locate|find|building|facility|site plan|layout|forklift|dock|gate|bld-|depot|weighbridge|cold vault|quarantine/i.test(query)
-    
-    const isInventoryQuery =
-      res.agent_used === 'inventory_agent' ||
-      !!res.inventory_details ||
-      !!assistantMsg.skuData ||
-      /how many|stock|inventory|quantity|count|reorder|available|sku[-\s]?\d+/i.test(query)
-
-    if (isLocationQuery) {
-      setArtifactTab('site_plan')
-      setArtifactOpen(true)
-    } else if (isInventoryQuery) {
-      setArtifactTab('floor_map')
-      setArtifactOpen(true)
     }
 
     fetchAuditData()
@@ -505,22 +474,30 @@ export default function App() {
     threadNavigator.replace({ threadId: null })
   }
 
-  const handleOpenArtifactTab = (tabName) => {
-    if (tabName === 'order_timeline') {
+  const handleOpenNavModule = (moduleName) => {
+    if (moduleName === 'order_timeline') {
       openFulfillmentDashboard()
       return
     }
-    if (tabName === 'bay_visualizer') {
-      setArtifactTab('floor_map')
-      setArtifactOpen(true)
+    if (moduleName === 'site_plan') {
+      openMap('campus')
       return
     }
-    setArtifactTab(tabName)
-    setArtifactOpen(true)
+    if (moduleName === 'floor_map' || moduleName === 'bay_visualizer') {
+      openMap('inventory')
+      return
+    }
+    if (moduleName === 'rbac_claims') {
+      setOperationalModal('approvals')
+      return
+    }
+    if (moduleName === 'soc_audit') {
+      setOperationalModal('injection_sandbox')
+      return
+    }
   }
 
   const openFulfillmentDashboard = (message) => {
-    setArtifactOpen(false)
     const current = threadNavigator.current()
     const index = message ? messages.findIndex((m) => m.id === message.id) : -1
     threadNavigator.push({ threadId: current.threadId, view: 'fulfillment', messageIndex: index >= 0 ? index : null },
@@ -574,7 +551,7 @@ export default function App() {
         onClearHistory={handleClearHistory}
         currentUser={currentUser}
         onLogout={handleLogout}
-        onOpenArtifactTab={handleOpenArtifactTab}
+        onOpenArtifactTab={handleOpenNavModule}
         onSwitchRoleQuick={handleSwitchRoleQuick}
         onOpenPricingModal={() => setIsPricingModalOpen(true)}
         onOpenCommercializationModal={() => setIsPricingModalOpen(true)}
@@ -634,6 +611,8 @@ export default function App() {
             sessionId={twinSessionId}
             command={twinCommand}
             visible={twinActive}
+            mode={twinMode}
+            onModeChange={setTwinMode}
             onActivate={(clickEvent) => {
               // The launcher button passes its click event; live map commands (SSE) pass nothing and
               // only open the map while the conversation that asked for them is still on screen.
@@ -672,24 +651,14 @@ export default function App() {
                     key={msg.id}
                     message={msg}
                     onOpenFulfillmentDashboard={openFulfillmentDashboard}
-                    onOpenArtifact={(m) => {
-                      setSelectedArtifactMessage(m)
-                      const isLoc = m.routing?.target_agent === 'knowledge' || m.knowledge_details || /building|facility|where|location/i.test(m.content || '')
-                      setArtifactTab(isLoc ? 'site_plan' : 'floor_map')
-                      setArtifactOpen(true)
-                    }}
-                    onInspectLocation={() => {
-                      setSelectedArtifactMessage(msg)
-                      setArtifactTab('site_plan')
-                      setArtifactOpen(true)
-                    }}
                     onInspectOrder={() => {
                       openFulfillmentDashboard(msg)
                     }}
                     onShowOnMap={(m) => {
                       // Replay the stored command (new id so the twin plays it again)
                       setTwinCommand({ ...m.uiCommand, id: `replay-${Date.now()}` })
-                      openMap()
+                      const isLoc = m.routing?.target_agent === 'knowledge' || m.knowledge_details || /building|facility|where|location/i.test(m.content || '')
+                      openMap(isLoc ? 'campus' : 'inventory')
                     }}
                   />
                 ))}
@@ -724,16 +693,6 @@ export default function App() {
           )}
         </main>
       </div>
-
-      {/* Right Slide-out Artifact & Spatial Intelligence Drawer */}
-      <ArtifactPanel
-        isOpen={artifactOpen}
-        onClose={() => setArtifactOpen(false)}
-        activeTab={artifactTab}
-        setActiveTab={setArtifactTab}
-        selectedMessage={selectedArtifactMessage}
-        onOpenFullscreenMap={openMap}
-      />
 
       {/* Operational Modal for Approvals and Sandbox */}
       <OperationalModal
