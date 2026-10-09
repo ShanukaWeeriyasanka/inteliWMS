@@ -143,7 +143,10 @@ async def dispatch_to_agent(target_agent: str, context_payload: Dict[str, Any], 
                 "fulfillment_details": {
                     "success": f_resp.success,
                     "intent": f_resp.intent.value if f_resp.intent else None,
-                    "order_id": f_resp.order_id
+                    "order_id": f_resp.order_id,
+                    "procedural_guidance": f_resp.procedural_guidance,
+                    "citations": [c.model_dump() for c in f_resp.citations] if f_resp.citations else [],
+                    "information_reliability": f_resp.information_reliability
                 }
             }
         except Exception as e:

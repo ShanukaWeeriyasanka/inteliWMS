@@ -162,16 +162,8 @@ def get_user_plan(user_id: str, username: Optional[str] = None, db: Optional[Ses
         should_close = True
 
     try:
-        from security.auth import db_id_from_user_id
-        user = None
-        db_id = db_id_from_user_id(user_id)
-        if db_id is not None:
-            user = db.get(User, db_id)
-        if user is None and username:
-            user = db.query(User).filter(User.username == username).first()
-        if user is None:
-            user = db.query(User).filter((User.username == user_id) | (User.email == user_id)).first()
-
+        from security.auth import resolve_db_user
+        user = resolve_db_user(db, user_id, username=username)
         if user and getattr(user, "plan", None):
             return normalize_plan(user.plan)
         return DEFAULT_PLAN
@@ -183,10 +175,19 @@ def get_user_plan(user_id: str, username: Optional[str] = None, db: Optional[Ses
             db.close()
 
 
-def set_user_plan(user_id: str, new_plan: str, db: Optional[Session] = None) -> Tuple[bool, str]:
+def set_user_plan(
+    user_id: str,
+    new_plan: str,
+    username: Optional[str] = None,
+    db: Optional[Session] = None
+) -> Tuple[bool, str]:
     """
     Updates the verified server-side subscription entitlement for a user.
     """
+    if isinstance(username, Session):
+        db = username
+        username = None
+
     plan = normalize_plan(new_plan)
     should_close = False
     if db is None:
@@ -194,21 +195,15 @@ def set_user_plan(user_id: str, new_plan: str, db: Optional[Session] = None) -> 
         should_close = True
 
     try:
-        from security.auth import db_id_from_user_id
-        user = None
-        db_id = db_id_from_user_id(user_id)
-        if db_id is not None:
-            user = db.get(User, db_id)
-        if user is None:
-            user = db.query(User).filter((User.username == user_id) | (User.email == user_id)).first()
-
+        from security.auth import resolve_db_user
+        user = resolve_db_user(db, user_id, username=username)
         if not user:
             return False, f"User '{user_id}' not found"
 
         user.plan = plan
         db.commit()
         db.refresh(user)
-        logger.log_event("SUBSCRIPTION_PLAN_UPDATED", {"user_id": user_id, "new_plan": plan}, level="INFO")
+        logger.log_event("SUBSCRIPTION_PLAN_UPDATED", {"user_id": user_id, "username": user.username, "new_plan": plan}, level="INFO")
         return True, f"Subscription plan updated to '{plan}'"
     except Exception as e:
         if db:

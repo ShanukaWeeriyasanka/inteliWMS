@@ -169,14 +169,32 @@ export default function ChatMessage({
             </div>
           )}
 
+          {/* Fulfillment SOP Citations Chip (if any) */}
+          {isFulfillment && fulfillment?.citations?.length > 0 && (
+            <div className="fulfillment-citations-chat-list">
+              {fulfillment.citations.map((c, i) => (
+                <div key={i} className="fulfillment-citation-tag" title={c.disclaimer || 'Demonstration Warehouse SOP'}>
+                  <span className="citation-prefix">Source:</span>
+                  <span className="citation-sop-id">{c.sop_id}</span>
+                  <span className="citation-separator">—</span>
+                  <span className="citation-title">{c.title}{c.heading ? ` (${c.heading})` : ''}</span>
+                  {c.status === 'demonstration' && (
+                    <span className="citation-demo-badge">DEMO SOP</span>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
           {isFulfillment && onOpenFulfillmentDashboard && (
             <div className="fulfillment-chat-action-container">
               <button type="button" className="btn-view-fulfillment-dashboard"
                 onClick={() => onOpenFulfillmentDashboard(message)}
-                aria-label={`Open Fulfillment Dashboard${fulfillment.orderId ? ` for ${fulfillment.orderId}` : ''}`}>
+                aria-label={`Open Fulfillment Dashboard${fulfillment.orderId ? ` for ${fulfillment.orderId}` : (fulfillment.isProcedural ? ' (SOP Guidance)' : '')}`}>
                 <span className="btn-icon-wrapper"><Truck size={15} /></span>
-                <span className="btn-text">View Fulfillment Dashboard</span>
+                <span className="btn-text">{fulfillment.orderId ? 'View Fulfillment Dashboard' : 'View Fulfillment SOP Dashboard'}</span>
                 {fulfillment.orderId && <span className="btn-order-badge">{fulfillment.orderId}</span>}
+                {!fulfillment.orderId && fulfillment.isProcedural && <span className="btn-order-badge sop-badge">SOP GUIDANCE</span>}
                 <ExternalLink size={13} />
               </button>
             </div>

@@ -41,6 +41,21 @@ class FulfillmentIntentClassifier:
         r"\bfulfill.*progress\b",
     ]
 
+    # Procedural inquiries: explicit request for SOPs, instructions, guidelines, protocols, or steps
+    _FULFILLMENT_PROCEDURE_PATTERNS = [
+        r"\b(packing|picking|dispatch|shipping|carrier)\b.*\b(procedure|sop|steps?|guide|guidelines?|checklist|process|protocol|instructions?)\b",
+        r"\b(procedure|sop|steps?|guide|guidelines?|checklist|process|protocol|instructions?)\b.*\b(pack|packing|pick|picking|dispatch|shipping|transit|carrier|fulfillment)\b",
+        r"\b(procedural|sop|protocol|guideline)\b",
+        r"\b(order\s*delay|delayed\s*order)\b.*\b(procedure|sop|steps?|guide|guidelines?|checklist|process|protocol|instructions?|escalat\w*)\b",
+        r"\b(procedure|sop|steps?|guide|guidelines?|checklist|process|protocol|instructions?|escalat\w*)\b.*\b(order\s*delay|delayed\s*order|delay\w*)\b",
+        r"\bhow (should|do|to|can)\b.*\b(pick|pack|dispatch|ship|fulfill)\b",
+        r"\bwhat (should i do|to do|steps?|actions?|checks?)\b.*\b(when|if|before|after)\b.*\b(order|delay|delayed|dispatch|ship|carrier)\b",
+        r"\bwhat are the (dispatch|shipping|packing|picking) (steps?|verification|checks?|procedures?)\b",
+        r"\bexplain the (shipping|dispatch|packing|picking|procedural) (procedure|process|steps?|protocol|verification)\b",
+        r"\bwhat (checks?|steps?|verifications?)\b.*\b(required|needed)\b.*\b(before|for)\b.*\b(dispatch|shipping|pack|picking)\b",
+        r"\bwhat should (i|we|staff) do if (the carrier|carrier fails|driver|pickup fails)\b",
+    ]
+
     def __init__(self, llm: Optional[Any] = None):
         self._llm = llm
 
@@ -65,9 +80,13 @@ class FulfillmentIntentClassifier:
         """
         Rule-based instant classifier — no API calls.
         Returns a high-confidence result if patterns match, else None.
-        Priority order (most to least specific): delay > shipping > progress > details > status > generic order.
+        Priority order: procedure > delay > shipping > progress > details > status > generic order.
         """
         q = query.lower()
+
+        # Check procedural questions first when explicit procedural wording is used
+        if any(re.search(p, q) for p in self._FULFILLMENT_PROCEDURE_PATTERNS):
+            return FulfillmentIntentResult(intent=FulfillmentIntent.FULFILLMENT_PROCEDURE, confidence=0.93)
 
         if any(re.search(p, q) for p in self._ORDER_DELAY_PATTERNS):
             return FulfillmentIntentResult(intent=FulfillmentIntent.ORDER_DELAY, confidence=0.92)

@@ -145,10 +145,25 @@ ACK_PATTERN = re.compile(
     r"perfect|awesome|cheers|noted|understood|sounds good|alright|yes|yep|yeah|no|nope)\b[\s!.,]*$", re.I)
 BYE_PATTERN = re.compile(r"^\s*(bye|goodbye|good bye|see you|see ya|cya|good night)\b[\s!.,]*$", re.I)
 
+# Fulfillment procedures: packing, picking, dispatch checks, order delay actions
+_FULFILLMENT_PROCEDURE_STRONG = [
+    r"\b(packing|picking|dispatch|shipping|carrier)\b.*\b(procedure|sop|steps?|guide|guidelines?|checklist|process|protocol|instructions?)\b",
+    r"\b(procedure|sop|steps?|guide|guidelines?|checklist|process|protocol|instructions?)\b.*\b(pack|packing|pick|picking|dispatch|shipping|transit|carrier|fulfillment)\b",
+    r"\b(procedural|sop|protocol|guideline)\b.*\b(pack|packing|pick|picking|dispatch|shipping|order|delay)\b",
+    r"\b(order\s*delay|delayed\s*order)\b.*\b(procedure|sop|steps?|guide|guidelines?|checklist|process|protocol|instructions?|escalat\w*)\b",
+    r"\b(procedure|sop|steps?|guide|guidelines?|checklist|process|protocol|instructions?|escalat\w*)\b.*\b(order\s*delay|delayed\s*order|delay\w*)\b",
+    r"\bhow (should|do|to|can)\b.*\b(pick|pack|dispatch|ship|fulfill)\b",
+    r"\bwhat (should i do|to do|steps?|actions?|checks?)\b.*\b(when|if|before|after)\b.*\b(order|delay|delayed|dispatch|ship|carrier)\b",
+    r"\bwhat are the (dispatch|shipping|packing|picking) (steps?|verification|checks?|procedures?)\b",
+    r"\bexplain the (shipping|dispatch|packing|picking|procedural) (procedure|process|steps?|protocol|verification)\b",
+    r"\bwhat (checks?|steps?|verifications?)\b.*\b(required|needed)\b.*\b(before|for)\b.*\b(dispatch|shipping|pack|picking)\b",
+    r"\bwhat should (i|we|staff) do if (the carrier|carrier fails|driver|pickup fails)\b",
+]
+
 # Strong domain signals win over the weaker words of another domain.
 _KNOWLEDGE_STRONG = [
-    r"\b(sop|sop-\d+|standard operating procedure|procedures?|policy|policies|guidelines?|protocol|sp-\d+)\b",
-    r"\b(returns|how to return|compliance|shift handover|shift notes|speed limit)\b",
+    r"\b(sop|sop-\d+|standard operating procedure|procedures?|policy|policies|guidelines?|protocol|regulations?|regulatory|rules?|sp-\d+)\b",
+    r"\b(returns|how to return|compliance|shift handover|shift notes|speed limit|forklift safety|pallet stacking|hazmat)\b",
     r"\bmanual\b(?!\s+(count|counts|adjustment|adjustments|stock))",
 ]
 _FULFILLMENT_STRONG = [
@@ -172,8 +187,8 @@ _INVENTORY_STRONG = [
 ]
 # The original keyword lists, checked after the strong signals
 _KNOWLEDGE_KEYWORDS = [
-    r"\b(sop|sop-\d+|standard operating procedure|policy|policies|guideline|manual|safety|protocol|sp-\d+)\b",
-    r"\b(returns|how to return|compliance|shift handover|shift notes|speed limit|vest)\b",
+    r"\b(sop|sop-\d+|standard operating procedure|policy|policies|guideline|manual|safety|protocol|regulations?|regulatory|sp-\d+)\b",
+    r"\b(returns|how to return|compliance|shift handover|shift notes|speed limit|vest|forklift|pallet stacking)\b",
 ]
 _FULFILLMENT_KEYWORDS = [
     r"\b(order|orders|ord-\d+|#\d+|delay|delayed|dispatch|tracking|track|shipment|courier|carrier)\b",
@@ -311,6 +326,7 @@ class IntentClassifier:
     def _heuristic_match(self, ql: str) -> Optional[IntentResult]:
         """Domain keyword rules in priority order; None when nothing matches."""
         table = [
+            (_FULFILLMENT_PROCEDURE_STRONG, "FULFILLMENT", 0.95, "fulfillment.procedure", "Fulfillment packing, dispatch or delay procedure signal."),
             (_KNOWLEDGE_STRONG, "KNOWLEDGE", 0.91, "knowledge.strong", "Warehouse SOP, policy or protocol signal."),
             (_FULFILLMENT_STRONG, "FULFILLMENT", 0.94, "fulfillment.strong", "Order id, dispatch or tracking signal."),
             (_INVENTORY_STRONG, "INVENTORY", 0.95, "inventory.strong", "Stock quantity, availability or product id."),

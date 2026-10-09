@@ -180,15 +180,16 @@ def get_profile(authorization: Optional[str] = Header(None)):
     if not user:
         raise HTTPException(status_code=401, detail="Invalid or missing authentication token")
 
-    # The role the token was issued for (a user may sign in with a lower role than their own)
-    role = user.get("role", "staff")
-    profile = auth_service.get_user_profile(str(user.get("user_id") or ""))
-    if not profile and user.get("username"):
-        profile = auth_service.get_user_profile(str(user.get("username")))
-    profile = profile or {}
+    token_user_id = str(user.get("user_id") or user.get("db_id") or "")
+    token_username = user.get("username")
+    profile = auth_service.get_user_profile(token_user_id, username=token_username)
+    if not profile:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    role = user.get("role") or profile.get("role", "staff")
     plan = profile.get("plan", "starter")
     return {
-        "user_id": user.get("user_id"),
+        "user_id": profile.get("user_id", token_user_id),
         "db_id": profile.get("db_id"),
         "username": profile.get("username"),
         "name": profile.get("name"),
@@ -209,8 +210,13 @@ def update_subscription_endpoint(payload: dict, authorization: Optional[str] = H
     Stored and verified directly in database.
     """
     auth_header = authorization or (f"Bearer {payload.get('token')}" if payload.get("token") else None)
-    user = require_user(auth_header)
-    user_id = str(user.get("user_id") or user.get("username") or "")
+    claims = require_user(auth_header)
+
+    # Never trust user IDs provided in frontend payload!
+    # Identity is extracted strictly from authenticated, verified JWT claims.
+    token_user_id = str(claims.get("user_id") or claims.get("db_id") or "")
+    token_username = claims.get("username")
+    session_role = claims.get("role", "staff")
 
     raw_plan = payload.get("plan") or payload.get("subscription_plan")
     target_plan = parse_plan_strict(raw_plan)
@@ -220,34 +226,37 @@ def update_subscription_endpoint(payload: dict, authorization: Optional[str] = H
             detail=f"Invalid subscription plan '{raw_plan}'. Must be one of: starter, professional, enterprise."
         )
 
-    # Get current verified profile
-    profile = auth_service.get_user_profile(user_id)
-    if not profile and user.get("username"):
-        profile = auth_service.get_user_profile(user.get("username"))
+    # Get verified database profile — reject missing/forged users without silent creation
+    profile = auth_service.get_user_profile(token_user_id, username=token_username)
+    if not profile:
+        raise HTTPException(status_code=404, detail=f"User '{token_user_id}' not found")
 
-    current_plan = (profile.get("plan") if profile else None) or user.get("plan") or "starter"
-    username = (profile.get("username") if profile else None) or user.get("username")
-    role = (profile.get("role") if profile else None) or user.get("role")
+    current_plan = profile.get("plan", "starter")
+    account_username = profile.get("username")
+    account_role = profile.get("role", session_role)
 
     allowed, err_code, err_msg = authorize_plan_change(
         current_plan=current_plan,
         target_plan=target_plan,
-        username=username,
-        account_role=role
+        username=account_username,
+        account_role=account_role
     )
     if not allowed:
         raise HTTPException(status_code=403, detail=err_msg or "Plan switch unauthorized")
 
-    success, message, updated_profile = auth_service.update_user_plan(user_id, target_plan)
-    if not success and user.get("username"):
-        success, message, updated_profile = auth_service.update_user_plan(user.get("username"), target_plan)
-    if not success:
-        raise HTTPException(status_code=400, detail=message)
+    success, message, updated_profile = auth_service.update_user_plan(
+        token_user_id,
+        target_plan,
+        username=token_username
+    )
+    if not success or not updated_profile:
+        raise HTTPException(status_code=400, detail=message or "Failed to update subscription plan")
 
     logger.log_event("SUBSCRIPTION_PLAN_UPDATED", {
-        "user_id": user_id,
-        "username": username,
-        "role": role,
+        "user_id": updated_profile["user_id"],
+        "db_id": updated_profile["db_id"],
+        "username": account_username,
+        "role": account_role,
         "previous_plan": current_plan,
         "new_plan": target_plan,
     })
@@ -255,7 +264,8 @@ def update_subscription_endpoint(payload: dict, authorization: Optional[str] = H
     return {
         "status": "success",
         "message": message,
-        "plan": updated_profile.get("plan") if updated_profile else target_plan,
+        "plan": updated_profile.get("plan", target_plan),
+        "subscription_plan": updated_profile.get("plan", target_plan),
         "user": updated_profile
     }
 

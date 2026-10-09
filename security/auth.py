@@ -1,5 +1,7 @@
 import hashlib
 from typing import Any, Dict, Optional, Tuple
+from sqlalchemy.orm import Session
+from sqlalchemy import func
 from database.connection import SessionLocal, engine, Base, init_db
 from database.models import User
 from security.jwt_handler import jwt_handler
@@ -40,6 +42,49 @@ def db_id_from_user_id(user_id: Any) -> Optional[int]:
         tail = cleaned.rsplit("_", 1)[-1]
         if tail.isdigit():
             return int(tail)
+    return None
+
+
+def resolve_db_user(db: Session, identifier: Any, username: Optional[str] = None) -> Optional[User]:
+    """
+    Consistently and safely resolves an existing real database User record.
+    Never creates missing users.
+    Lookup precedence:
+    1. Direct numeric primary key (or extracted integer tail from 'usr_staff_032', 'user_32', etc.)
+       If an explicit username was also provided, verifies it matches to ensure identity consistency.
+    2. Explicit username claim from authenticated token.
+    3. Identifier matching username or email.
+    """
+    if db is None:
+        return None
+
+    # 1. Try numeric primary key
+    db_id = db_id_from_user_id(identifier)
+    if db_id is not None:
+        user = db.get(User, db_id)
+        if user is not None:
+            if username and str(username).strip():
+                if user.username.lower() == str(username).strip().lower():
+                    return user
+            else:
+                return user
+
+    # 2. Try explicit username
+    if username and str(username).strip():
+        clean_user = str(username).strip().lower()
+        user = db.query(User).filter(func.lower(User.username) == clean_user).first()
+        if user is not None:
+            return user
+
+    # 3. Try identifier as username or email
+    if isinstance(identifier, str) and identifier.strip():
+        clean_id = identifier.strip().lower()
+        user = db.query(User).filter(
+            (func.lower(User.username) == clean_id) | (func.lower(User.email) == clean_id)
+        ).first()
+        if user is not None:
+            return user
+
     return None
 
 
@@ -163,11 +208,17 @@ class AuthService:
                 )
                 return False, None, None, f"User '{clean_user}' is not authorized for role '{effective_role}'"
 
-            # Generate signed JWT token
-            user_id_str = user_id_for(effective_role, user.id)
-            token = jwt_handler.create_token(user_id=user_id_str, role=effective_role, username=user.username)
-            permissions = rbac_manager.get_permissions(effective_role)
+            # Generate signed JWT token with stable server-side identity
+            user_id_str = user_id_for(user.role, user.id)
             plan = getattr(user, "plan", "starter") or "starter"
+            token = jwt_handler.create_token(
+                user_id=user_id_str,
+                role=effective_role,
+                username=user.username,
+                db_id=user.id,
+                plan=plan
+            )
+            permissions = rbac_manager.get_permissions(effective_role)
 
             user_info = {
                 "user_id": user_id_str,
@@ -239,7 +290,13 @@ class AuthService:
             db.refresh(new_user)
 
             user_id_str = user_id_for(role, new_user.id)
-            token = jwt_handler.create_token(user_id=user_id_str, role=role, username=clean_user)
+            token = jwt_handler.create_token(
+                user_id=user_id_str,
+                role=role,
+                username=clean_user,
+                db_id=new_user.id,
+                plan="starter"
+            )
             permissions = rbac_manager.get_permissions(role)
 
             user_info = {
@@ -269,16 +326,11 @@ class AuthService:
         finally:
             db.close()
 
-    def get_user_profile(self, user_id_or_username: str) -> Optional[Dict]:
-        """Fetch a user profile by token user_id ('usr_staff_017'), numeric id, or username."""
+    def get_user_profile(self, user_id_or_username: str, username: Optional[str] = None) -> Optional[Dict]:
+        """Fetch a verified user profile by user_id ('usr_staff_017'), numeric id, or username."""
         db = SessionLocal()
         try:
-            user = None
-            db_id = db_id_from_user_id(user_id_or_username)
-            if db_id is not None:
-                user = db.get(User, db_id)
-            if user is None:
-                user = db.query(User).filter((User.username == user_id_or_username) | (User.email == user_id_or_username)).first()
+            user = resolve_db_user(db, user_id_or_username, username=username)
             if not user:
                 return None
 
@@ -287,7 +339,7 @@ class AuthService:
                 "user_id": user_id_for(user.role, user.id),
                 "db_id": user.id,
                 "username": user.username,
-                "name": user.name,
+                "name": user.name or user.username,
                 "role": user.role,
                 "plan": plan,
                 "subscription_plan": plan,
@@ -297,18 +349,18 @@ class AuthService:
         finally:
             db.close()
 
-    def update_user_plan(self, user_id_or_username: str, new_plan: str) -> Tuple[bool, str, Optional[Dict]]:
+    def update_user_plan(
+        self,
+        user_id_or_username: str,
+        new_plan: str,
+        username: Optional[str] = None
+    ) -> Tuple[bool, str, Optional[Dict]]:
         """Safely update a user's subscription plan entitlement."""
         from security.subscription import normalize_plan
         plan = normalize_plan(new_plan)
         db = SessionLocal()
         try:
-            user = None
-            db_id = db_id_from_user_id(user_id_or_username)
-            if db_id is not None:
-                user = db.get(User, db_id)
-            if user is None:
-                user = db.query(User).filter((User.username == user_id_or_username) | (User.email == user_id_or_username)).first()
+            user = resolve_db_user(db, user_id_or_username, username=username)
             if not user:
                 return False, f"User '{user_id_or_username}' not found", None
 
@@ -320,7 +372,7 @@ class AuthService:
                 "user_id": user_id_for(user.role, user.id),
                 "db_id": user.id,
                 "username": user.username,
-                "name": user.name,
+                "name": user.name or user.username,
                 "role": user.role,
                 "plan": plan,
                 "subscription_plan": plan,

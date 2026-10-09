@@ -1,14 +1,13 @@
+from pathlib import Path
 import os
 from dotenv import load_dotenv
-
-# Load variables from .env file
-load_dotenv()
-
-from pathlib import Path
 
 # Base workspace directories
 BASE_DIR = Path(__file__).resolve().parent.parent
 DATA_DIR = BASE_DIR / "data"
+
+# Load variables from .env file
+load_dotenv(dotenv_path=BASE_DIR / ".env")
 
 class Settings:
     """Centralized configuration loaded from environment variables."""

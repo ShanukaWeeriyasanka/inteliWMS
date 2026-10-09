@@ -30,6 +30,7 @@ def seed_database():
                 email="john@warehouse.com",
                 hashed_password=auth_service._hash_password("pass123"),
                 role="staff",
+                plan="starter",
             ),
             User(
                 username="sarah_manager",
@@ -37,6 +38,7 @@ def seed_database():
                 email="sarah@warehouse.com",
                 hashed_password=auth_service._hash_password("pass456"),
                 role="manager",
+                plan="professional",
             ),
             User(
                 username="admin_user",
@@ -44,6 +46,7 @@ def seed_database():
                 email="admin@warehouse.com",
                 hashed_password=auth_service._hash_password("admin123"),
                 role="admin",
+                plan="enterprise",
             ),
         ]
         db.add_all(users)
