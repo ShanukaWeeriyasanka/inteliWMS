@@ -45,6 +45,53 @@ def init_db():
                 if "name" not in cols:
                     conn.execute(text("ALTER TABLE users ADD COLUMN name VARCHAR"))
                     conn.commit()
+
+                # Safe SQLite migration for products table
+                result = conn.execute(text("PRAGMA table_info(products)"))
+                p_cols = [row[1] for row in result.fetchall()]
+                product_columns = {
+                    "category": "VARCHAR(100)",
+                    "quantity": "INTEGER DEFAULT 0",
+                    "safety_stock": "INTEGER DEFAULT 10",
+                    "reorder_point": "INTEGER DEFAULT 20",
+                    "reorder_quantity": "INTEGER DEFAULT 50",
+                    "reserved_quantity": "INTEGER DEFAULT 0",
+                    "unit": "VARCHAR(50) DEFAULT 'units'",
+                    "daily_burn_rate": "FLOAT DEFAULT 1.0",
+                    "lead_time_days": "INTEGER DEFAULT 5",
+                    "unit_price": "FLOAT DEFAULT 10.0",
+                    "weight_kg": "FLOAT DEFAULT 1.0",
+                    "location": "VARCHAR(255)",
+                    "aisle": "INTEGER DEFAULT 1",
+                    "shelf": "VARCHAR(50)",
+                    "tier": "VARCHAR(50)",
+                    "bay": "VARCHAR(50)",
+                    "occupancy_pct": "FLOAT DEFAULT 0.0",
+                    "temperature": "VARCHAR(100)",
+                    "is_hazardous": "BOOLEAN DEFAULT 0",
+                    "max_stack_tier": "INTEGER DEFAULT 3",
+                    "created_at": "DATETIME",
+                    "updated_at": "DATETIME",
+                }
+                for col_name, col_type in product_columns.items():
+                    if col_name not in p_cols:
+                        conn.execute(text(f"ALTER TABLE products ADD COLUMN {col_name} {col_type}"))
+                conn.commit()
+
+                # Seed baseline products if table is empty
+                res = conn.execute(text("SELECT count(*) FROM products"))
+                count = res.scalar() or 0
+                if count == 0:
+                    conn.execute(text("""
+                        INSERT INTO products (sku, name, category, quantity, location, aisle, shelf, tier, bay)
+                        VALUES
+                        ('SKU-4521', 'Wireless Barcode Scanner', 'Electronics & Tech', 340, 'Aisle 12, Shelf B3, Bay 04', 12, 'B3', 'B', 'Bay 04'),
+                        ('SKU-7788', 'Thermal Label Printer', 'Dispatch Equipment', 15, 'Aisle 5, Shelf A1, Bay 02', 5, 'A1', 'A', 'Bay 02'),
+                        ('SKU-9012', 'Heavy Duty Pallet Wrap', 'Packaging Consumables', 5, 'Aisle 3, Shelf C2, Bay 08', 3, 'C2', 'C', 'Bay 08'),
+                        ('SKU-1088', 'Thermal Industrial Label Rolls', 'Consumables', 120, 'Aisle 1, Bay A-03, Shelf A3', 1, 'A3', 'A', 'Bay A-03'),
+                        ('SKU-2045', 'Heavy Duty Forklift Battery Lithium', 'Heavy Hazmat / Power', 42, 'Aisle 4, Bay B-12, Shelf B12', 4, 'B12', 'B', 'Bay B-12')
+                    """))
+                    conn.commit()
         except Exception as e:
             print(f"[DB MIGRATION NOTICE] {e}")
 

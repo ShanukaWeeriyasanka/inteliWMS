@@ -145,11 +145,14 @@ ACK_PATTERN = re.compile(
     r"perfect|awesome|cheers|noted|understood|sounds good|alright|yes|yep|yeah|no|nope)\b[\s!.,]*$", re.I)
 BYE_PATTERN = re.compile(r"^\s*(bye|goodbye|good bye|see you|see ya|cya|good night)\b[\s!.,]*$", re.I)
 
-# Strong domain signals win over the weaker words of another domain.
 _KNOWLEDGE_STRONG = [
     r"\b(sop|sop-\d+|standard operating procedure|procedures?|policy|policies|guidelines?|protocol|sp-\d+)\b",
     r"\b(returns|how to return|compliance|shift handover|shift notes|speed limit)\b",
     r"\bmanual\b(?!\s+(count|counts|adjustment|adjustments|stock))",
+    r"\b(building\s*#?[1-7]|bld-0[1-7]|cold vault|cold storage|quarantine yard|quarantine bay\s*11|high-bay hub|high-bay|bulk distribution|tech mezzanine|fleet depot|gatehouse|weighbridge|60t scale|airlock port|spill berm|freight lift)\b",
+    r"\b(campus layout|campus map|site plan|campus plan|campus facilities|all buildings)\b",
+    r"\b(where is|locate|find|position of)\b.*\b(forklift|reach truck|pallet jack|agv|shunt truck|tugger|scale|charger)\b",
+    r"\b(fl-01|rt-01|rt-02|pj-01|agv-01)\b",
 ]
 _FULFILLMENT_STRONG = [
     r"\b(order|orders|ord-\d+|delay|delayed|dispatch|dispatched|tracking|track|courier|carrier)\b|#\d+",

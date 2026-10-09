@@ -3,24 +3,48 @@
     "doc_id": "SOP-HAZ-001",
     "title": "Hazardous Materials & Battery Handling Protocol",
     "category": "Safety",
-    "content": "1. Battery Storage: All lead-acid and lithium forklift batteries must be charged only in designated Charging Station Alpha (Bay 15). Proper eye protection and rubber gloves are mandatory.\n\n2. Acid Spill Protocol: In the event of battery electrolyte leakage, immediately alert the Floor Supervisor. Deploy the Acid Neutralizing Spill Kit located at Pillar 14. Do not flush chemical spills down the drain.\n\n3. Ventilation: The charging bay exhaust fans must run continuously 24/7 to prevent hydrogen gas buildup."
+    "content": "1. Battery Storage: All lead-acid and lithium forklift batteries must be charged only in designated Charging Station Alpha (Bay 15) or Building 6 Fleet Depot. Proper eye protection and rubber gloves are mandatory.\n\n2. Acid Spill Protocol: In the event of battery electrolyte leakage, immediately alert the Floor Supervisor. Deploy the Acid Neutralizing Spill Kit located at Pillar 14 or Building 5 Quarantine Spill Berm. Do not flush chemical spills down the drain.\n\n3. Ventilation: The charging bay exhaust fans must run continuously 24/7 to prevent hydrogen gas buildup."
   },
   {
     "doc_id": "SOP-STG-002",
     "title": "Pallet Stacking & Racking Regulations",
     "category": "Storage",
-    "content": "1. Stacking Limits: In Zone A (Heavy Goods), pallets may be stacked up to a maximum of 3 tiers high. In Zone C (High Turnover), double stacking (maximum 2 tiers) is the absolute limit for safety.\n\n2. Damaged Pallets: Any wooden pallet with cracked stringers or missing boards must be tagged with a RED TAG and transferred to the Quarantine Staging Area at Bay 9.\n\n3. Overhang Rules: Product overhang must not exceed 2 inches on any side of standard 48x40 inch GMA pallets."
+    "content": "1. Stacking Limits: In Zone A (Heavy Goods / Building 1 High-Bay), pallets may be stacked up to a maximum of 3 tiers high. In Zone C (High Turnover / Building 2 Bulk), double stacking (maximum 2 tiers) is the absolute limit for safety.\n\n2. Damaged Pallets: Any wooden pallet with cracked stringers or missing boards must be tagged with a RED TAG and transferred to the Quarantine Staging Area at Building 5 Bay 11.\n\n3. Overhang Rules: Product overhang must not exceed 2 inches on any side of standard 48x40 inch GMA pallets."
   },
   {
     "doc_id": "SOP-SAF-003",
     "title": "Forklift & Mobile Equipment Safety Protocol",
     "category": "Safety",
-    "content": "1. Speed Limits: Maximum speed for forklifts and reach trucks inside warehouse aisles is 5 mph (8 km/h). Speed in the main cross-dock corridor is strictly capped at 8 mph.\n\n2. Pedestrian Right-of-Way: Pedestrians wearing high-visibility vests always have unconditional right-of-way. Operators must sound horn at all blind intersections and aisle exits.\n\n3. High-Value Secure Cages: High-value electronics (Category E) must be stored in the Secure Cage inside Zone B. Access requires keycard authorization from a Shift Supervisor."
+    "content": "1. Speed Limits: Maximum speed for forklifts and reach trucks inside warehouse aisles is 5 mph (8 km/h). Speed in the main cross-dock corridor is strictly capped at 8 mph.\n\n2. Pedestrian Right-of-Way: Pedestrians wearing high-visibility vests always have unconditional right-of-way. Operators must sound horn at all blind intersections and aisle exits.\n\n3. High-Value Secure Cages: High-value electronics (Category E) must be stored in the Secure Cage inside Zone B or Building 3 Tech Mezzanine. Access requires keycard authorization from a Shift Supervisor."
   },
   {
     "doc_id": "SOP-RET-004",
     "title": "Customer Returns & Reverse Logistics SOP Documentation",
     "category": "Returns",
-    "content": "1. RMA Verification: All inbound returns must be verified against an active Return Merchandise Authorization (RMA) number before unloading at Receiving Dock 3.\n\n2. Inspection & Grading: Grade A items (unopened box, undamaged seals) are returned to active stock in Zone B. Grade B items (opened box, complete accessories) are directed to the repackaging line.\n\n3. Quarantine & Scrap: Any returned item showing physical defects, water damage, or electrical fault must be tagged and transferred to the Returns Quarantine Area at Bay 11."
+    "content": "1. RMA Verification: All inbound returns must be verified against an active Return Merchandise Authorization (RMA) number before unloading at Receiving Dock 3.\n\n2. Inspection & Grading: Grade A items (unopened box, undamaged seals) are returned to active stock in Zone B. Grade B items (opened box, complete accessories) are directed to the repackaging line.\n\n3. Quarantine & Scrap: Any returned item showing physical defects, water damage, or electrical fault must be tagged and transferred to the Returns Quarantine Area at Building 5 Bay 11."
+  },
+  {
+    "doc_id": "SOP-COLD-005",
+    "title": "Cold-Chain Vault (Building 4) Storage & Temperature Excursion SOP",
+    "category": "Cold-Chain",
+    "content": "1. Target Storage Envelope: All pharmaceutical products, vaccines, and biologics in Building 4 Cold Vault must be maintained continuously between 2.0°C and 4.0°C.\n\n2. Airlock Protocol: Forklift operators must ensure the outer airlock door is fully shut before opening the inner vault door. Door open duration must never exceed 3 minutes under any circumstances.\n\n3. Excursion Handling: If ambient vault temperature rises above 5.0°C for more than 15 minutes, automated telemetry triggers Alarm Code T-EX-4. Notify Shift Supervisor immediately and activate the backup secondary cooling compressors. Quarantine affected vaccine lots pending QA audit."
+  },
+  {
+    "doc_id": "SOP-GATE-006",
+    "title": "Gate 1 Carrier Check-In & 60T Weighbridge Scale Protocols (Building 7)",
+    "category": "Security & Gatehouse",
+    "content": "1. Gatehouse Arrival: All heavy transport vehicles and freight trailers entering via Gate 1 must stop at Building 7 Security Gatehouse for biometric check-in and BOL manifest verification.\n\n2. 60T Weighbridge Platform: The vehicle must come to a complete stop on the 60-tonne digital weighbridge scale. The scale operator records gross vehicle tare weight before opening the automatic security boom barrier.\n\n3. Yard Route Assignment: Inbound pallet freight is dispatched to Building 1 (High-Bay Hub) or Building 2 (Bulk Distribution); temperature-controlled trailers proceed directly to Building 4 Cold Vault."
+  },
+  {
+    "doc_id": "SOP-ESD-007",
+    "title": "Cleanroom & Antistatic ESD Handling Procedures (Building 3)",
+    "category": "Electronics & Cleanroom",
+    "content": "1. ESD Protection: Entry into Building 3 Tech Mezzanine requires certified antistatic lab coats, conductive heel grounders, and grounding wrist straps attached to grounded bench terminals.\n\n2. Component Transfer: Precision semiconductor wafers and IoT sensor modules (SKU-3301) must only be moved in ESD-shielded conductive totes via the 2.5T Heavy Freight Lift.\n\n3. Environmental Controls: Cleanroom relative humidity must be maintained at 45% ± 5% to eliminate electrostatic discharge risk. Corrugated cardboard packaging is prohibited in ISO Class 7 clean zones."
+  },
+  {
+    "doc_id": "SOP-MHE-008",
+    "title": "MHE Fleet Depot Fast-Charging & Preventive Maintenance Protocols (Building 6)",
+    "category": "Fleet Maintenance",
+    "content": "1. Fast-Charging Procedure: Electric forklifts (FL-01, RT-01, RT-02) must be connected to the 480V 3-Phase rapid charging stations in Building 6 when battery State of Charge falls below 25%.\n\n2. Ventilation Requirements: The depot forced-air ventilation system must operate continuously to prevent hydrogen accumulation during rapid charging cycles.\n\n3. Shift Inspection: Daily pre-shift inspections must check hydraulic fluid levels, mast chains, tire integrity, horn, and emergency cutoff switches before releasing vehicles to active floor duties."
   }
 ]

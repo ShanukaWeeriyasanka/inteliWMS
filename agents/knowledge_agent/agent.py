@@ -155,7 +155,7 @@ def execute_knowledge_query(query: str, user_role: str = "staff", context: Optio
 
 
     # 1. Fast-Path: RAG SOP & Policy Retrieval (Prioritized for procedure/safety queries)
-    if intent == "document_query" or any(w in clean_query.lower() for w in ["sop", "procedure", "policy", "safety", "rule", "protocol", "height", "speed", "hazard", "battery", "spill", "stacking", "limit"]):
+    if intent == "document_query" or any(w in lower_q for w in ["sop", "procedure", "policy", "safety", "rule", "protocol", "height", "speed", "hazard", "spill", "stacking", "limit", "excursion", "weighbridge scale protocol", "carrier check-in"]):
         rag_hits = knowledge_store.query(clean_query, n_results=knowledge_config.DEFAULT_RAG_TOP_K)
         if rag_hits:
             best_hit = rag_hits[0]
@@ -169,17 +169,26 @@ def execute_knowledge_query(query: str, user_role: str = "staff", context: Optio
                 "source": "vector_rag"
             }
 
-    # 2. Fast-Path: Physical Location Lookup
-    if intent == "location_query" or entities.get("skus") or entities.get("locations"):
+    # 2. Fast-Path: Campus Facility, Vehicle & Physical Location Lookup
+    # Matches: "Where is Building 4?", "Where is Cold Vault?", "Where is Forklift 1?", "Where is 60T scale?", "Where is SKU-4521?"
+    if (
+        intent == "location_query"
+        or any(w in lower_q for w in ["where", "locate", "building", "cold vault", "quarantine", "gatehouse", "weighbridge", "forklift", "reach truck", "pallet jack", "agv", "campus"])
+        or entities.get("skus")
+        or entities.get("locations")
+    ):
         loc_result = resolve_location(clean_query)
         if loc_result.get("found"):
+            # Set source preserving backward compatibility for unit tests expecting 'database_location'
+            entity_type = loc_result.get("entity_type", "database_location")
+            source = "database_location" if entity_type == "product_sku" else entity_type
             return {
                 "agent": "knowledge_agent",
                 "query": clean_query,
                 "response": loc_result.get("formatted_message"),
                 "entities": entities,
                 "data": loc_result,
-                "source": "database_location"
+                "source": source
             }
 
     # 3. Fallback: Check RAG once more before declaring item not found
@@ -196,22 +205,24 @@ def execute_knowledge_query(query: str, user_role: str = "staff", context: Optio
             "source": "vector_rag"
         }
 
-    # 4. Fallback: Final attempt against database product location
+    # 4. Fallback: Final attempt against campus and product location resolver
     loc_fallback = resolve_location(clean_query)
     if loc_fallback.get("found"):
+        entity_type = loc_fallback.get("entity_type", "database_location")
+        source = "database_location" if entity_type == "product_sku" else entity_type
         return {
             "agent": "knowledge_agent",
             "query": clean_query,
             "response": loc_fallback.get("formatted_message"),
             "entities": entities,
             "data": loc_fallback,
-            "source": "database_location"
+            "source": source
         }
 
     return {
         "agent": "knowledge_agent",
         "query": clean_query,
-        "response": loc_fallback.get("formatted_message", "I could not find a matching product location or warehouse procedure for your request."),
+        "response": loc_fallback.get("formatted_message", "I could not find a matching campus location or warehouse procedure for your request."),
         "entities": entities,
         "source": "general_knowledge"
     }

@@ -305,6 +305,9 @@ async def handle_coordinator_query(payload: QueryRequest, request: Request, db: 
                         "payload": ui_payload,
                     }
 
+            if "knowledge_details" in agent_result:
+                final_response["knowledge_details"] = agent_result["knowledge_details"]
+
             routing_decision["decisions"] = collected()  # routing + the agent's own decisions
 
             # 7. Save the exchange to the conversation and carry its context forward

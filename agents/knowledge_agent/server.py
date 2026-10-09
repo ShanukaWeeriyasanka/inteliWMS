@@ -227,6 +227,64 @@ def tool_triage_return(req: ReturnTriageRequest):
     return {"status": "success", "result": res}
 
 
+@app.get("/campus/overview")
+def get_campus_overview_endpoint():
+    """Returns Colombo Logistics Complex master plan overview and all 7 facilities."""
+    from agents.knowledge_agent.campus_data import CAMPUS_OVERVIEW, CAMPUS_BUILDINGS
+    return {
+        "status": "success",
+        "overview": CAMPUS_OVERVIEW,
+        "buildings": list(CAMPUS_BUILDINGS.values())
+    }
+
+
+@app.get("/campus/facilities")
+def get_campus_facilities_endpoint():
+    """Lists all 7 campus buildings with capacities, operational statuses, and assigned MHE."""
+    from agents.knowledge_agent.campus_data import CAMPUS_BUILDINGS
+    return {
+        "status": "success",
+        "count": len(CAMPUS_BUILDINGS),
+        "facilities": list(CAMPUS_BUILDINGS.values())
+    }
+
+
+@app.get("/campus/facilities/{bld_id}")
+def get_campus_facility_endpoint(bld_id: str):
+    """Returns detailed specifications for a specific campus facility (e.g. BLD-01 to BLD-07)."""
+    from agents.knowledge_agent.campus_data import CAMPUS_BUILDINGS
+    key = bld_id.strip().upper()
+    if key in CAMPUS_BUILDINGS:
+        return {"status": "success", "facility": CAMPUS_BUILDINGS[key]}
+    # Search by number
+    for b in CAMPUS_BUILDINGS.values():
+        if b.get("number") == bld_id or b.get("id").lower() == bld_id.lower():
+            return {"status": "success", "facility": b}
+    raise HTTPException(status_code=404, detail=f"Campus facility '{bld_id}' not found.")
+
+
+@app.get("/campus/vehicles")
+def get_campus_vehicles_endpoint():
+    """Returns active fleet vehicles, coordinates, battery State of Charge, and duty status."""
+    from agents.knowledge_agent.campus_data import CAMPUS_VEHICLES
+    return {
+        "status": "success",
+        "count": len(CAMPUS_VEHICLES),
+        "vehicles": list(CAMPUS_VEHICLES.values())
+    }
+
+
+@app.get("/campus/objects")
+def get_campus_objects_endpoint():
+    """Returns campus static infrastructure assets (60T scale, fast chargers, airlock, etc.)."""
+    from agents.knowledge_agent.campus_data import CAMPUS_OBJECTS
+    return {
+        "status": "success",
+        "count": len(CAMPUS_OBJECTS),
+        "objects": list(CAMPUS_OBJECTS.values())
+    }
+
+
 if __name__ == "__main__":
     uvicorn.run(
         "agents.knowledge_agent.server:app",

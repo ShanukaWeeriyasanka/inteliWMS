@@ -119,23 +119,39 @@ def extract_warehouse_entities(text: str) -> Dict[str, Any]:
                 })
                 break
 
-    # 6. Intent Classification with Document Precedence
+    # 5.5 Extract Campus Buildings & Vehicles
+    campus_buildings = []
+    bld_matches = re.findall(r"\b(?:BLD-0[1-7]|Building\s*[1-7]|Cold Vault|Quarantine Yard|High-Bay Hub|Bulk Distribution|Tech Mezzanine|Fleet Depot|Gatehouse)\b", raw, re.IGNORECASE)
+    if bld_matches:
+        campus_buildings = list(set(bld_matches))
+
+    campus_vehicles = []
+    veh_matches = re.findall(r"\b(?:FL-01|RT-01|RT-02|PJ-01|AGV-01|Forklift\s*[12]?|Reach Truck\s*[12]?|Pallet Jack|Tugger AGV)\b", raw, re.IGNORECASE)
+    if veh_matches:
+        campus_vehicles = list(set(veh_matches))
+
+    # 6. Intent Classification with Document Precedence vs Location Priority
     lower_text = raw.lower()
     doc_keywords = [
-        "sop", "procedure", "policy", "safety", "rule", "rules", "protocol", 
+        "sop", "procedure", "policy", "safety protocol", "rule", "rules", "protocol", 
         "protocols", "hazard", "manual", "documentation", "guide", "guideline", 
-        "guidelines", "limit", "limits", "regulations", "height", "speed", 
-        "battery", "spill", "pedestrian", "forklift", "stacking", "returns"
+        "guidelines", "regulations", "height limit", "speed limit", 
+        "battery spill", "stacking limit", "pallet limits", "excursion"
     ]
-    stock_keywords = ["how many", "stock", "quantity", "inventory", "count", "available", "reorder"]
-    loc_keywords = ["where", "location", "aisle", "shelf", "bin", "bay", "find", "stored", "kept", "which aisle"]
+    loc_keywords = [
+        "where", "where is", "location", "locate", "find", "aisle", "shelf", "bin", "bay", 
+        "stored", "kept", "which aisle", "which building", "coords", "dock"
+    ]
+    stock_keywords = ["how many", "stock level", "quantity", "inventory count", "count", "available units", "reorder"]
 
     # If document/procedure/safety words are present, prioritize document_query
     if any(w in lower_text for w in doc_keywords):
         intent_hint = "document_query"
+    elif any(re.search(rf"\b{re.escape(w)}\b", lower_text) for w in ["where", "where is", "locate", "find", "position of"]):
+        intent_hint = "location_query"
     elif any(w in lower_text for w in stock_keywords):
         intent_hint = "stock_query"
-    elif any(w in lower_text for w in loc_keywords) or skus or locations:
+    elif any(w in lower_text for w in loc_keywords) or skus or locations or campus_buildings or campus_vehicles:
         intent_hint = "location_query"
     else:
         intent_hint = "general_query"

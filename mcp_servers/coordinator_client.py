@@ -6,7 +6,7 @@ Orchestrates communication with specialist sub-agents:
 - knowledge_agent
 """
 import time
-from typing import Dict, Any
+from typing import Dict, Any, Tuple, Optional
 from utils.logger import StructuredLogger
 
 logger = StructuredLogger(__name__)
@@ -62,13 +62,13 @@ class CoordinatorMCPClient:
             raise UnknownAgentException(err_msg)
 
         try:
-            # Dispatch to agent handler
+            knowledge_details = None
             if agent_name == "inventory_agent":
                 response_text = self._handle_inventory_query(query, context_payload)
             elif agent_name == "fulfillment_agent":
                 response_text = self._handle_fulfillment_query(query, context_payload)
             elif agent_name == "knowledge_agent":
-                response_text = self._handle_knowledge_query(query, context_payload)
+                response_text, knowledge_details = self._handle_knowledge_query(query, context_payload)
             else:
                 response_text = f"Agent '{agent_name}' processed request successfully."
 
@@ -78,12 +78,15 @@ class CoordinatorMCPClient:
                 "elapsed_ms": elapsed_ms
             })
 
-            return {
+            result = {
                 "status": "success",
                 "agent_used": agent_name,
                 "response": response_text,
                 "execution_time_ms": elapsed_ms
             }
+            if knowledge_details:
+                result["knowledge_details"] = knowledge_details
+            return result
 
         except Exception as e:
             logger.log_event("MCP_DELEGATION_ERROR", {
@@ -128,7 +131,7 @@ class CoordinatorMCPClient:
             "On-time fulfillment rate currently stands at 99.2% for this shift."
         )
 
-    def _handle_knowledge_query(self, query: str, context: Dict[str, Any]) -> str:
+    def _handle_knowledge_query(self, query: str, context: Dict[str, Any]) -> Tuple[str, Optional[Dict[str, Any]]]:
         """Invokes real Knowledge Agent (calls execute_knowledge_query with local fallback)."""
         try:
             from agents.knowledge_agent.agent import execute_knowledge_query
@@ -137,13 +140,14 @@ class CoordinatorMCPClient:
             original_query = context.get("original_message") or query
             res = execute_knowledge_query(original_query, user_role=user_role, context=context)
             if res and res.get("response"):
-                return res["response"]
+                return res["response"], res
         except Exception as e:
             logger.log_event("KNOWLEDGE_INTEGRATION_ERROR", {"error": str(e)})
 
         return (
             "Knowledge Agent: Consulted InteliWMS Operational Manual v2.4. "
-            "Standard floor procedures apply. Contact shift supervisor for specialized exception handling."
+            "Standard floor procedures apply. Contact shift supervisor for specialized exception handling.",
+            None
         )
 
 # Global singleton
