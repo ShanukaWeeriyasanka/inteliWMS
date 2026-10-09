@@ -227,6 +227,7 @@ export default function PricingModal({
         <div className="pricing-modal-body">
           {/* 1. TOP SECTION — 3 PRICING TIERS */}
           <section className="pricing-tiers-section" id="pricing-plans">
+            <h2 className="pricing-display-title">Pricing</h2>
             <div className="pricing-tiers-grid">
               {tiers.map((tier) => {
                 const isSelected = selectedPlan === tier.key
