@@ -412,37 +412,37 @@ export default function ArtifactPanel({
         {/* TAB 1: WAREHOUSE SITE PLAN (MULTI-BUILDING COMPLEX)                   */}
         {/* ═════════════════════════════════════════════════════════════════════ */}
         {activeTab === 'site_plan' && (
-          <div className="site-plan-tab-view space-y-4">
+          <div className="site-plan-tab-view space-y-3">
             
             {/* Header Status Strip */}
-            <div className="flex items-center justify-between bg-slate-900/70 border border-slate-800 rounded-xl px-3.5 py-2.5">
+            <div className="art-strip">
               <div>
-                <div className="text-xs font-semibold text-white tracking-wide">
+                <div className="art-strip-title">
                   {WAREHOUSE_COMPLEX_DATA.complex.name}
                 </div>
-                <div className="text-[11px] text-slate-400">
+                <div className="art-strip-subtitle">
                   7 Facilities · Live Fleet Tracking · Gate 1 Entry
                 </div>
               </div>
               
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1">
                 <button
                   onClick={() => handleZoomSite(0.85)}
-                  className="p-1 rounded hover:bg-slate-800 text-slate-300"
+                  className="p-1 rounded hover:bg-white/10 text-slate-300"
                   title="Zoom In"
                 >
                   <ZoomIn size={14} />
                 </button>
                 <button
                   onClick={() => handleZoomSite(1.15)}
-                  className="p-1 rounded hover:bg-slate-800 text-slate-300"
+                  className="p-1 rounded hover:bg-white/10 text-slate-300"
                   title="Zoom Out"
                 >
                   <ZoomOut size={14} />
                 </button>
                 <button
                   onClick={handleResetSite}
-                  className="p-1 rounded hover:bg-slate-800 text-slate-300"
+                  className="p-1 rounded hover:bg-white/10 text-slate-300"
                   title="Reset Fit"
                 >
                   <RotateCcw size={14} />
@@ -451,22 +451,23 @@ export default function ArtifactPanel({
             </div>
 
             {/* Quick Facility Selector Pills */}
-            <div className="flex flex-wrap gap-1.5 pb-1">
+            <div className="art-chips-row">
               {WAREHOUSE_COMPLEX_DATA.buildings.map((b) => {
                 const isSelected = selectedBuilding?.id === b.id
                 return (
                   <button
                     key={b.id}
                     onClick={() => handleSelectBuilding(b)}
-                    className={`text-xs px-2.5 py-1 rounded-full font-medium transition border flex items-center gap-1.5 ${
-                      isSelected
-                        ? 'bg-blue-600/30 text-white border-blue-500 shadow-sm'
-                        : 'bg-slate-900/60 text-slate-400 border-slate-800 hover:border-slate-700 hover:text-slate-200'
-                    }`}
+                    className={`art-chip ${isSelected ? 'is-selected' : ''}`}
                   >
                     <span
-                      className="w-2 h-2 rounded-full flex-shrink-0"
-                      style={{ backgroundColor: b.color }}
+                      style={{
+                        width: '7px',
+                        height: '7px',
+                        borderRadius: '50%',
+                        backgroundColor: b.color,
+                        display: 'inline-block'
+                      }}
                     />
                     <span>{b.title}</span>
                   </button>
@@ -475,7 +476,7 @@ export default function ArtifactPanel({
             </div>
 
             {/* Interactive SVG Site Plan Container */}
-            <div className="relative bg-slate-950 rounded-2xl border border-slate-800/90 overflow-hidden shadow-inner p-1.5">
+            <div className="art-map-box">
               <svg
                 ref={siteSvgRef}
                 viewBox={`${siteVb.x} ${siteVb.y} ${siteVb.w} ${siteVb.h}`}
@@ -640,49 +641,60 @@ export default function ArtifactPanel({
 
             {/* Selected Facility Inspector Card */}
             {selectedBuilding && (
-              <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-3.5 space-y-3">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-2">
+              <div className="art-card">
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <span
-                      className="w-6 h-6 rounded flex items-center justify-center font-bold text-white text-xs"
-                      style={{ backgroundColor: selectedBuilding.color }}
+                      style={{
+                        width: '28px',
+                        height: '28px',
+                        borderRadius: '8px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontWeight: '700',
+                        color: '#FFFFFF',
+                        fontSize: '13px',
+                        backgroundColor: selectedBuilding.color,
+                        flexShrink: 0
+                      }}
                     >
                       {selectedBuilding.number}
                     </span>
                     <div>
-                      <div className="font-semibold text-white text-sm">
+                      <div style={{ fontWeight: '600', color: '#FFFFFF', fontSize: '14px' }}>
                         {selectedBuilding.name}
                       </div>
-                      <div className="text-xs text-slate-400">
+                      <div style={{ fontSize: '11.5px', color: '#94A3B8', marginTop: '1px' }}>
                         {selectedBuilding.category}
                       </div>
                     </div>
                   </div>
 
-                  <span className="text-[11px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 font-medium border border-emerald-500/20">
+                  <span className="art-badge art-badge-green">
                     {selectedBuilding.status}
                   </span>
                 </div>
 
-                <div className="grid grid-cols-3 gap-2 pt-1 border-t border-slate-800/80 text-xs">
-                  <div>
-                    <span className="block text-slate-400 text-[10px] uppercase font-semibold">Capacity</span>
-                    <span className="font-medium text-slate-200">{selectedBuilding.capacity}</span>
+                <div className="art-stat-grid art-stat-grid-3">
+                  <div className="art-stat-item">
+                    <span className="art-stat-lbl">Capacity</span>
+                    <span className="art-stat-val">{selectedBuilding.capacity}</span>
                   </div>
-                  <div>
-                    <span className="block text-slate-400 text-[10px] uppercase font-semibold">Active Lots</span>
-                    <span className="font-medium text-slate-200">{selectedBuilding.lots}</span>
+                  <div className="art-stat-item">
+                    <span className="art-stat-lbl">Active Lots</span>
+                    <span className="art-stat-val">{selectedBuilding.lots}</span>
                   </div>
-                  <div>
-                    <span className="block text-slate-400 text-[10px] uppercase font-semibold">MHE Fleet</span>
-                    <span className="font-medium text-slate-200">{selectedBuilding.mhe}</span>
+                  <div className="art-stat-item">
+                    <span className="art-stat-lbl">MHE Fleet</span>
+                    <span className="art-stat-val">{selectedBuilding.mhe}</span>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 pt-1">
+                <div className="art-btn-row">
                   <button
                     onClick={() => traceRouteTo(selectedBuilding.rect.x + selectedBuilding.rect.w / 2, selectedBuilding.dockY || selectedBuilding.rect.y + selectedBuilding.rect.h / 2)}
-                    className="flex-1 text-xs py-1.5 px-3 rounded-lg bg-blue-600/20 text-blue-300 border border-blue-500/30 hover:bg-blue-600/30 font-medium transition flex items-center justify-center gap-1.5"
+                    className="art-btn-action art-btn-blue"
                   >
                     <Navigation size={13} />
                     <span>Trace Route from Gate 1</span>
@@ -690,7 +702,7 @@ export default function ArtifactPanel({
 
                   <button
                     onClick={() => setActiveTab('floor_map')}
-                    className="flex-1 text-xs py-1.5 px-3 rounded-lg bg-slate-800 text-slate-200 border border-slate-700 hover:bg-slate-700 font-medium transition flex items-center justify-center gap-1.5"
+                    className="art-btn-action art-btn-slate"
                   >
                     <Layers size={13} />
                     <span>View Floor Map ➔</span>
@@ -705,48 +717,50 @@ export default function ArtifactPanel({
         {/* TAB 2: WAREHOUSE FLOOR MAP (HIGH-BAY INVENTORY DIGITAL TWIN)          */}
         {/* ═════════════════════════════════════════════════════════════════════ */}
         {activeTab === 'floor_map' && (
-          <div className="floor-map-tab-view space-y-4">
+          <div className="floor-map-tab-view" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
             
             {/* Header Status Strip */}
-            <div className="flex items-center justify-between bg-slate-900/70 border border-slate-800 rounded-xl px-3.5 py-2.5">
+            <div className="art-strip">
               <div>
-                <div className="text-xs font-semibold text-white tracking-wide">
+                <div className="art-strip-title">
                   Warehouse Floor Alpha — High-Bay Storage
                 </div>
-                <div className="text-[11px] text-slate-400">
+                <div className="art-strip-subtitle">
                   14 Aisles · 4 Vertical Tiers · Live AGV Pick Line
                 </div>
               </div>
 
-              <span className="text-[11px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 font-medium border border-emerald-500/20">
+              <span className="art-badge art-badge-green">
                 Aisle {activeAisle} Selected
               </span>
             </div>
 
             {/* Quick SKU Selector Pills */}
             <div>
-              <div className="text-[11px] text-slate-400 font-semibold mb-1.5 uppercase tracking-wider">
+              <div style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 600, marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                 Fast SKU Inspector
               </div>
-              <div className="flex flex-wrap gap-1.5">
+              <div className="art-chips-row">
                 {WAREHOUSE_INVENTORY_ITEMS.map((item) => {
                   const isSelected = selectedProduct?.sku === item.sku
                   return (
                     <button
                       key={item.sku}
                       onClick={() => handleSelectProduct(item)}
-                      className={`text-xs px-2.5 py-1 rounded-full font-medium transition border flex items-center gap-1.5 ${
-                        isSelected
-                          ? 'bg-amber-500/30 text-amber-200 border-amber-500 shadow-sm'
-                          : 'bg-slate-900/60 text-slate-400 border-slate-800 hover:border-slate-700 hover:text-slate-200'
-                      }`}
+                      className={`art-chip ${isSelected ? 'is-selected-amber' : ''}`}
                     >
                       <span
-                        className="w-2 h-2 rounded-full flex-shrink-0"
-                        style={{ backgroundColor: item.rack_color }}
+                        style={{
+                          width: '7px',
+                          height: '7px',
+                          borderRadius: '50%',
+                          flexShrink: 0,
+                          backgroundColor: item.rack_color,
+                          display: 'inline-block'
+                        }}
                       />
                       <span>{item.sku}</span>
-                      <span className="text-[10px] opacity-75 font-mono">{item.quantity}</span>
+                      <span style={{ fontSize: '10px', opacity: 0.75, fontFamily: 'var(--font-mono)' }}>{item.quantity}</span>
                     </button>
                   )
                 })}
@@ -754,14 +768,14 @@ export default function ArtifactPanel({
             </div>
 
             {/* High-Bay Storage Racks Grid (Aisle 1 to 14) */}
-            <div className="bg-slate-950 rounded-2xl border border-slate-800/90 p-3 shadow-inner space-y-2">
-              <div className="flex items-center justify-between text-[11px] text-slate-400 font-mono">
+            <div className="art-map-box" style={{ padding: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '11px', color: '#94a3b8', fontFamily: 'var(--font-mono)', marginBottom: '8px' }}>
                 <span>RACK TIERS (D · C · B · A)</span>
-                <span className="text-amber-400">Target: Aisle {activeAisle} · Shelf {selectedProduct.shelf}</span>
+                <span style={{ color: '#fbbf24' }}>Target: Aisle {activeAisle} · Shelf {selectedProduct?.shelf}</span>
               </div>
 
               {/* 14 Aisles Floor Layout */}
-              <div className="grid grid-cols-7 sm:grid-cols-14 gap-1 pt-1">
+              <div className="art-aisle-grid">
                 {Array.from({ length: 14 }, (_, i) => i + 1).map((aisleNum) => {
                   const isAisleActive = aisleNum === activeAisle
                   return (
@@ -772,32 +786,22 @@ export default function ArtifactPanel({
                         const matching = WAREHOUSE_INVENTORY_ITEMS.find(p => p.aisle === aisleNum)
                         if (matching) setSelectedProduct(matching)
                       }}
-                      className={`flex flex-col items-center p-1 rounded-lg border transition ${
-                        isAisleActive
-                          ? 'bg-amber-500/20 border-amber-500 shadow-sm'
-                          : 'bg-slate-900/80 border-slate-800 hover:border-slate-700'
-                      }`}
+                      className={`art-aisle-card ${isAisleActive ? 'is-active' : ''}`}
                     >
-                      <span className={`text-[10px] font-mono font-bold mb-1 ${isAisleActive ? 'text-amber-300' : 'text-slate-400'}`}>
+                      <span className="art-aisle-code">
                         A{String(aisleNum).padStart(2, '0')}
                       </span>
 
                       {/* 4 Vertical Tiers per Rack */}
                       {['D', 'C', 'B', 'A'].map((tier) => {
-                        const isCellTarget = isAisleActive && selectedProduct.tier === tier
+                        const isCellTarget = isAisleActive && selectedProduct?.tier === tier
                         return (
                           <div
                             key={tier}
-                            className={`w-full h-3.5 my-0.5 rounded-sm flex items-center justify-center transition ${
-                              isCellTarget
-                                ? 'bg-amber-400 shadow-md animate-pulse'
-                                : isAisleActive
-                                  ? 'bg-amber-900/40 border border-amber-600/30'
-                                  : 'bg-slate-800/60 border border-slate-700/40'
-                            }`}
+                            className={`art-tier-slot ${isCellTarget ? 'is-cell-target' : isAisleActive ? 'is-cell-active' : ''}`}
                           >
                             {isCellTarget && (
-                              <div className="w-1.5 h-1.5 bg-black rounded-full" />
+                              <div className="art-target-dot" />
                             )}
                           </div>
                         )
@@ -808,80 +812,81 @@ export default function ArtifactPanel({
               </div>
 
               {/* AGV Transit Runway Strip */}
-              <div className="mt-2 pt-2 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400">
-                <div className="flex items-center gap-1.5">
-                  <div className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+              <div style={{ marginTop: '10px', paddingTop: '8px', borderTop: '0.5px solid rgba(255, 255, 255, 0.08)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '11px', color: '#94a3b8' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <div style={{ width: '7px', height: '7px', borderRadius: '50%', backgroundColor: '#4ade80' }} />
                   <span>AGV Transit Runway 05 (Automated Guided Vehicles)</span>
                 </div>
-                <span className="font-mono text-emerald-400 text-[10px]">1.2 m/s Autonomous Flow</span>
+                <span style={{ fontFamily: 'var(--font-mono)', color: '#4ade80', fontSize: '10px' }}>1.2 m/s Autonomous Flow</span>
               </div>
             </div>
 
             {/* Selected Product Inventory Details Card */}
             {selectedProduct && (
-              <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-3.5 space-y-3">
-                <div className="flex items-start justify-between">
+              <div className="art-card">
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
                   <div>
-                    <div className="font-bold text-white text-sm">
+                    <div style={{ fontWeight: '700', color: '#ffffff', fontSize: '14px' }}>
                       {selectedProduct.name}
                     </div>
-                    <div className="text-xs text-slate-400 font-mono">
+                    <div style={{ fontSize: '11.5px', color: '#94a3b8', fontFamily: 'var(--font-mono)', marginTop: '2px' }}>
                       {selectedProduct.sku} · {selectedProduct.category}
                     </div>
                   </div>
 
-                  <span className={`text-[11px] px-2.5 py-0.5 rounded-full font-medium border ${
+                  <span className={`art-badge ${
                     selectedProduct.status === 'IN_STOCK'
-                      ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                      ? 'art-badge-green'
                       : selectedProduct.status === 'LOW_STOCK'
-                        ? 'bg-blue-500/10 text-blue-400 border-blue-500/20'
-                        : 'bg-rose-500/10 text-rose-400 border-rose-500/20'
+                        ? 'art-badge-blue'
+                        : 'art-badge-rose'
                   }`}>
                     {selectedProduct.statusLabel}
                   </span>
                 </div>
 
-                <div className="grid grid-cols-4 gap-2 pt-1 border-t border-slate-800/80 text-xs">
-                  <div>
-                    <span className="block text-slate-400 text-[10px] uppercase font-semibold">Aisle</span>
-                    <span className="font-medium text-slate-200">Aisle {selectedProduct.aisle}</span>
+                <div className="art-stat-grid art-stat-grid-4">
+                  <div className="art-stat-item">
+                    <span className="art-stat-lbl">Aisle</span>
+                    <span className="art-stat-val">Aisle {selectedProduct.aisle}</span>
                   </div>
-                  <div>
-                    <span className="block text-slate-400 text-[10px] uppercase font-semibold">Shelf / Tier</span>
-                    <span className="font-medium text-slate-200">{selectedProduct.shelf} (Tier {selectedProduct.tier})</span>
+                  <div className="art-stat-item">
+                    <span className="art-stat-lbl">Shelf / Tier</span>
+                    <span className="art-stat-val">{selectedProduct.shelf} (Tier {selectedProduct.tier})</span>
                   </div>
-                  <div>
-                    <span className="block text-slate-400 text-[10px] uppercase font-semibold">Bay</span>
-                    <span className="font-medium text-slate-200">{selectedProduct.bay}</span>
+                  <div className="art-stat-item">
+                    <span className="art-stat-lbl">Bay</span>
+                    <span className="art-stat-val">{selectedProduct.bay}</span>
                   </div>
-                  <div>
-                    <span className="block text-slate-400 text-[10px] uppercase font-semibold">Available</span>
-                    <span className="font-medium text-emerald-400 font-mono">{selectedProduct.available} {selectedProduct.unit}</span>
+                  <div className="art-stat-item">
+                    <span className="art-stat-lbl">Available</span>
+                    <span className="art-stat-val art-stat-val-green">{selectedProduct.available} {selectedProduct.unit}</span>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-2 pt-1 border-t border-slate-800/80 text-xs">
-                  <div>
-                    <span className="block text-slate-400 text-[10px] uppercase font-semibold">On-Hand Total</span>
-                    <span className="font-mono text-white">{selectedProduct.quantity} {selectedProduct.unit}</span>
+                <div className="art-stat-grid art-stat-grid-3" style={{ borderTop: 'none', paddingTop: 0 }}>
+                  <div className="art-stat-item">
+                    <span className="art-stat-lbl">On-Hand Total</span>
+                    <span className="art-stat-val" style={{ fontFamily: 'var(--font-mono)' }}>{selectedProduct.quantity} {selectedProduct.unit}</span>
                   </div>
-                  <div>
-                    <span className="block text-slate-400 text-[10px] uppercase font-semibold">Reserved Orders</span>
-                    <span className="font-mono text-amber-300">{selectedProduct.reserved} {selectedProduct.unit}</span>
+                  <div className="art-stat-item">
+                    <span className="art-stat-lbl">Reserved Orders</span>
+                    <span className="art-stat-val art-stat-val-amber">{selectedProduct.reserved} {selectedProduct.unit}</span>
                   </div>
-                  <div>
-                    <span className="block text-slate-400 text-[10px] uppercase font-semibold">Reorder Threshold</span>
-                    <span className="font-mono text-slate-300">{selectedProduct.reorder_point} {selectedProduct.unit}</span>
+                  <div className="art-stat-item">
+                    <span className="art-stat-lbl">Reorder Threshold</span>
+                    <span className="art-stat-val" style={{ fontFamily: 'var(--font-mono)' }}>{selectedProduct.reorder_point} {selectedProduct.unit}</span>
                   </div>
                 </div>
 
                 {/* Switch to Site Plan */}
-                <div className="pt-1">
+                <div>
                   <button
                     onClick={() => setActiveTab('site_plan')}
-                    className="w-full text-xs py-1.5 px-3 rounded-lg bg-slate-800 text-slate-200 border border-slate-700 hover:bg-slate-700 font-medium transition flex items-center justify-center gap-1.5"
+                    className="art-btn-action art-btn-slate"
+                    style={{ width: '100%' }}
                   >
-                    <Compass size={13} className="text-blue-400" />
+                    <Compass size={13} style={{ color: '#60a5fa' }} />
                     <span>View Building on Warehouse Site Plan ➔</span>
                   </button>
                 </div>

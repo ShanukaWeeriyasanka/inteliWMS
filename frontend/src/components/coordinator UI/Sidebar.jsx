@@ -13,6 +13,7 @@ import {
   LogOut,
   Sparkles,
   Crown,
+  Compass,
   X
 } from 'lucide-react'
 
