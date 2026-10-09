@@ -33,20 +33,53 @@ def init_db():
     """Create all tables and perform lightweight safe schema migrations."""
     from database import models  # ensure models are imported
     Base.metadata.create_all(bind=engine)
-    
-    # Safe SQLite column migrations if needed
-    if settings.DATABASE_URL.startswith("sqlite"):
-        try:
-            with engine.connect() as conn:
-                # Check columns in users table
-                from sqlalchemy import text
+
+    # Safe column migrations (idempotent — safe to run every startup)
+    with engine.connect() as conn:
+        from sqlalchemy import text
+        is_sqlite = settings.DATABASE_URL.startswith("sqlite")
+
+        if is_sqlite:
+            # ---- SQLite migration ----
+            try:
                 result = conn.execute(text("PRAGMA table_info(users)"))
                 cols = [row[1] for row in result.fetchall()]
                 if "name" not in cols:
                     conn.execute(text("ALTER TABLE users ADD COLUMN name VARCHAR"))
                     conn.commit()
-        except Exception as e:
-            print(f"[DB MIGRATION NOTICE] {e}")
+            except Exception as e:
+                print(f"[DB MIGRATION NOTICE] users.name: {e}")
+
+            try:
+                result = conn.execute(text("PRAGMA table_info(orders)"))
+                existing = [row[1] for row in result.fetchall()]
+                delay_cols = {
+                    "delay_reason": "VARCHAR(255)",
+                    "carrier_name": "VARCHAR(150)",
+                    "revised_delivery_date": "DATETIME",
+                }
+                for col, col_type in delay_cols.items():
+                    if col not in existing:
+                        conn.execute(text(f"ALTER TABLE orders ADD COLUMN {col} {col_type}"))
+                conn.commit()
+            except Exception as e:
+                print(f"[DB MIGRATION NOTICE] orders delay fields: {e}")
+        else:
+            # ---- PostgreSQL (Supabase) migration ----
+            try:
+                delay_cols = {
+                    "delay_reason": "VARCHAR(255)",
+                    "carrier_name": "VARCHAR(150)",
+                    "revised_delivery_date": "TIMESTAMPTZ",
+                }
+                for col, col_type in delay_cols.items():
+                    # ADD COLUMN IF NOT EXISTS is supported in PostgreSQL 9.6+
+                    conn.execute(text(
+                        f"ALTER TABLE orders ADD COLUMN IF NOT EXISTS {col} {col_type}"
+                    ))
+                conn.commit()
+            except Exception as e:
+                print(f"[DB MIGRATION NOTICE] orders delay fields (postgres): {e}")
 
 def get_db():
     """Dependency injection helper for FastAPI routes."""

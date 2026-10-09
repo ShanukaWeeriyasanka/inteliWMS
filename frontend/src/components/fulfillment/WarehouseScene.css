@@ -1,0 +1,266 @@
+/* =========================================================================
+   WAREHOUSE SCENE — ISOMETRIC 3D VISUALIZATION (LIGHT THEMED & ROBUST)
+   ========================================================================= */
+
+.fulfillment-control-center-theme .fc-scene-card {
+  display: flex;
+  flex-direction: column;
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 18px !important;
+  overflow: hidden !important;
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.03) !important;
+  position: relative;
+  width: 100%;
+}
+
+/* 1. Scene Toolbar & Zone Tabs */
+.fulfillment-control-center-theme .fc-scene-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 18px;
+  background: #f8fafc !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.fulfillment-control-center-theme .fc-scene-toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.fulfillment-control-center-theme .fc-live-pulse-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.6);
+  animation: liveDotPulse 2s infinite;
+}
+
+@keyframes liveDotPulse {
+  0% { transform: scale(0.95); opacity: 0.8; }
+  50% { transform: scale(1.25); opacity: 1; }
+  100% { transform: scale(0.95); opacity: 0.8; }
+}
+
+.fulfillment-control-center-theme .fc-scene-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #0f172a !important;
+  letter-spacing: -0.01em;
+}
+
+.fulfillment-control-center-theme .fc-scene-model-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  background: #eff6ff !important;
+  border: 1px solid #bfdbfe !important;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #1d4ed8 !important;
+}
+
+.fulfillment-control-center-theme .fc-scene-zone-pills {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.fulfillment-control-center-theme .fc-zone-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #334155 !important;
+  cursor: pointer;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.fulfillment-control-center-theme .fc-zone-tab-btn:hover {
+  background: #f1f5f9 !important;
+  border-color: #94a3b8 !important;
+  color: #0f172a !important;
+  transform: translateY(-1px);
+}
+
+.fulfillment-control-center-theme .fc-zone-tab-btn.active {
+  background: #2563eb !important;
+  border-color: #1d4ed8 !important;
+  color: #ffffff !important;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.35) !important;
+}
+
+.fulfillment-control-center-theme .fc-zone-tab-btn.active svg {
+  color: #ffffff !important;
+}
+
+.fulfillment-control-center-theme .fc-tag-mini {
+  font-size: 9.5px;
+  font-weight: 800;
+  padding: 1px 6px;
+  border-radius: 9999px;
+  text-transform: uppercase;
+}
+
+.fulfillment-control-center-theme .fc-tag-mini.tag-coral {
+  background: #fee2e2 !important;
+  color: #dc2626 !important;
+}
+
+.fulfillment-control-center-theme .fc-tag-mini.tag-emerald {
+  background: #dcfce7 !important;
+  color: #15803d !important;
+}
+
+/* 2. 3D Warehouse Canvas with Responsive Aspect Ratio */
+.fulfillment-control-center-theme .fc-scene-canvas-wrapper {
+  position: relative;
+  width: 100%;
+  background: #f1f5f9;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fulfillment-control-center-theme .fc-canvas-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.fulfillment-control-center-theme .fc-warehouse-img {
+  width: 100%;
+  height: auto;
+  display: block;
+  object-fit: cover;
+  border-bottom-left-radius: 17px;
+  border-bottom-right-radius: 17px;
+}
+
+/* 3. Interactive Hotspot Overlays */
+.fulfillment-control-center-theme .fc-hotspot-pin {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.fulfillment-control-center-theme .fc-hotspot-pin:hover {
+  transform: translate(-50%, -50%) scale(1.08);
+  z-index: 30;
+}
+
+.fulfillment-control-center-theme .fc-hotspot-pin.active-pin {
+  transform: translate(-50%, -50%) scale(1.12);
+  z-index: 35;
+}
+
+/* Beacon Ring */
+.fulfillment-control-center-theme .fc-pin-beacon {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #2563eb;
+  border: 2px solid #ffffff;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.35), 0 2px 6px rgba(0, 0, 0, 0.3);
+  margin-right: -6px;
+  z-index: 2;
+  flex-shrink: 0;
+  animation: beaconPulse 2s infinite;
+}
+
+.fulfillment-control-center-theme .fc-pin-beacon.beacon-coral {
+  background: #dc2626;
+  box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.35), 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+.fulfillment-control-center-theme .fc-pin-beacon.beacon-emerald {
+  background: #059669;
+  box-shadow: 0 0 0 4px rgba(5, 150, 105, 0.35), 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+@keyframes beaconPulse {
+  0% { box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.5), 0 2px 6px rgba(0, 0, 0, 0.3); }
+  50% { box-shadow: 0 0 0 8px rgba(37, 99, 235, 0.1), 0 2px 6px rgba(0, 0, 0, 0.3); }
+  100% { box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.5), 0 2px 6px rgba(0, 0, 0, 0.3); }
+}
+
+/* Hotspot Pill Card */
+.fulfillment-control-center-theme .fc-pin-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px 5px 12px;
+  background: rgba(255, 255, 255, 0.94) !important;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 9999px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.16), 0 1px 3px rgba(0, 0, 0, 0.08) !important;
+  color: #0f172a !important;
+  transition: all 0.18s ease;
+}
+
+.fulfillment-control-center-theme .fc-hotspot-pin.active-pin .fc-pin-pill {
+  background: #0f172a !important;
+  color: #ffffff !important;
+  border-color: #0f172a !important;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3) !important;
+}
+
+.fulfillment-control-center-theme .fc-hotspot-pin.active-pin .fc-pin-pill .fc-pin-icon {
+  color: #60a5fa !important;
+}
+
+.fulfillment-control-center-theme .fc-hotspot-pin.active-pin .fc-pin-text {
+  color: #ffffff !important;
+}
+
+.fulfillment-control-center-theme .fc-pin-icon {
+  color: #2563eb;
+  flex-shrink: 0;
+}
+
+.fulfillment-control-center-theme .fc-pin-text {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #0f172a !important;
+  white-space: nowrap;
+}
+
+.fulfillment-control-center-theme .fc-pin-badge {
+  font-size: 9px;
+  font-weight: 800;
+  padding: 1px 5px;
+  border-radius: 9999px;
+  text-transform: uppercase;
+}
+
+.fulfillment-control-center-theme .fc-pin-badge.badge-coral {
+  background: #fee2e2 !important;
+  color: #dc2626 !important;
+}
+
+.fulfillment-control-center-theme .fc-pin-badge.badge-emerald {
+  background: #dcfce7 !important;
+  color: #15803d !important;
+}
