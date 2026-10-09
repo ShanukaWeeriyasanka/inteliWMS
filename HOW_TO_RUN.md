@@ -29,7 +29,8 @@ You only ever need to do this once. After this, everything works normally.
 `requirements.txt` or `frontend\package.json` changes:
 
 ```powershell
-cd C:\Users\rxrat\Documents\Sliit\Y3S2\IRWA\inteliWMS
+# Navigate to your inteliWMS project root folder
+cd <path-to-inteliWMS>
 
 .\venv\Scripts\python.exe -m pip install -r requirements.txt
 
