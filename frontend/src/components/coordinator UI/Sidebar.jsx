@@ -4,8 +4,6 @@ import {
   Search,
   Warehouse,
   Truck,
-  ShieldCheck,
-  Activity,
   Settings,
   PanelLeftClose,
   PanelLeft,
@@ -202,24 +200,6 @@ export default function Sidebar({
         >
           <Truck size={18} className="gemini-item-icon" />
           {isOpen && <span className="gemini-item-label">Order Fulfillment</span>}
-        </button>
-
-        <button
-          onClick={() => onOpenArtifactTab('rbac_claims')}
-          className={`gemini-nav-item ${isOpen ? 'item-expanded' : 'item-collapsed'}`}
-          title={!isOpen ? 'JWT & RBAC Shield' : undefined}
-        >
-          <ShieldCheck size={18} className="gemini-item-icon" />
-          {isOpen && <span className="gemini-item-label">JWT & RBAC Shield</span>}
-        </button>
-
-        <button
-          onClick={() => onOpenArtifactTab('soc_audit')}
-          className={`gemini-nav-item ${isOpen ? 'item-expanded' : 'item-collapsed'}`}
-          title={!isOpen ? 'Security SOC Stream' : undefined}
-        >
-          <Activity size={18} className="gemini-item-icon" />
-          {isOpen && <span className="gemini-item-label">Security SOC Stream</span>}
         </button>
 
         {/* 4. RECENT SECTION (Expanded Only, exactly like Gemini Image 2) */}
