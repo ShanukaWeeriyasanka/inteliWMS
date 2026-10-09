@@ -18,14 +18,17 @@ import {
   Map as MapIcon
 } from 'lucide-react'
 import MarkdownText from './MarkdownText'
-import { agentLabel } from '../../chat/messageMapping'
+import { agentLabel, isFulfillmentMessage } from '../../chat/messageMapping'
+import { parseFulfillmentContent } from '../../utils/fulfillmentParser'
+import './FulfillmentAction.css'
 
 export default function ChatMessage({
   message,
   onOpenArtifact,
   onInspectLocation,
   onInspectOrder,
-  onShowOnMap
+  onShowOnMap,
+  onOpenFulfillmentDashboard
 }) {
   const [copied, setCopied] = useState(false)
   const isUser = message.role === 'user'
@@ -41,6 +44,9 @@ export default function ChatMessage({
   const routing = message.routing || meta.routing || {}
   const agentTarget = routing.target_agent || meta.target_agent || 'coordinator'
   const isBlocked = message.status === 'blocked' || routing.status === 'blocked'
+  const isFulfillment = isFulfillmentMessage(message)
+  const fulfillment = isFulfillment
+    ? parseFulfillmentContent(message.content, message.fulfillment_details || meta.fulfillment_details, routing) : null
 
   return (
     <div className={`chat-message-row ${isUser ? 'user-row' : 'assistant-row'}`}>
@@ -112,6 +118,19 @@ export default function ChatMessage({
             </div>
           )}
 
+          {isFulfillment && onOpenFulfillmentDashboard && (
+            <div className="fulfillment-chat-action-container">
+              <button type="button" className="btn-view-fulfillment-dashboard"
+                onClick={() => onOpenFulfillmentDashboard(message)}
+                aria-label={`Open Fulfillment Dashboard${fulfillment.orderId ? ` for ${fulfillment.orderId}` : ''}`}>
+                <span className="btn-icon-wrapper"><Truck size={15} /></span>
+                <span className="btn-text">View Fulfillment Dashboard</span>
+                {fulfillment.orderId && <span className="btn-order-badge">{fulfillment.orderId}</span>}
+                <ExternalLink size={13} />
+              </button>
+            </div>
+          )}
+
           {/* Attached Files (User) */}
           {message.attachments && message.attachments.length > 0 && (
             <div className="message-attachments-list">
@@ -169,7 +188,7 @@ export default function ChatMessage({
               )}
 
               {/* Order Status Callout */}
-              {(message.orderData || meta.order_id) && (
+              {!isFulfillment && (message.orderData || meta.order_id) && (
                 <div className="embedded-order-card">
                   <div className="embedded-card-header">
                     <div className="card-header-left">
