@@ -47,8 +47,11 @@ def init_db():
                 if "name" not in cols:
                     conn.execute(text("ALTER TABLE users ADD COLUMN name VARCHAR"))
                     conn.commit()
+                if "plan" not in cols:
+                    conn.execute(text("ALTER TABLE users ADD COLUMN plan VARCHAR(50) DEFAULT 'starter'"))
+                    conn.commit()
             except Exception as e:
-                print(f"[DB MIGRATION NOTICE] users.name: {e}")
+                print(f"[DB MIGRATION NOTICE] users columns: {e}")
 
             try:
                 result = conn.execute(text("PRAGMA table_info(orders)"))
@@ -66,6 +69,13 @@ def init_db():
                 print(f"[DB MIGRATION NOTICE] orders delay fields: {e}")
         else:
             # ---- PostgreSQL (Supabase) migration ----
+            try:
+                conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS name VARCHAR"))
+                conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS plan VARCHAR(50) DEFAULT 'starter'"))
+                conn.commit()
+            except Exception as e:
+                print(f"[DB MIGRATION NOTICE] users columns (postgres): {e}")
+
             try:
                 delay_cols = {
                     "delay_reason": "VARCHAR(255)",

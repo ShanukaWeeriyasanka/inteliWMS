@@ -14,14 +14,18 @@ from backend.middleware.error_handler import UnauthorizedException
 from config.settings import settings
 
 
+from security.subscription import get_user_plan, normalize_plan
+
+
 @dataclass(frozen=True)
 class Identity:
     user_id: str
     role: str
     authenticated: bool
+    plan: str = "starter"
 
 
-ANONYMOUS = Identity(user_id="anonymous", role="staff", authenticated=False)
+ANONYMOUS = Identity(user_id="anonymous", role="staff", authenticated=False, plan="starter")
 
 
 def verify_and_decode_token(token_str: str) -> Dict[str, Any]:
@@ -51,6 +55,7 @@ def resolve_identity(body_token: Optional[str], authorization: Optional[str] = N
     """
     Identity from the body token (legacy frontend payload) or the Authorization header.
     No token → anonymous; a bad token → 401.
+    Subscription plan is securely looked up from the database.
     """
     token = body_token or bearer_token(authorization)
     if not token:
@@ -59,4 +64,6 @@ def resolve_identity(body_token: Optional[str], authorization: Optional[str] = N
     user_id = claims.get("user_id") or claims.get("sub")
     if not user_id:
         raise UnauthorizedException("Token has no user identity")
-    return Identity(user_id=str(user_id), role=str(claims.get("role", "staff")), authenticated=True)
+    username = claims.get("username")
+    plan = get_user_plan(str(user_id), username=str(username) if username else None)
+    return Identity(user_id=str(user_id), role=str(claims.get("role", "staff")), authenticated=True, plan=plan)

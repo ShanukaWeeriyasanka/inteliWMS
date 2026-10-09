@@ -15,6 +15,7 @@ class FulfillmentRequest(BaseModel):
     user_id: Optional[str] = None
     role: Optional[str] = None
     order_id: Optional[str] = None
+    user_plan: Optional[str] = None
 
 class FulfillmentIntentResult(BaseModel):
     intent: FulfillmentIntent

@@ -47,6 +47,7 @@ def build_context(
     thread_id: Optional[str] = None,
     conversation: Optional[Dict[str, Any]] = None,
     entity_text: Optional[str] = None,
+    user_plan: Optional[str] = "starter",
 ) -> Dict[str, Any]:
     """
     Builds structured context payload for target specialist agent.
@@ -61,6 +62,7 @@ def build_context(
         conversation: What the inventory agent last discussed in this thread (follow-ups)
         entity_text: An accepted rewrite of the message; ids found only there are used as hints
             (the rewrite guard guarantees their digits were typed by the user)
+        user_plan: Verified subscription plan entitlement (starter, professional, enterprise)
 
     Returns:
         Structured context payload dictionary with audit metadata
@@ -71,6 +73,7 @@ def build_context(
     return {
         "user_id": user_id,
         "user_role": role,
+        "user_plan": user_plan or "starter",
         "original_message": message,
         "query": message,  # backwards compatibility with MCP client
         "intent": intent,

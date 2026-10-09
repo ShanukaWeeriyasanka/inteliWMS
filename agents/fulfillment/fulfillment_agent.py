@@ -1,4 +1,5 @@
 from datetime import date, datetime
+from typing import Optional
 from sqlalchemy.orm import Session
 from agents.fulfillment.schemas import FulfillmentRequest, FulfillmentResponse, FulfillmentIntent
 from agents.fulfillment.extractor import extract_order_id
@@ -13,7 +14,7 @@ class FulfillmentAgent:
         self.classifier = classifier or fulfillment_intent_classifier
         self.dispatcher = dispatcher
 
-    async def _call_inventory(self, sku: str, user_id: str, role: str, db: Session) -> dict:
+    async def _call_inventory(self, sku: str, user_id: str, role: str, db: Session, user_plan: Optional[str] = None) -> dict:
         if not self.dispatcher:
             from agents.coordinator.agent_dispatcher import dispatch_to_agent
             self.dispatcher = dispatch_to_agent
@@ -22,6 +23,8 @@ class FulfillmentAgent:
             "query": f"check stock for {sku}",
             "user_id": user_id,
             "user_role": role,
+            "user_plan": user_plan,
+            "caller_agent": "fulfillment_agent",
             "extracted_sku": sku
         }
         return await self.dispatcher("inventory_agent", context_payload, db)
@@ -88,7 +91,11 @@ class FulfillmentAgent:
                         message = f"{base_message} Reason: {delay_reason}.{carrier_detail}"
                     elif order.sku:
                         try:
-                            inv_resp = await self._call_inventory(order.sku, request.user_id, request.role, db)
+                            inv_resp = await self._call_inventory(order.sku, request.user_id, request.role, db, user_plan=request.user_plan)
+                            if inv_resp.get("collaboration_blocked") or inv_resp.get("error_code") == "COLLABORATION_REQUIRES_ENTERPRISE":
+                                message = f"{base_message} Further cross-agent inventory investigation requires an Enterprise subscription. A specific delay reason is not available in the order record.{carrier_detail}"
+                                return FulfillmentResponse(success=True, order_id=order_id, intent=intent, message=message)
+
                             inv_text = inv_resp.get("response", "").lower()
 
                             # Check structured inventory details first if present

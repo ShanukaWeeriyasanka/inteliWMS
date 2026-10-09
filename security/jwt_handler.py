@@ -11,13 +11,14 @@ class JWTHandler:
         self.algorithm = "HS256"
         self.expiration_hours = 24  # Token valid for 24 hours
     
-    def create_token(self, user_id: str, role: str) -> str:
+    def create_token(self, user_id: str, role: str, username: Optional[str] = None) -> str:
         """
         Create a JWT token for a logged-in user.
         
         Args:
             user_id: unique user identifier (e.g., "user_123")
             role: user's role (e.g., "staff", "manager", "admin")
+            username: optional user login name
         
         Returns:
             JWT token string (e.g., "eyJhbGc...")
@@ -30,6 +31,8 @@ class JWTHandler:
             "exp": expiration,
             "iat": datetime.now(timezone.utc),
         }
+        if username:
+            payload["username"] = username
         
         token = jwt.encode(payload, self.secret, algorithm=self.algorithm)
         return token

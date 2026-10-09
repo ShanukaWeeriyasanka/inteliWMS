@@ -24,6 +24,11 @@ export const api = {
     return res.data
   },
 
+  updateSubscription: async (plan, token) => {
+    const res = await axios.post(`${API_BASE}/auth/set-plan`, { plan }, authHeader(token))
+    return res.data
+  },
+
   executeAction: async (action, token) => {
     const res = await axios.post(
       `${API_BASE}/security/execute-action`,
@@ -33,11 +38,26 @@ export const api = {
     return res.data
   },
 
-  sendQuery: async (queryText, token, sessionId, threadId = null, { signal } = {}) => {
+  sendQuery: async (queryText, token, sessionId, threadId = null, optionsOrAgent = {}) => {
     // The token travels only in the Authorization header (the body `token` field is legacy)
     const body = { query: queryText, session_id: sessionId }
     // thread_id continues a saved conversation; leaving it out starts a new one
     if (threadId) body.thread_id = threadId
+
+    let signal
+    let selectedAgent
+
+    if (typeof optionsOrAgent === 'string') {
+      selectedAgent = optionsOrAgent
+    } else if (optionsOrAgent && typeof optionsOrAgent === 'object') {
+      signal = optionsOrAgent.signal
+      selectedAgent = optionsOrAgent.selectedAgent
+    }
+
+    if (selectedAgent && selectedAgent !== 'auto') {
+      body.selected_agent = selectedAgent
+    }
+
     const res = await axios.post(
       `${API_BASE}/query`,
       // session_id lets inventory answers drive this tab's Digital Twin map

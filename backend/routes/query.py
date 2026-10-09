@@ -40,6 +40,18 @@ from utils.decisions import RULE, collected, record_decision, start_collecting, 
 from utils.metrics import AGENT_DURATION, AGENT_REQUESTS, THREAD_OPERATIONS
 from utils.tracing import span
 
+from security.subscription import (
+    STARTER_RESTRICTION_MESSAGE,
+    get_user_plan,
+    is_agent_allowed,
+    validate_agent_access,
+    validate_specialist_match,
+    PLAN_STARTER,
+    PLAN_PROFESSIONAL,
+    PLAN_ENTERPRISE,
+    AGENT_DISPLAY_NAMES
+)
+
 logger = StructuredLogger(__name__)
 router = APIRouter(tags=["Coordinator Query Gateway"])
 
@@ -54,6 +66,8 @@ class QueryRequest(BaseModel):
                                       description="Browser session for Digital Twin map commands (not the conversation)")
     thread_id: Optional[str] = Field(None, max_length=64,
                                      description="Conversation id from a previous response; omit to start a new one")
+    selected_agent: Optional[str] = Field(None, max_length=64,
+                                          description="Specialist agent selected from dropdown (Professional plan)")
 
 
 def _ids() -> Dict[str, Optional[str]]:
@@ -142,7 +156,7 @@ async def handle_coordinator_query(payload: QueryRequest, request: Request, db: 
                     THREAD_OPERATIONS.inc(op="lookup", outcome="unauthenticated")
                     raise ThreadAuthRequired()
                 raise AppError(401, "AUTH_REQUIRED", "Sign in to ask the warehouse coordinator")
-            user_id, user_role = identity.user_id, identity.role
+            user_id, user_role, user_plan = identity.user_id, identity.role, identity.plan
             # The map session (browser tab) must belong to this user: nobody may push commands onto another map
             if payload.session_id and not twin_sessions.claim(payload.session_id, user_id):
                 raise AppError(403, "TWIN_SESSION_FORBIDDEN", "This map session belongs to another user")
@@ -210,8 +224,6 @@ async def handle_coordinator_query(payload: QueryRequest, request: Request, db: 
 
             # 4. Routing: code rules decide on the original text; only when no rule applies does a
             #    guarded LLM rewrite / LLM suggestion get a turn (validated, with fixed fallbacks).
-            #    Runs off the event loop because those LLM steps block. Thread context lets
-            #    "where is it?" stay with inventory.
             routing_ctx = {**ctx.for_routing(), "history": history} if thread is not None else None
             routing_decision = await anyio.to_thread.run_sync(
                 lambda: decide_route(sanitized_or_reason, context=routing_ctx))
@@ -221,6 +233,128 @@ async def handle_coordinator_query(payload: QueryRequest, request: Request, db: 
             confidence = routing_decision["confidence"]
             sp.set(domain=domain, target_agent=target_agent, rule_id=routing_decision.get("rule_id"),
                    decided_by=routing_decision.get("decided_by"))
+
+            # 4.2. Subscription Entitlement & Agent Access Enforcement
+            # STARTER: Only inventory agent is customer-facing. Unavailable specialists return a restriction message.
+            if user_plan == PLAN_STARTER:
+                if target_agent in {"fulfillment_agent", "knowledge_agent"}:
+                    routing_decision["decisions"] = collected()
+                    audit_meta = {
+                        "user_id": user_id,
+                        "timestamp": datetime.now(timezone.utc).isoformat(),
+                        "routing_confidence": confidence,
+                        "domain": domain,
+                        "original_query": user_query,
+                        "normalized_query": clean_query,
+                        **_ids(),
+                    }
+                    restricted_body = {
+                        "status": "restricted",
+                        "error_code": "PLAN_RESTRICTED",
+                        "plan_restricted": True,
+                        "agent_used": "coordinator",
+                        "response": STARTER_RESTRICTION_MESSAGE,
+                        "message": STARTER_RESTRICTION_MESSAGE,
+                        "plan": "starter",
+                        "required_plan": "professional",
+                        "can_view_plans": True,
+                        "allowed_agents": ["inventory_agent"],
+                        "routing": {
+                            **routing_decision,
+                            "target_agent": "coordinator",
+                            "classified_agent": target_agent,
+                            "status": "restricted",
+                            "rule_id": "subscription.starter_restricted",
+                            "decided_by": "subscription_policy",
+                        },
+                        "audit": audit_meta,
+                    }
+                    persisted, tid = _persist(store, thread, identity, title=sanitized_or_reason,
+                                              user_text=sanitized_or_reason, assistant_text=STARTER_RESTRICTION_MESSAGE,
+                                              agent_used="coordinator", status="restricted",
+                                              meta=_message_meta(restricted_body), context=ctx)
+                    restricted_body.update(thread_id=tid, persisted=persisted, **_ids())
+                    logger.log_event("STARTER_RESTRICTED_QUERY", {
+                        "user_id": user_id, "target_agent": target_agent, "domain": domain
+                    })
+                    return restricted_body
+
+            # PROFESSIONAL: User chooses specialist. Mismatched queries do not silently switch.
+            elif user_plan == PLAN_PROFESSIONAL:
+                selected_agent = payload.selected_agent
+                if selected_agent == "coordinator":
+                    routing_decision["decisions"] = collected()
+                    coord_denied_msg = "Coordinator automatic routing is an Enterprise feature. As a Professional plan subscriber, please select Inventory, Fulfillment, or Knowledge Agent from the dropdown."
+                    body = {
+                        "status": "restricted",
+                        "error_code": "PLAN_RESTRICTED",
+                        "plan_restricted": True,
+                        "agent_used": "coordinator",
+                        "response": coord_denied_msg,
+                        "message": coord_denied_msg,
+                        "plan": "professional",
+                        "required_plan": "enterprise",
+                        "routing": {
+                            **routing_decision,
+                            "rule_id": "subscription.coordinator_restricted",
+                            "decided_by": "subscription_policy",
+                        },
+                        "audit": {
+                            "user_id": user_id, "timestamp": datetime.now(timezone.utc).isoformat(), **_ids()
+                        }
+                    }
+                    persisted, tid = _persist(store, thread, identity, title=sanitized_or_reason,
+                                              user_text=sanitized_or_reason, assistant_text=coord_denied_msg,
+                                              agent_used="coordinator", status="restricted",
+                                              meta=_message_meta(body), context=ctx)
+                    body.update(thread_id=tid, persisted=persisted, **_ids())
+                    return body
+
+                if selected_agent:
+                    # Validate specialist selection against domain
+                    is_match, mismatch_msg, suggested_agent = validate_specialist_match(
+                        user_plan, selected_agent, target_agent
+                    )
+                    if not is_match and mismatch_msg:
+                        routing_decision["decisions"] = collected()
+                        audit_meta = {
+                            "user_id": user_id,
+                            "timestamp": datetime.now(timezone.utc).isoformat(),
+                            "routing_confidence": confidence,
+                            "domain": domain,
+                            "original_query": user_query,
+                            "normalized_query": clean_query,
+                            **_ids(),
+                        }
+                        mismatch_body = {
+                            "status": "mismatch",
+                            "error_code": "SPECIALIST_MISMATCH",
+                            "specialist_mismatch": True,
+                            "agent_used": selected_agent,
+                            "response": mismatch_msg,
+                            "message": mismatch_msg,
+                            "suggested_agent": suggested_agent,
+                            "plan": "professional",
+                            "routing": {
+                                **routing_decision,
+                                "target_agent": selected_agent,
+                                "classified_agent": target_agent,
+                                "rule_id": "subscription.specialist_mismatch",
+                                "decided_by": "subscription_policy",
+                            },
+                            "audit": audit_meta
+                        }
+                        persisted, tid = _persist(store, thread, identity, title=sanitized_or_reason,
+                                                  user_text=sanitized_or_reason, assistant_text=mismatch_msg,
+                                                  agent_used=selected_agent, status="mismatch",
+                                                  meta=_message_meta(mismatch_body), context=ctx)
+                        mismatch_body.update(thread_id=tid, persisted=persisted, **_ids())
+                        logger.log_event("PROFESSIONAL_SPECIALIST_MISMATCH", {
+                            "user_id": user_id, "selected_agent": selected_agent, "classified_agent": target_agent
+                        })
+                        return mismatch_body
+                    # When matched, execute strictly as the selected specialist
+                    target_agent = selected_agent
 
             # 4.5. Coordinator Direct Reply — meta/system questions answered without delegation
             if routing_decision.get("direct_response"):
@@ -250,7 +384,6 @@ async def handle_coordinator_query(payload: QueryRequest, request: Request, db: 
                 return body
 
             # 5. Context Builder & MCP Delegation (the conversation travels with the hand-off)
-            # Agents get the user's own wording; ids from an accepted rewrite are only hints
             context_payload = build_context(
                 user_id=user_id,
                 message=sanitized_or_reason,
@@ -260,6 +393,7 @@ async def handle_coordinator_query(payload: QueryRequest, request: Request, db: 
                 thread_id=thread.id if thread is not None else None,
                 conversation=ctx.inventory.model_dump() if domain == "INVENTORY" else None,
                 entity_text=routing_decision.get("normalized_query"),
+                user_plan=user_plan,
             )
 
             dispatch_start = time.perf_counter()

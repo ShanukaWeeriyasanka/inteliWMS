@@ -16,6 +16,7 @@ from security.sanitizer import sanitize_input, sanitizer
 from security.jwt_handler import jwt_handler
 from security.rbac import rbac_manager, PERMISSION_MATRIX
 from security.auth import auth_service, ROLE_RANK, SELF_REGISTER_ROLES, SELF_REGISTER_DENIED
+from security.subscription import parse_plan_strict, authorize_plan_change
 from security.audit_logger import audit_logger
 from backend.routes.query import router as query_router
 from backend.routes.metrics import router as metrics_router
@@ -181,7 +182,11 @@ def get_profile(authorization: Optional[str] = Header(None)):
 
     # The role the token was issued for (a user may sign in with a lower role than their own)
     role = user.get("role", "staff")
-    profile = auth_service.get_user_profile(str(user.get("user_id") or "")) or {}
+    profile = auth_service.get_user_profile(str(user.get("user_id") or ""))
+    if not profile and user.get("username"):
+        profile = auth_service.get_user_profile(str(user.get("username")))
+    profile = profile or {}
+    plan = profile.get("plan", "starter")
     return {
         "user_id": user.get("user_id"),
         "db_id": profile.get("db_id"),
@@ -189,9 +194,69 @@ def get_profile(authorization: Optional[str] = Header(None)):
         "name": profile.get("name"),
         "email": profile.get("email"),
         "role": role,
+        "plan": plan,
+        "subscription_plan": plan,
         "permissions": rbac_manager.get_permissions(role),
         "exp": user.get("exp"),
         "iat": user.get("iat")
+    }
+
+@app.post("/auth/set-plan")
+@app.post("/auth/subscription")
+def update_subscription_endpoint(payload: dict, authorization: Optional[str] = Header(None)):
+    """
+    Safely assign/update subscription plan entitlement for development and testing.
+    Stored and verified directly in database.
+    """
+    auth_header = authorization or (f"Bearer {payload.get('token')}" if payload.get("token") else None)
+    user = require_user(auth_header)
+    user_id = str(user.get("user_id") or user.get("username") or "")
+
+    raw_plan = payload.get("plan") or payload.get("subscription_plan")
+    target_plan = parse_plan_strict(raw_plan)
+    if not target_plan:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid subscription plan '{raw_plan}'. Must be one of: starter, professional, enterprise."
+        )
+
+    # Get current verified profile
+    profile = auth_service.get_user_profile(user_id)
+    if not profile and user.get("username"):
+        profile = auth_service.get_user_profile(user.get("username"))
+
+    current_plan = (profile.get("plan") if profile else None) or user.get("plan") or "starter"
+    username = (profile.get("username") if profile else None) or user.get("username")
+    role = (profile.get("role") if profile else None) or user.get("role")
+
+    allowed, err_code, err_msg = authorize_plan_change(
+        current_plan=current_plan,
+        target_plan=target_plan,
+        username=username,
+        account_role=role
+    )
+    if not allowed:
+        raise HTTPException(status_code=403, detail=err_msg or "Plan switch unauthorized")
+
+    success, message, updated_profile = auth_service.update_user_plan(user_id, target_plan)
+    if not success and user.get("username"):
+        success, message, updated_profile = auth_service.update_user_plan(user.get("username"), target_plan)
+    if not success:
+        raise HTTPException(status_code=400, detail=message)
+
+    logger.log_event("SUBSCRIPTION_PLAN_UPDATED", {
+        "user_id": user_id,
+        "username": username,
+        "role": role,
+        "previous_plan": current_plan,
+        "new_plan": target_plan,
+    })
+
+    return {
+        "status": "success",
+        "message": message,
+        "plan": updated_profile.get("plan") if updated_profile else target_plan,
+        "user": updated_profile
     }
 
 @app.post("/security/execute-action")

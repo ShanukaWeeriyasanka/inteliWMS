@@ -12,7 +12,9 @@ import {
   FileText,
   Boxes,
   HelpCircle,
-  Info
+  Info,
+  Lock,
+  Sparkles
 } from 'lucide-react'
 import WarehouseScene from '../components/fulfillment/WarehouseScene'
 import { parseFulfillmentContent } from '../utils/fulfillmentParser'
@@ -21,9 +23,60 @@ import './FulfillmentDashboard.css'
 export default function FulfillmentDashboard({
   selectedMessage,
   currentUser,
-  onBackToChat
+  onBackToChat,
+  onOpenPricingModal
 }) {
   const [copied, setCopied] = useState(false)
+
+  if (currentUser?.plan === 'starter') {
+    return (
+      <div className="fulfillment-control-center-theme restricted-fc-container">
+        <header className="fc-top-navbar">
+          <div className="fc-nav-left">
+            <button
+              type="button"
+              onClick={onBackToChat}
+              className="fc-btn-back"
+              title="Return to Chat"
+            >
+              <ArrowLeft size={16} />
+              <span>Back to Chat</span>
+            </button>
+          </div>
+        </header>
+        <div className="fc-restricted-content">
+          <div className="fc-restricted-card">
+            <div className="fc-restricted-icon-wrap">
+              <Lock size={32} />
+            </div>
+            <h2>Fulfillment Dashboard Restricted</h2>
+            <p>
+              Your <strong>Starter</strong> subscription includes the Inventory Agent only.
+              Real-time fulfillment tracking, warehouse 3D zone visualization, and order dispatch analytics
+              require the <strong>Professional</strong> or <strong>Enterprise</strong> plan.
+            </p>
+            <div className="fc-restricted-actions">
+              <button
+                type="button"
+                className="fc-btn-upgrade"
+                onClick={onOpenPricingModal}
+              >
+                <Sparkles size={16} />
+                <span>View Subscription Plans</span>
+              </button>
+              <button
+                type="button"
+                className="fc-btn-return"
+                onClick={onBackToChat}
+              >
+                <span>Return to Chat</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   // Extract structured data safely
   const content = selectedMessage?.content || ''

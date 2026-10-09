@@ -10,7 +10,6 @@ import {
   Sidebar,
   PromptCapsule,
   ChatMessage,
-  ArtifactPanel,
   OperationalModal,
   WarehouseThinkingAnimation
 } from './components/coordinator UI'
@@ -91,9 +90,6 @@ export default function App() {
   // Up to 1024px the sidebar overlays the page (index.css), so it starts collapsed there
   const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth > 1024)
   const overlaySidebar = useOverlaySidebar()
-  const [artifactOpen, setArtifactOpen] = useState(false)
-  const [artifactTab, setArtifactTab] = useState('telemetry')
-  const [selectedArtifactMessage, setSelectedArtifactMessage] = useState(null)
   const [operationalModal, setOperationalModal] = useState(null) // null | 'approvals' | 'injection_sandbox'
   const [isPricingModalOpen, setIsPricingModalOpen] = useState(false)
   const [isCommercializationOpen, setIsCommercializationOpen] = useState(false)
@@ -150,11 +146,6 @@ export default function App() {
     }
   }, [])
 
-  // A narrow window can't fit sidebar + chat + artifact panel: make room for the chat
-  useEffect(() => {
-    if (artifactOpen && window.innerWidth < 1200) setSidebarOpen(false)
-  }, [artifactOpen])
-
   // Where the sidebar floats over the page, the map gets the whole stage when it opens
   useEffect(() => {
     if (twinActive && overlaySidebar) setSidebarOpen(false)
@@ -187,8 +178,6 @@ export default function App() {
 
   const resetWorkspace = () => {
     setTwinCommand(null)
-    setSelectedArtifactMessage(null)
-    setArtifactOpen(false)
   }
 
   const loadThreads = async () => {
@@ -348,6 +337,48 @@ export default function App() {
     })
   }
 
+  const handleSwitchPlan = async (newPlan) => {
+    try {
+      const updated = await api.updateSubscription(newPlan, token)
+      if (updated && updated.plan) {
+        setCurrentUser((prev) => ({
+          ...prev,
+          plan: updated.plan,
+          subscription_plan: updated.plan,
+          ...(updated.user || {})
+        }))
+        return updated
+      }
+    } catch (err) {
+      console.error('Failed to update subscription:', err)
+      // Preserve verified server-side entitlement on error
+      try {
+        const verified = await api.fetchMe(token)
+        if (verified) setCurrentUser(verified)
+      } catch (e) {
+        console.warn('Failed to verify profile entitlement:', e)
+      }
+      throw err
+    }
+  }
+
+  // Synchronize default specialist when user plan changes
+  useEffect(() => {
+    const plan = currentUser?.plan || 'starter'
+    if (plan === 'starter') {
+      setSelectedAgent('inventory_agent')
+    } else if (plan === 'professional') {
+      if (selectedAgent === 'auto' || !selectedAgent) {
+        setSelectedAgent('inventory_agent')
+      }
+    } else if (plan === 'enterprise') {
+      // Enterprise default to auto coordinator routing
+      if (!selectedAgent) {
+        setSelectedAgent('auto')
+      }
+    }
+  }, [currentUser?.plan])
+
   // Handle Query Submission through Coordinator API Gateway
   const handleSendMessage = async ({ text = '', attachments = [], mode, targetAgent }) => {
     const typed = (text || '').trim()
@@ -370,9 +401,10 @@ export default function App() {
 
     let res = null
     let assistantMsg
+    const agentToSend = targetAgent || selectedAgent || 'auto'
     try {
       // Execute query through real backend Coordinator API Gateway (same thread_id for the whole conversation)
-      res = await api.sendQuery(query, token, twinSessionId, threadId)
+      res = await api.sendQuery(query, token, twinSessionId, threadId, agentToSend)
       assistantMsg = toAssistantMessage(res, { text: query })
     } catch (err) {
       if (err.response?.status === 401 && epoch === sessionEpochRef.current) {
@@ -409,8 +441,6 @@ export default function App() {
     if (res.thread_id) loadThreads()
     if (!stillOnScreen) return // saved in its own conversation; leave the current screen alone
 
-    setSelectedArtifactMessage(assistantMsg)
-
     // Check if backend returned security block
     if (assistantMsg.status === 'blocked') {
       fetchAuditData()
@@ -420,17 +450,9 @@ export default function App() {
     const uiCommand = assistantMsg.uiCommand
     if (uiCommand) {
       setTwinCommand(uiCommand)
-      setArtifactOpen(false)
       openMap()
     } else {
       closeMap()
-    }
-
-    // Auto open visualizer for classic SKU inventory inquiries
-    const isInventory = res.agent_used === 'inventory_agent' || !!res.inventory_details
-    if (!uiCommand && (isInventory || assistantMsg.skuData)) {
-      setArtifactTab('bay_visualizer')
-      setArtifactOpen(true)
     }
 
     fetchAuditData()
@@ -496,17 +518,11 @@ export default function App() {
     threadNavigator.replace({ threadId: null })
   }
 
-  const handleOpenArtifactTab = (tabName) => {
-    if (tabName === 'order_timeline') {
-      openFulfillmentDashboard()
+  const openFulfillmentDashboard = (message) => {
+    if (currentUser?.plan === 'starter') {
+      setIsPricingModalOpen(true)
       return
     }
-    setArtifactTab(tabName)
-    setArtifactOpen(true)
-  }
-
-  const openFulfillmentDashboard = (message) => {
-    setArtifactOpen(false)
     const current = threadNavigator.current()
     const index = message ? messages.findIndex((m) => m.id === message.id) : -1
     threadNavigator.push({ threadId: current.threadId, view: 'fulfillment', messageIndex: index >= 0 ? index : null },
@@ -542,6 +558,7 @@ export default function App() {
             ? messages[route.messageIndex] : [...messages].reverse().find(isFulfillmentMessage)}
           currentUser={currentUser}
           onBackToChat={closeFulfillmentDashboard}
+          onOpenPricingModal={() => setIsPricingModalOpen(true)}
         />
       )}
       {/* Collapsible Left Sidebar */}
@@ -560,8 +577,10 @@ export default function App() {
         onClearHistory={handleClearHistory}
         currentUser={currentUser}
         onLogout={handleLogout}
-        onOpenArtifactTab={handleOpenArtifactTab}
+        onOpenMap={openMap}
+        onOpenFulfillment={() => openFulfillmentDashboard()}
         onSwitchRoleQuick={handleSwitchRoleQuick}
+        onSwitchPlanQuick={handleSwitchPlan}
         onOpenPricingModal={() => setIsPricingModalOpen(true)}
         onOpenCommercializationModal={() => setIsPricingModalOpen(true)}
       />
@@ -581,17 +600,16 @@ export default function App() {
           </div>
 
           <div className="topbar-right">
-            {/* Enterprise Trial Active Pill */}
-            {isEnterpriseTrial && (
-              <div
-                className="topbar-trial-pill"
-                onClick={() => setIsPricingModalOpen(true)}
-                title="SaaS Pricing & Plans • Feature Comparison"
-              >
-                <Crown size={12} className="trial-crown-icon" />
-                <span>ENTERPRISE TRIAL</span>
-              </div>
-            )}
+            {/* Enterprise Trial / Plan Pill */}
+            <div
+              className={`topbar-trial-pill plan-pill-${currentUser.plan || 'starter'}`}
+              onClick={() => setIsPricingModalOpen(true)}
+              title="SaaS Pricing & Plans • Feature Comparison"
+              style={{ cursor: 'pointer' }}
+            >
+              <Crown size={12} className="trial-crown-icon" />
+              <span>{(currentUser.plan || 'starter').toUpperCase()} PLAN</span>
+            </div>
 
             {/* Who Logged In */}
             <div className="topbar-logged-user-pill">
@@ -658,17 +676,6 @@ export default function App() {
                     key={msg.id}
                     message={msg}
                     onOpenFulfillmentDashboard={openFulfillmentDashboard}
-                    onOpenArtifact={(m) => {
-                      setSelectedArtifactMessage(m)
-                      setArtifactTab('telemetry')
-                      setArtifactOpen(true)
-                    }}
-                    onInspectLocation={() => {
-                      // The Bay Map shows this answer's live numbers (not the visualizer's sample catalog)
-                      setSelectedArtifactMessage(msg)
-                      setArtifactTab('bay_visualizer')
-                      setArtifactOpen(true)
-                    }}
                     onInspectOrder={() => {
                       openFulfillmentDashboard(msg)
                     }}
@@ -677,6 +684,8 @@ export default function App() {
                       setTwinCommand({ ...m.uiCommand, id: `replay-${Date.now()}` })
                       openMap()
                     }}
+                    onOpenPricingModal={() => setIsPricingModalOpen(true)}
+                    onSwitchSpecialist={(agent) => setSelectedAgent(agent)}
                   />
                 ))}
 
@@ -711,22 +720,6 @@ export default function App() {
         </main>
       </div>
 
-      {/* Right Slide-out Artifact & Telemetry Drawer */}
-      <ArtifactPanel
-        isOpen={artifactOpen}
-        onClose={() => setArtifactOpen(false)}
-        activeTab={artifactTab}
-        setActiveTab={setArtifactTab}
-        selectedMessage={selectedArtifactMessage}
-        token={token}
-        currentUser={currentUser}
-        auditLogs={auditLogs}
-        auditStats={auditStats}
-        auditAccess={canViewAuditLog(authRole)}
-        auditError={auditError}
-        onRefreshAuditLogs={() => fetchAuditData()}
-      />
-
       {/* Operational Modal for Approvals and Sandbox */}
       <OperationalModal
         isOpen={!!operationalModal}
@@ -741,6 +734,8 @@ export default function App() {
       {/* SaaS Pricing & Feature Comparison Modal */}
       <PricingModal
         isOpen={isPricingModalOpen || isCommercializationOpen}
+        currentPlan={currentUser?.plan || 'starter'}
+        onSelectPlan={handleSwitchPlan}
         onClose={() => {
           setIsPricingModalOpen(false)
           setIsCommercializationOpen(false)
