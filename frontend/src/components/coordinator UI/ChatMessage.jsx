@@ -133,7 +133,7 @@ export default function ChatMessage({
             </div>
           )}
 
-          {/* Prominent Fulfillment Dashboard Navigation Button (Directly after response) */}
+          {/* Prominent Fulfillment Dashboard Navigation Action Button */}
           {isFulfillment && (
             <div className="fulfillment-chat-action-container">
               <button
@@ -141,14 +141,15 @@ export default function ChatMessage({
                 onClick={() => onOpenFulfillmentDashboard && onOpenFulfillmentDashboard(message)}
                 className="btn-view-fulfillment-dashboard"
                 title="Open dedicated Fulfillment Operations Control Center"
+                aria-label={`Open Fulfillment Dashboard${parsedOrderId ? ` for ${parsedOrderId}` : ''}`}
               >
-                <div className="btn-icon-wrapper">
-                  <Truck size={15} />
-                </div>
-                <span className="btn-text">
-                  View Fulfillment Dashboard
-                  {parsedOrderId ? ` (${parsedOrderId})` : ''}
+                <span className="btn-icon-wrapper">
+                  <Truck size={15} className="btn-action-icon" />
                 </span>
+                <span className="btn-text">View Fulfillment Dashboard</span>
+                {parsedOrderId && (
+                  <span className="btn-order-badge">{parsedOrderId}</span>
+                )}
                 <ExternalLink size={13} className="btn-ext-icon" />
               </button>
             </div>

@@ -1,6 +1,6 @@
 /* =========================================================================
-   INTELLIWMS — FULFILLMENT AGENT CONTROL CENTER (COMPLETE LIGHT THEME)
-   High-specificity isolation against global dark styles in index.css
+   INTELLIWMS — FULFILLMENT AGENT CONTROL CENTER (SIMPLIFIED LIGHT THEME)
+   High-specificity isolation against global dark styles
    ========================================================================= */
 
 /* ── Root Page Container ── */
@@ -41,7 +41,7 @@
 }
 
 /* =========================================================================
-   1. TOP NAVIGATION BAR (REFERENCE 1 STYLE)
+   SECTION A: COMPACT TOP NAVIGATION BAR
    ========================================================================= */
 .fulfillment-control-center-theme .fc-top-navbar {
   position: sticky !important;
@@ -204,137 +204,37 @@
   color: #64748b !important;
 }
 
-.fulfillment-control-center-theme .fc-intent-tag {
-  display: inline-flex !important;
-  align-items: center !important;
-  gap: 5px !important;
-  padding: 4px 10px !important;
-  background: #f8fafc !important;
-  border: 1px solid #e2e8f0 !important;
-  border-radius: 6px !important;
-  font-size: 11px !important;
-  font-weight: 700 !important;
-  color: #475569 !important;
-  font-family: monospace !important;
-  text-transform: uppercase !important;
-}
-
-.fulfillment-control-center-theme .fc-user-tag {
-  display: flex !important;
-  align-items: center !important;
-  gap: 6px !important;
-  padding: 5px 12px !important;
-  background: #f1f5f9 !important;
-  border: 1px solid #e2e8f0 !important;
-  border-radius: 9999px !important;
-  font-size: 12px !important;
-  color: #334155 !important;
-}
-
 /* =========================================================================
-   2. MAIN DASHBOARD CONTENT CONTAINER
+   MAIN LAYOUT & STAGE GRID (SECTION B & SECTION C)
    ========================================================================= */
 .fulfillment-control-center-theme .fc-main-container {
   flex: 1 !important;
   max-width: 1440px !important;
   width: 100% !important;
   margin: 0 auto !important;
-  padding: 20px 28px 60px 28px !important;
+  padding: 24px 28px 60px 28px !important;
   display: flex !important;
   flex-direction: column !important;
   gap: 20px !important;
 }
 
-/* ── Top Metrics Strip (Reference 1 Style) ── */
-.fulfillment-control-center-theme .fc-metrics-row {
-  display: grid !important;
-  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)) !important;
-  gap: 14px !important;
-  width: 100% !important;
-}
-
-.fulfillment-control-center-theme .fc-metric-card {
-  background: #ffffff !important;
-  border: 1px solid #e2e8f0 !important;
-  border-radius: 14px !important;
-  padding: 14px 18px !important;
-  display: flex !important;
-  align-items: center !important;
-  gap: 14px !important;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
-  transition: transform 0.18s ease, box-shadow 0.18s ease !important;
-}
-
-.fulfillment-control-center-theme .fc-metric-card:hover {
-  transform: translateY(-2px) !important;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.07) !important;
-  border-color: #cbd5e1 !important;
-}
-
-.fulfillment-control-center-theme .fc-metric-icon-box {
-  width: 40px !important;
-  height: 40px !important;
-  border-radius: 10px !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  flex-shrink: 0 !important;
-}
-
-.fulfillment-control-center-theme .fc-metric-icon-box.blue { background: #eff6ff !important; color: #2563eb !important; }
-.fulfillment-control-center-theme .fc-metric-icon-box.amber { background: #fffbeb !important; color: #d97706 !important; }
-.fulfillment-control-center-theme .fc-metric-icon-box.emerald { background: #ecfdf5 !important; color: #059669 !important; }
-.fulfillment-control-center-theme .fc-metric-icon-box.coral { background: #fef2f2 !important; color: #dc2626 !important; }
-.fulfillment-control-center-theme .fc-metric-icon-box.purple { background: #f5f3ff !important; color: #7c3aed !important; }
-
-.fulfillment-control-center-theme .fc-metric-content {
-  display: flex !important;
-  flex-direction: column !important;
-  gap: 2px !important;
-  min-width: 0 !important;
-}
-
-.fulfillment-control-center-theme .fc-metric-k {
-  font-size: 11px !important;
-  font-weight: 700 !important;
-  color: #64748b !important;
-  text-transform: uppercase !important;
-  letter-spacing: 0.04em !important;
-}
-
-.fulfillment-control-center-theme .fc-metric-v {
-  font-size: 14.5px !important;
-  font-weight: 750 !important;
-  color: #0f172a !important;
-  white-space: nowrap !important;
-  overflow: hidden !important;
-  text-overflow: ellipsis !important;
-}
-
-.fulfillment-control-center-theme .fc-metric-v.font-mono { font-family: monospace !important; }
-.fulfillment-control-center-theme .fc-metric-v.text-blue { color: #2563eb !important; }
-.fulfillment-control-center-theme .fc-metric-v.text-emerald { color: #059669 !important; }
-.fulfillment-control-center-theme .fc-metric-v.text-coral { color: #dc2626 !important; }
-.fulfillment-control-center-theme .fc-metric-v.text-amber { color: #d97706 !important; }
-
-/* =========================================================================
-   3. TWO-COLUMN OPERATIONAL STAGE (VISUALIZATION + ZONE INSPECTOR)
-   ========================================================================= */
 .fulfillment-control-center-theme .fc-ops-stage-grid {
   display: grid !important;
-  grid-template-columns: 1fr 380px !important;
-  gap: 20px !important;
+  grid-template-columns: 1fr 400px !important;
+  gap: 24px !important;
   align-items: start !important;
 }
 
-@media (max-width: 1200px) {
+@media (max-width: 1100px) {
   .fulfillment-control-center-theme .fc-ops-stage-grid {
     grid-template-columns: 1fr !important;
   }
 }
 
-/* ── Zone Detail Inspector Card (Right Column) ── */
-.fulfillment-control-center-theme .fc-inspector-card {
+/* =========================================================================
+   SECTION C: QUERY-SPECIFIC INFORMATION PANEL
+   ========================================================================= */
+.fulfillment-control-center-theme .fc-info-panel-card {
   background: #ffffff !important;
   border: 1px solid #e2e8f0 !important;
   border-radius: 18px !important;
@@ -344,26 +244,26 @@
   flex-direction: column !important;
 }
 
-.fulfillment-control-center-theme .fc-inspector-head {
+.fulfillment-control-center-theme .fc-panel-header {
   padding: 16px 20px !important;
   background: #f8fafc !important;
   border-bottom: 1px solid #e2e8f0 !important;
   display: flex !important;
   align-items: center !important;
   justify-content: space-between !important;
-  gap: 10px !important;
+  gap: 12px !important;
 }
 
-.fulfillment-control-center-theme .fc-inspector-head-left {
+.fulfillment-control-center-theme .fc-panel-header-left {
   display: flex !important;
   align-items: center !important;
-  gap: 10px !important;
+  gap: 12px !important;
 }
 
-.fulfillment-control-center-theme .fc-inspector-icon-wrap {
-  width: 32px !important;
-  height: 32px !important;
-  border-radius: 8px !important;
+.fulfillment-control-center-theme .fc-panel-icon-wrap {
+  width: 36px !important;
+  height: 36px !important;
+  border-radius: 10px !important;
   background: #eff6ff !important;
   border: 1px solid #bfdbfe !important;
   display: flex !important;
@@ -373,324 +273,140 @@
   flex-shrink: 0 !important;
 }
 
-.fulfillment-control-center-theme .fc-inspector-title {
-  font-size: 14.5px !important;
+.fulfillment-control-center-theme .fc-panel-title {
+  font-size: 15px !important;
   font-weight: 750 !important;
   color: #0f172a !important;
+  line-height: 1.2 !important;
 }
 
-.fulfillment-control-center-theme .fc-inspector-body {
+.fulfillment-control-center-theme .fc-panel-subtitle {
+  font-size: 12px !important;
+  color: #64748b !important;
+  margin-top: 2px !important;
+  display: block !important;
+}
+
+.fulfillment-control-center-theme .fc-panel-body {
   padding: 20px !important;
   display: flex !important;
   flex-direction: column !important;
-  gap: 14px !important;
+  gap: 16px !important;
 }
 
-.fulfillment-control-center-theme .fc-tiles-grid {
-  display: grid !important;
-  grid-template-columns: repeat(2, 1fr) !important;
-  gap: 10px !important;
-}
-
-.fulfillment-control-center-theme .fc-tile {
-  background: #f8fafc !important;
-  border: 1px solid #e2e8f0 !important;
-  border-radius: 10px !important;
-  padding: 10px 12px !important;
+.fulfillment-control-center-theme .fc-panel-content {
   display: flex !important;
   flex-direction: column !important;
-  gap: 3px !important;
+  gap: 16px !important;
 }
 
-.fulfillment-control-center-theme .fc-tile.full {
-  grid-column: span 2 !important;
+/* Data Field Grid */
+.fulfillment-control-center-theme .fc-data-grid {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)) !important;
+  gap: 12px !important;
 }
 
-.fulfillment-control-center-theme .fc-tile-lbl {
-  font-size: 10px !important;
-  font-weight: 700 !important;
-  color: #64748b !important;
-  text-transform: uppercase !important;
-  letter-spacing: 0.04em !important;
-}
-
-.fulfillment-control-center-theme .fc-tile-val {
-  font-size: 13.5px !important;
-  font-weight: 700 !important;
-  color: #0f172a !important;
-}
-
-.fulfillment-control-center-theme .fc-tile-val.font-mono { font-family: monospace !important; }
-.fulfillment-control-center-theme .fc-tile-val.text-amber { color: #d97706 !important; }
-.fulfillment-control-center-theme .fc-tile-val.text-blue { color: #2563eb !important; }
-
-.fulfillment-control-center-theme .fc-callout-box {
+.fulfillment-control-center-theme .fc-data-field {
   background: #f8fafc !important;
   border: 1px solid #e2e8f0 !important;
-  border-left: 3px solid #2563eb !important;
-  border-radius: 8px !important;
+  border-radius: 12px !important;
   padding: 12px 14px !important;
   display: flex !important;
   flex-direction: column !important;
   gap: 4px !important;
 }
 
-.fulfillment-control-center-theme .fc-callout-lbl {
-  font-size: 10.5px !important;
+.fulfillment-control-center-theme .fc-field-label {
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  color: #64748b !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.04em !important;
+}
+
+.fulfillment-control-center-theme .fc-field-value {
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  color: #0f172a !important;
+  word-break: break-word !important;
+}
+
+.fulfillment-control-center-theme .fc-field-value.font-mono { font-family: monospace !important; }
+.fulfillment-control-center-theme .fc-field-value.text-blue { color: #2563eb !important; }
+.fulfillment-control-center-theme .fc-field-value.text-amber { color: #d97706 !important; }
+.fulfillment-control-center-theme .fc-field-value.text-coral { color: #dc2626 !important; }
+
+/* Factual Summary Callout Box */
+.fulfillment-control-center-theme .fc-factual-summary {
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+  border-left: 3.5px solid #2563eb !important;
+  border-radius: 10px !important;
+  padding: 14px 16px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 6px !important;
+}
+
+.fulfillment-control-center-theme .fc-factual-summary.delay-highlight {
+  background: #fef2f2 !important;
+  border-color: #fecaca !important;
+  border-left-color: #dc2626 !important;
+}
+
+.fulfillment-control-center-theme .fc-factual-summary.delay-inventory-note {
+  background: #fffbeb !important;
+  border-color: #fef3c7 !important;
+  border-left-color: #d97706 !important;
+}
+
+.fulfillment-control-center-theme .fc-summary-label {
+  font-size: 11px !important;
   font-weight: 700 !important;
   color: #2563eb !important;
   text-transform: uppercase !important;
   letter-spacing: 0.05em !important;
 }
 
-.fulfillment-control-center-theme .fc-callout-txt {
-  font-size: 13px !important;
-  color: #334155 !important;
-  line-height: 1.5 !important;
-}
-
-/* Pipeline Flow Stepper in Inspector */
-.fulfillment-control-center-theme .fc-pipeline-flow {
-  display: flex !important;
-  align-items: center !important;
-  gap: 6px !important;
-  flex-wrap: wrap !important;
-  padding: 10px 12px !important;
-  background: #f8fafc !important;
-  border: 1px solid #e2e8f0 !important;
-  border-radius: 10px !important;
-}
-
-.fulfillment-control-center-theme .fc-flow-node {
-  display: flex !important;
-  align-items: center !important;
-  gap: 5px !important;
-  padding: 4px 10px !important;
-  border-radius: 9999px !important;
-  font-size: 11px !important;
-  font-weight: 700 !important;
-  border: 1px solid #cbd5e1 !important;
-  background: #ffffff !important;
-  color: #334155 !important;
-}
-
-.fulfillment-control-center-theme .fc-flow-node.coord {
-  background: #fffbeb !important;
-  border-color: #fcd34d !important;
-  color: #b45309 !important;
-}
-
-.fulfillment-control-center-theme .fc-flow-node.fulfill {
-  background: #eff6ff !important;
-  border-color: #93c5fd !important;
-  color: #1d4ed8 !important;
-}
-
-.fulfillment-control-center-theme .fc-flow-node.inv {
-  background: #ecfdf5 !important;
-  border-color: #6ee7b7 !important;
-  color: #047857 !important;
-}
-
-/* =========================================================================
-   4. DELAY ROOT-CAUSE & VERBATIM RESPONSE CARDS
-   ========================================================================= */
-.fulfillment-control-center-theme .fc-delay-banner {
-  background: #fef2f2 !important;
-  border: 1px solid #fecaca !important;
-  border-left: 4px solid #ef4444 !important;
-  border-radius: 14px !important;
-  padding: 18px 22px !important;
-  display: flex !important;
-  flex-direction: column !important;
-  gap: 8px !important;
-  box-shadow: 0 1px 3px rgba(239, 68, 68, 0.05) !important;
-}
-
-.fulfillment-control-center-theme .fc-delay-head {
-  display: flex !important;
-  align-items: center !important;
-  justify-content: space-between !important;
-  gap: 12px !important;
-  flex-wrap: wrap !important;
-}
-
-.fulfillment-control-center-theme .fc-delay-title {
-  display: flex !important;
-  align-items: center !important;
-  gap: 8px !important;
-  font-size: 14px !important;
-  font-weight: 750 !important;
+.fulfillment-control-center-theme .fc-factual-summary.delay-highlight .fc-summary-label {
   color: #dc2626 !important;
-  text-transform: uppercase !important;
-  letter-spacing: 0.03em !important;
 }
 
-.fulfillment-control-center-theme .fc-delay-text {
-  font-size: 15px !important;
-  font-weight: 600 !important;
+.fulfillment-control-center-theme .fc-factual-summary.delay-inventory-note .fc-summary-label {
+  color: #d97706 !important;
+}
+
+.fulfillment-control-center-theme .fc-summary-text {
+  font-size: 13.5px !important;
   color: #1e293b !important;
-  line-height: 1.5 !important;
+  line-height: 1.55 !important;
 }
 
-.fulfillment-control-center-theme .fc-delay-note {
-  font-size: 12px !important;
+.fulfillment-control-center-theme .fc-summary-text.font-semibold {
+  font-weight: 650 !important;
+}
+
+.fulfillment-control-center-theme .fc-summary-text.text-muted {
   color: #64748b !important;
 }
 
-/* Verbatim Response Card */
-.fulfillment-control-center-theme .fc-verbatim-card {
-  background: #ffffff !important;
-  border: 1px solid #e2e8f0 !important;
-  border-radius: 16px !important;
-  padding: 20px 24px !important;
-  display: flex !important;
-  flex-direction: column !important;
-  gap: 12px !important;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
-}
-
-.fulfillment-control-center-theme .fc-verbatim-head {
-  display: flex !important;
-  align-items: center !important;
-  justify-content: space-between !important;
-  gap: 10px !important;
-}
-
-.fulfillment-control-center-theme .fc-verbatim-title-grp {
-  display: flex !important;
-  align-items: center !important;
-  gap: 8px !important;
-}
-
-.fulfillment-control-center-theme .fc-verbatim-title {
-  font-size: 14.5px !important;
-  font-weight: 750 !important;
-  color: #0f172a !important;
-}
-
-.fulfillment-control-center-theme .fc-verbatim-box {
-  background: #f8fafc !important;
-  border: 1px solid #e2e8f0 !important;
-  border-radius: 10px !important;
-  padding: 14px 18px !important;
-  font-size: 14px !important;
-  color: #334155 !important;
-  line-height: 1.6 !important;
-}
-
-/* =========================================================================
-   5. FOLLOW-UP OPERATIONS COMMAND CONSOLE
-   ========================================================================= */
-.fulfillment-control-center-theme .fc-console-card {
-  background: #ffffff !important;
-  border: 1px solid #e2e8f0 !important;
-  border-radius: 18px !important;
-  padding: 22px 24px !important;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04) !important;
-  display: flex !important;
-  flex-direction: column !important;
-  gap: 14px !important;
-}
-
-.fulfillment-control-center-theme .fc-console-head {
-  display: flex !important;
-  align-items: center !important;
-  justify-content: space-between !important;
-  gap: 12px !important;
-  flex-wrap: wrap !important;
-}
-
-.fulfillment-control-center-theme .fc-console-title-grp {
-  display: flex !important;
-  align-items: center !important;
-  gap: 8px !important;
-}
-
-.fulfillment-control-center-theme .fc-console-title {
-  font-size: 15px !important;
-  font-weight: 750 !important;
-  color: #0f172a !important;
-}
-
-.fulfillment-control-center-theme .fc-console-chips-row {
-  display: flex !important;
-  flex-wrap: wrap !important;
-  gap: 8px !important;
-}
-
-.fulfillment-control-center-theme .fc-btn-chip {
+.fulfillment-control-center-theme .fc-notice-pill {
   display: inline-flex !important;
   align-items: center !important;
   gap: 6px !important;
-  padding: 7px 14px !important;
-  background: #f8fafc !important;
-  border: 1px solid #cbd5e1 !important;
-  border-radius: 9999px !important;
-  color: #334155 !important;
-  font-size: 12.5px !important;
-  font-weight: 600 !important;
-  cursor: pointer !important;
-  transition: all 0.18s ease !important;
-}
-
-.fulfillment-control-center-theme .fc-btn-chip:hover {
-  background: #eff6ff !important;
-  border-color: #93c5fd !important;
-  color: #1d4ed8 !important;
-  transform: translateY(-1px) !important;
-}
-
-.fulfillment-control-center-theme .fc-console-input-bar {
-  display: flex !important;
-  align-items: center !important;
-  gap: 10px !important;
-  background: #f8fafc !important;
-  border: 1px solid #cbd5e1 !important;
-  border-radius: 12px !important;
-  padding: 6px 8px 6px 16px !important;
-}
-
-.fulfillment-control-center-theme .fc-console-input-bar:focus-within {
-  border-color: #2563eb !important;
-  background: #ffffff !important;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12) !important;
-}
-
-.fulfillment-control-center-theme .fc-console-input {
-  flex: 1 !important;
-  background: transparent !important;
-  border: none !important;
-  outline: none !important;
-  font-size: 14px !important;
-  color: #0f172a !important;
-  font-family: inherit !important;
-}
-.fulfillment-control-center-theme .fc-console-input::placeholder { color: #94a3b8 !important; }
-
-.fulfillment-control-center-theme .fc-btn-submit {
-  display: inline-flex !important;
-  align-items: center !important;
-  gap: 6px !important;
-  padding: 8px 18px !important;
-  background: #2563eb !important;
-  border: 1px solid #1d4ed8 !important;
+  padding: 6px 12px !important;
+  background: rgba(217, 119, 6, 0.1) !important;
+  border: 1px solid rgba(217, 119, 6, 0.25) !important;
   border-radius: 8px !important;
-  color: #ffffff !important;
-  font-size: 13px !important;
-  font-weight: 600 !important;
-  cursor: pointer !important;
-  transition: all 0.18s ease !important;
+  color: #92400e !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  margin-top: 6px !important;
 }
-
-.fulfillment-control-center-theme .fc-btn-submit:hover:not(:disabled) {
-  background: #1d4ed8 !important;
-  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3) !important;
-}
-.fulfillment-control-center-theme .fc-btn-submit:disabled { opacity: 0.5 !important; cursor: not-allowed !important; }
 
 /* =========================================================================
-   6. EMPTY / STANDBY STATES (LIGHT THEME)
+   STANDBY & ERROR STATES
    ========================================================================= */
 .fulfillment-control-center-theme .fc-empty-state-card {
   background: #ffffff !important;
@@ -702,15 +418,15 @@
   flex-direction: column !important;
   align-items: center !important;
   gap: 16px !important;
-  max-width: 620px !important;
-  margin: 30px auto !important;
+  max-width: 580px !important;
+  margin: 40px auto !important;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04) !important;
 }
 
 .fulfillment-control-center-theme .fc-empty-icon-wrap {
-  width: 60px !important;
-  height: 60px !important;
-  border-radius: 18px !important;
+  width: 56px !important;
+  height: 56px !important;
+  border-radius: 16px !important;
   background: #eff6ff !important;
   border: 1px solid #bfdbfe !important;
   display: flex !important;
@@ -726,16 +442,16 @@
 }
 
 .fulfillment-control-center-theme .fc-empty-title {
-  font-size: 20px !important;
+  font-size: 18px !important;
   font-weight: 750 !important;
   color: #0f172a !important;
 }
 
 .fulfillment-control-center-theme .fc-empty-desc {
-  font-size: 14px !important;
+  font-size: 13.5px !important;
   color: #64748b !important;
   line-height: 1.6 !important;
-  max-width: 460px !important;
+  max-width: 440px !important;
 }
 
 .fulfillment-control-center-theme .fc-format-chips-wrap {
@@ -746,7 +462,7 @@
   justify-content: center !important;
   background: #f8fafc !important;
   border: 1px solid #e2e8f0 !important;
-  padding: 10px 18px !important;
+  padding: 8px 16px !important;
   border-radius: 9999px !important;
   font-size: 12px !important;
   color: #64748b !important;
@@ -755,7 +471,7 @@
 .fulfillment-control-center-theme .fc-format-chips-wrap code {
   background: #eff6ff !important;
   color: #1d4ed8 !important;
-  padding: 2px 8px !important;
+  padding: 2px 7px !important;
   border-radius: 4px !important;
   font-family: monospace !important;
   font-weight: 700 !important;

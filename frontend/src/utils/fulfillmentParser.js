@@ -35,7 +35,7 @@ export function parseFulfillmentContent(content = '', fulfillmentDetails = {}, r
     /could not confidently determine your fulfillment request/i.test(text)
 
   // 4. Real Status determination strictly from factual signals
-  let status = null
+  let status = details?.status || details?.order?.status || null
   if (isNotFound) {
     status = 'NOT_FOUND'
   } else if (isMissingId) {
@@ -48,6 +48,11 @@ export function parseFulfillmentContent(content = '', fulfillmentDetails = {}, r
     status = 'PENDING'
   } else if (/is currently cancelled/i.test(text) || /status: cancelled/i.test(text) || /status:\s*cancelled/i.test(text)) {
     status = 'CANCELLED'
+  } else if (!status) {
+    const statusMatch = text.match(/Status:\s*([A-Za-z_-]+)/i)
+    if (statusMatch) {
+      status = statusMatch[1].toUpperCase()
+    }
   }
 
   // 5. Delay Analysis Fields (Only from factual text matches)

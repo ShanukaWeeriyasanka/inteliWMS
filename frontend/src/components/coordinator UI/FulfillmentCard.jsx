@@ -30,14 +30,15 @@ export default function FulfillmentCard({
         onClick={() => onOpenFulfillmentDashboard && onOpenFulfillmentDashboard(message)}
         className="btn-view-fulfillment-dashboard"
         title="Open dedicated Fulfillment Operations Control Center"
+        aria-label={`Open Fulfillment Dashboard${parsed.orderId ? ` for ${parsed.orderId}` : ''}`}
       >
-        <div className="btn-icon-wrapper">
-          <Truck size={15} />
-        </div>
-        <span className="btn-text">
-          View Fulfillment Dashboard
-          {parsed.orderId ? ` (${parsed.orderId})` : ''}
+        <span className="btn-icon-wrapper">
+          <Truck size={15} className="btn-action-icon" />
         </span>
+        <span className="btn-text">View Fulfillment Dashboard</span>
+        {parsed.orderId && (
+          <span className="btn-order-badge">{parsed.orderId}</span>
+        )}
         <ExternalLink size={13} className="btn-ext-icon" />
       </button>
     </div>
