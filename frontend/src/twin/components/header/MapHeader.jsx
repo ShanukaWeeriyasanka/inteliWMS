@@ -61,7 +61,7 @@ export default function MapHeader({
         </button>
         <span className={`twin-live${live ? '' : ' is-paused'}`} role="status" title={live ? 'Live updates on' : 'Live updates paused'}
           aria-label={live ? 'Live updates on' : 'Live updates paused'}>
-          <span className="twin-live-dot" /><span className="twin-head-text">{live ? 'Live' : 'Paused'}</span>
+          <span className="twin-live-dot" /><span className="twin-head-text">{live ? 'Connected' : 'Paused'}</span>
         </span>
         <button className="twin-back-btn" onClick={onClose} aria-label="Back to chat" title="Back to chat">
           <ArrowLeft size={14} /><span className="twin-head-text">Chat</span>

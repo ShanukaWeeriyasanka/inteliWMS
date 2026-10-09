@@ -250,6 +250,13 @@ async def handle_coordinator_query(payload: QueryRequest, request: Request, db: 
                 return body
 
             # 5. Context Builder & MCP Delegation (the conversation travels with the hand-off)
+            if target_agent == 'inventory_agent' and thread is None and identity.authenticated:
+                try:
+                    thread = store.create(identity.user_id, title=sanitized_or_reason)
+                    request_context.bind(thread_id=thread.id)
+                except Exception as exc:
+                    logger.log_event('THREAD_CREATE_BEFORE_HANDOFF_FAILED',
+                                     {'error_type':type(exc).__name__}, level='WARNING')
             # Agents get the user's own wording; ids from an accepted rewrite are only hints
             context_payload = build_context(
                 user_id=user_id,

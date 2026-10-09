@@ -7,6 +7,7 @@ quantities or routes itself, so the agents, the API and the map all read the
 same numbers.
 """
 import json
+from contextvars import ContextVar
 from datetime import date, datetime
 from decimal import Decimal
 from typing import Any, Dict, Iterable, List, Optional
@@ -16,6 +17,7 @@ from sqlalchemy import text
 from database.twin.connection import twin_connection
 
 ROUTE_PREFERENCES = ("lift", "stairs", "fastest")
+_snapshot_connection = ContextVar('inventory_snapshot_connection', default=None)
 
 
 def _value(v: Any) -> Any:
@@ -31,8 +33,29 @@ def _rows(result) -> List[Dict[str, Any]]:
 
 
 def _query(sql: str, **params: Any) -> List[Dict[str, Any]]:
+    current = _snapshot_connection.get()
+    if current is not None:
+        return _rows(current.execute(text(sql), params))
     with twin_connection() as conn:
         return _rows(conn.execute(text(sql), params))
+
+
+def get_inventory_snapshot():
+    """All map quantities from one repeatable-read database snapshot."""
+    with twin_connection() as conn:
+        conn.execute(text('set transaction isolation level repeatable read, read only'))
+        token = _snapshot_connection.set(conn)
+        try:
+            return {'products':get_product_totals(), 'locations':get_product_locations(),
+                    'rack_fill':get_rack_fill(), 'alerts':get_open_alerts(),
+                    'as_of':conn.execute(text('select transaction_timestamp()')).scalar().isoformat()}
+        finally:
+            _snapshot_connection.reset(token)
+
+
+def get_stock_placements(product_id):
+    """Per-lot rows for optimistic updates; the map uses the aggregate bin view."""
+    return _query('select * from stock_locations where product_id=:pid order by bin_id,lot_code',pid=product_id)
 
 
 # ── Static layout ────────────────────────────────────────────────────────────
@@ -67,7 +90,10 @@ def get_nav_edges() -> List[Dict[str, Any]]:
 def get_product_totals() -> List[Dict[str, Any]]:
     return _query(
         "select t.product_id, t.product_no, t.sku, t.name, t.reorder_point, t.total_quantity, t.bin_count, "
-        "       t.is_low_stock, t.is_out_of_stock, p.category, p.unit, p.image_url, p.aliases "
+        "       t.is_low_stock, t.is_out_of_stock, t.reserved_quantity, t.quarantined_quantity, "
+        "       t.available_quantity, t.unplaced_quantity, t.updated_at, t.data_source, "
+        "       p.category, p.unit, p.image_url, p.aliases, p.weight_kg, p.safety_stock, "
+        "       p.reorder_quantity, p.daily_burn_rate, p.lead_time_days, p.unit_price, p.is_hazardous "
         "from v_product_totals t join products p on p.id = t.product_id "
         "where p.is_active order by t.product_no"
     )
@@ -77,11 +103,12 @@ def get_product_locations(product_ids: Optional[Iterable[str]] = None,
                           location_prefix: Optional[str] = None) -> List[Dict[str, Any]]:
     ids = list(product_ids or [])
     return _query(
-        "select product_id, product_no, sku, product_name, quantity, lot_code, updated_at, bin_id, position_index, "
+        "select product_id, product_no, sku, product_name, quantity, reserved_quantity, quarantined_quantity, "
+        "       available_quantity, data_sources, updated_at, bin_id, position_index, "
         "       capacity_units, bin_status::text as bin_status, shelf_id, level_index, rack_id, rack_name, "
         "       rack_type::text as rack_type, rack_x, rack_y, rack_width_m, rack_depth_m, access_node_id, zone_id, "
-        "       zone_name, floor_id, floor_name, floor_level, warehouse_id, location_label "
-        "from v_product_locations "
+        "       zone_name, floor_id, floor_name, floor_level, warehouse_id, warehouse_name, location_label "
+        "from v_inventory_placements "
         "where (cardinality(cast(:ids as text[])) = 0 or product_id = any(cast(:ids as text[]))) "
         "  and (cast(:prefix as text) is null or bin_id like cast(:prefix as text) || '%') "
         "order by quantity desc, floor_level, bin_id",

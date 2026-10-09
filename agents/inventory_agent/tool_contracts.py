@@ -39,7 +39,7 @@ ANALYZE_EQUIPMENT_LOG = "analyze_equipment_log"
 TWIN_ANSWER = "twin_answer"
 PUBLISH_MAP_COMMAND = "publish_map_command"
 
-SKU_PATTERN = r"^SKU-\d{3,6}$"
+SKU_PATTERN = re.compile(r"^(?:SKU-\d{3,6}|(?!SKU-)[A-Z0-9]+(?:-[A-Z0-9]+)+)$")
 PRD_PATTERN = r"^PRD-\d{5}$"
 _SKU_LOOSE = re.compile(r"^\s*sku[-\s]?(\d{3,6})\s*$", re.I)
 
@@ -49,7 +49,10 @@ def canonical_sku(raw: Optional[str]) -> Optional[str]:
     if not raw:
         return None
     m = _SKU_LOOSE.match(raw)
-    return f"SKU-{m.group(1)}" if m else None
+    if m:
+        return f"SKU-{m.group(1)}"
+    value = raw.strip().upper()
+    return value if len(value) <= 100 and re.fullmatch(SKU_PATTERN, value) else None
 
 
 class _Args(BaseModel):
@@ -173,6 +176,7 @@ class TransferResult(_Result):
     sku: str
     recommendation: Optional[TransferRecommendation] = None
     quantity_source: Literal["requested", "reorder_quantity", "default_reorder_quantity"] = "requested"
+    sibling_data_source: str = 'local_snapshot'
 
 
 class DocumentResult(_Result):

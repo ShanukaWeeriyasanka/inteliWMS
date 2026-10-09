@@ -84,6 +84,7 @@ class _Turn:
         self.query = request.query.strip()
         ctx = request.context or {}
         self.session_id: Optional[str] = ctx.get("session_id")
+        self.thread_id: Optional[str] = ctx.get('thread_id')
         self.conversation: Dict[str, Any] = ctx.get("conversation") or {}
         self.sub_intent, self.sub_intent_rule = detect_sub_intent_with_rule(self.query)
         self.entities = extract_entities(self.query)
@@ -101,6 +102,7 @@ class _Turn:
 
     async def call(self, tool: str, **arguments: Any):
         """Tool call that must succeed (a failure ends the turn with an honest error)."""
+        logger.log_event('INVENTORY_TOOL_REQUEST', {'tool':tool, 'thread_id':self.thread_id})
         result = await self.tools.call(tool, arguments)
         if result.failed:
             raise _ToolFailed(result)
@@ -169,6 +171,7 @@ class InventoryAgent:
         record_decision("inventory.product_ref", turn.ref_source, RULE, f"product_ref.{turn.ref_source}")
         INVENTORY_REQUESTS.inc(outcome=resp.outcome, sub_intent=resp.sub_intent)
         logger.log_event("INVENTORY_RESPONSE", {
+            'thread_id':turn.thread_id,
             "sub_intent": resp.sub_intent, "outcome": resp.outcome, "source": resp.source,
             "items": len(resp.items), "error_code": resp.error_code, "duration_ms": resp.execution_time_ms,
             "follow_up": bool(turn.assumed_label), "sub_intent_rule": turn.sub_intent_rule,
@@ -248,9 +251,12 @@ class InventoryAgent:
         if sub == "stock_movements":
             return await self._movements(turn, ref)
         if not ref.skus:
-            # Only a Digital Twin product id, and the twin did not answer above
-            pid = ref.product_ids[0]
-            return turn.respond(R.not_found(pid), source="digital_twin", outcome="not_found", product_ids=[pid])
+            if sub not in ('transfer_advisor', 'reorder_predictor'):
+                return await self._stock(turn, ref.product_ids)
+            resolved = await turn.call(C.GET_PRODUCT_STOCK, sku=ref.product_ids[0])
+            if resolved.data.item is None:
+                return turn.respond(R.not_found(ref.product_ids[0]), source='digital_twin', outcome='not_found')
+            ref.skus = [resolved.data.item.sku]
         if sub == "transfer_advisor":
             return await self._transfer(turn, ref.skus[0])
         if sub == "reorder_predictor":
@@ -313,8 +319,23 @@ class InventoryAgent:
         parts += [R.not_found(s) for s in missing]
         outcome = "answered" if items else "not_found"
         text = "\n\n".join(parts) + (R.skus_left_out(left_out, _MAX_SKUS_PER_ANSWER) if left_out else "")
+        command = None
+        command_id = None
+        pids = [i.product_id for i in items if i.product_id]
+        if pids:
+            command = {'version':inventory_config.TWIN_COMMAND_VERSION, 'action': 'locate_product',
+                       'product_ids': pids, 'answer_text': text[:1200]}
+            if turn.session_id:
+                pub = await turn.tools.call(C.PUBLISH_MAP_COMMAND, {
+                    'session_id':turn.session_id, 'query_text':turn.query[:2000], 'command':command})
+                if not pub.failed:
+                    command_id = pub.data.command_id
+                else:
+                    logger.log_event('TWIN_COMMAND_STORE_FAILED', {'thread_id':turn.thread_id,
+                                     'error_code':pub.error_code}, level='WARNING')
         return turn.respond(text, source="database", items=items, outcome=outcome,
-                            skus=[i.sku for i in items] or missing)
+                            skus=[i.sku for i in items] or missing, product_ids=pids,
+                            **({'ui_command': command, 'ui_command_id':command_id} if command else {}))
 
     async def _movements(self, turn: _Turn, ref: _Ref) -> InventoryQueryResponse:
         args = {"sku": ref.skus[0]} if ref.skus else {"product_id": ref.product_ids[0]}
@@ -449,7 +470,8 @@ class InventoryAgent:
             record_decision("inventory.twin", "rejected_catalogue_product", RULE, "twin.rejected_catalogue_product")
             return None
         record_decision("inventory.twin", "accepted", RULE, "twin.accepted", action=action)
-        if action == "show_alerts" and set(command.get("alert_types") or []) & {"low_stock", "out_of_stock"}:
+        from database.twin.connection import is_enabled
+        if not is_enabled() and action == "show_alerts" and set(command.get("alert_types") or []) & {"low_stock", "out_of_stock"}:
             # The map tracks its own products; the SKU catalogue's low items belong in the same answer
             low = await turn.tools.call(C.LIST_LOW_STOCK, {"limit": 50})
             if not low.failed:
@@ -472,8 +494,14 @@ class InventoryAgent:
             pending = [{"label": c.get("label", ""), **{k: c[k] for k in ("product_id", "location_id") if c.get(k)}}
                        for c in command.get("candidates", []) if c.get("product_id") or c.get("location_id")] or None
         product_ids = command.get("product_ids") or ref.product_ids
+        items = []
+        if action == 'locate_product':
+            for pid in product_ids:
+                stock = await turn.call(C.GET_PRODUCT_STOCK, sku=pid)
+                if stock.data.item:
+                    items.append(stock.data.item)
         return turn.respond(text, source="digital_twin", sub_intent=f"twin_{action}", outcome=outcome,
-                            product_ids=product_ids, pending=pending, needs_reorder=action == "show_alerts",
+                            product_ids=product_ids, items=items, pending=pending, needs_reorder=action == "show_alerts",
                             ui_command=command, ui_command_id=command_id)
 
 
@@ -506,9 +534,9 @@ def _to_dict(resp: InventoryQueryResponse) -> Dict[str, Any]:
 
 
 def _request(query: str, sku: Optional[str], user_role: str, session_id: Optional[str],
-             conversation: Optional[Dict[str, Any]]) -> InventoryQueryRequest:
+             conversation: Optional[Dict[str, Any]], thread_id: Optional[str] = None) -> InventoryQueryRequest:
     return InventoryQueryRequest(query=query, sku=sku, user_role=user_role,
-                                 context={"session_id": session_id, "conversation": conversation or {}})
+                                 context={"session_id": session_id, "thread_id":thread_id, "conversation": conversation or {}})
 
 
 def _blank_question(query: Optional[str], sku: Optional[str]) -> Optional[Dict[str, Any]]:
@@ -526,14 +554,14 @@ def _blank_question(query: Optional[str], sku: Optional[str]) -> Optional[Dict[s
 
 async def handle_inventory_query_async(
     query: str, *, sku: Optional[str] = None, user_role: str = "staff", session_id: Optional[str] = None,
-    conversation: Optional[Dict[str, Any]] = None, tools=None,
+    conversation: Optional[Dict[str, Any]] = None, tools=None, thread_id: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Async entry point used by the coordinator's dispatcher."""
     blank = _blank_question(query, sku)
     if blank is not None:
         return blank
     resp = await inventory_agent.handle_query_async(
-        _request(query or sku, sku, user_role, session_id, conversation), tools)
+        _request(query or sku, sku, user_role, session_id, conversation, thread_id), tools)
     return _to_dict(resp)
 
 

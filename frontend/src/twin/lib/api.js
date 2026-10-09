@@ -35,6 +35,7 @@ export function createTwinApi(token) {
     layout: () => get('/layout'),
     navEdges: () => get('/nav-edges'),
     products: () => get('/products'),
+    snapshot: () => get('/inventory-snapshot'),
     productLocations: (productIds, locationPrefix) =>
       get('/product-locations', { product_ids: productIds, location_prefix: locationPrefix }),
     rackFill: (floorId) => get('/rack-fill', { floor_id: floorId }),

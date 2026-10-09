@@ -35,6 +35,7 @@ from agents.inventory_agent.schemas import StockItemInfo
 from agents.inventory_agent.transfer_advisor import transfer_advisor
 from agents.inventory_agent.warehouse_map import get_sku_map_coordinates
 from database.models import InventoryTransaction, Product
+from database import inventory_source as authority
 
 # ── Stock status (one definition everywhere; matches the twin's v_product_totals) ──
 
@@ -94,12 +95,40 @@ def product_to_item(p: Product) -> Tuple[StockItemInfo, bool]:
 
 
 def _find(db: Session, sku: str) -> Optional[Product]:
+    if authority.uses_twin():
+        snapshot = authority.snapshot()
+        row = authority.find(sku, snapshot['products'])
+        return authority.legacy_shape(row) if row else None
     return db.query(Product).filter(Product.sku.ilike(sku.strip())).first()
+
+
+def canonical_item(row, placements):
+    safety, d1 = _int_or(row.get('safety_stock'), inventory_config.DEFAULT_SAFETY_STOCK)
+    reorder, d2 = _int_or(row.get('reorder_quantity'), inventory_config.DEFAULT_REORDER_QUANTITY)
+    qty = row['total_quantity']
+    item = StockItemInfo(
+        product_id=row['product_id'], sku=row['sku'], name=row['name'], category=row.get('category'),
+        location='; '.join(r['location_label'] for r in placements) or 'Location unassigned',
+        placements=placements, quantity_on_hand=qty, reserved_quantity=row['reserved_quantity'],
+        available_quantity=row['available_quantity'], quarantined_quantity=row['quarantined_quantity'],
+        unplaced_quantity=row['unplaced_quantity'], updated_at=row['updated_at'], data_source=row['data_source'],
+        safety_stock=safety, reorder_point=row['reorder_point'], reorder_quantity=reorder,
+        unit=row['unit'], status=stock_status(qty, row['reorder_point']), below_safety_stock=qty <= safety,
+        weight_kg=row.get('weight_kg'),
+    )
+    return item, d1 or d2
 
 
 # ── Read tools ──────────────────────────────────────────────────────────────
 
 def get_product_stock(db: Session, sku: str) -> ProductStockResult:
+    if authority.uses_twin():
+        snapshot = authority.snapshot()
+        row = authority.find(sku, snapshot['products'])
+        if row is None:
+            return ProductStockResult(status='not_found', sku=sku.upper())
+        item, defaulted = canonical_item(row, [r for r in snapshot['locations'] if r['product_id']==row['product_id']])
+        return ProductStockResult(status='ok', sku=row['sku'], item=item, thresholds_defaulted=defaulted)
     p = _find(db, sku)
     if p is None:
         return ProductStockResult(status="not_found", sku=sku.upper())
@@ -115,6 +144,30 @@ def search_products(db: Session, text: str, limit: int = 5) -> SearchProductsRes
     Rank products by how much of their name the question mentions.
     One clear winner → ok; several close matches → ambiguous (ask which one).
     """
+    if authority.uses_twin():
+        import re
+        snapshot = authority.snapshot()
+        q = text.strip().casefold()
+        scored = []
+        for row in snapshot['products']:
+            exact = any(re.search(r'(?<![\w-])' + re.escape(k.casefold()) + r'(?![\w-])', q)
+                        for k in [row['product_id'], row['sku']])
+            phrases = [row['name'], *(row.get('aliases') or [])]
+            phrase_hit = any(re.search(r'(?<!\w)' + re.escape(k.casefold()) + r'(?!\w)', q) for k in phrases if k)
+            terms = set(_terms(row['name']))
+            hits = terms & set(_terms(text))
+            score = 1.0 if exact else 0.95 if phrase_hit else len(hits) / max(1, len(terms)) * 0.8
+            if score:
+                scored.append((score, row))
+        scored.sort(key=lambda x: (-x[0], x[1]['product_id']))
+        if not scored:
+            return SearchProductsResult(status='not_found')
+        clear = len(scored) == 1 or scored[0][0] - scored[1][0] >= 0.25
+        chosen = scored[:1] if clear else [s for s in scored if scored[0][0] - s[0] < 0.25][:limit]
+        locations = snapshot['locations']
+        items = [canonical_item(p, [r for r in locations if r['product_id'] == p['product_id']])[0] for _, p in chosen]
+        return SearchProductsResult(status='ok' if clear else 'ambiguous', items=items,
+            candidates=[ProductCandidate(sku=p['sku'], name=p['name'], score=score) for score,p in chosen])
     q_terms = set(_terms(text))
     if not q_terms:
         return SearchProductsResult(status="not_found")
@@ -146,6 +199,15 @@ def search_products(db: Session, text: str, limit: int = 5) -> SearchProductsRes
 
 
 def list_low_stock(db: Session, limit: int = 50) -> LowStockResult:
+    if authority.uses_twin():
+        snapshot = authority.snapshot()
+        rows = snapshot['products']
+        low = [p for p in rows if p['is_low_stock']]
+        low.sort(key=lambda p: (not p['is_out_of_stock'], p['total_quantity'], p['product_id']))
+        chosen = low[:limit]
+        placements = snapshot['locations']
+        return LowStockResult(status='ok' if chosen else 'empty', total_checked=len(rows), items=[
+            canonical_item(p, [r for r in placements if r['product_id']==p['product_id']])[0] for p in chosen])
     products = db.query(Product).order_by(Product.sku).all()
     low = [item for item, _ in map(product_to_item, products) if item.status in ("OUT_OF_STOCK", "LOW_STOCK")]
     low.sort(key=lambda i: (i.status != "OUT_OF_STOCK", i.quantity_on_hand))
@@ -154,6 +216,11 @@ def list_low_stock(db: Session, limit: int = 50) -> LowStockResult:
 
 def get_stock_movements(db: Session, sku: Optional[str] = None, product_id: Optional[str] = None,
                         limit: int = 20) -> MovementsResult:
+    if authority.uses_twin() and sku:
+        row = authority.find(sku)
+        if row is None:
+            return MovementsResult(status='not_found', subject_id=sku)
+        product_id = row['product_id']
     if product_id:
         from database.twin import repository as twin_repo
         from database.twin.connection import is_enabled
@@ -188,7 +255,8 @@ def predict_depletion(db: Session, sku: str) -> DepletionResult:
     p = _find(db, sku)
     if p is None:
         return DepletionResult(status="not_found", sku=sku.upper())
-    pred = reorder_predictor.predict_depletion(p.sku, int(p.quantity or 0), p.name, db=db)
+    pred = reorder_predictor.predict_depletion(p.sku, int(p.quantity or 0), p.name, db=db,
+                                              **({'product':p} if authority.uses_twin() else {}))
     return DepletionResult(
         status="ok", sku=p.sku, prediction=pred,
         burn_rate_source="database" if p.daily_burn_rate is not None else "default",
@@ -220,7 +288,8 @@ def evaluate_transfer(db: Session, sku: str, needed_quantity: Optional[int] = No
         qty, source = int(p.reorder_quantity), "reorder_quantity"
     else:
         qty, source = inventory_config.DEFAULT_REORDER_QUANTITY, "default_reorder_quantity"
-    rec = transfer_advisor.evaluate_transfer(p.sku, needed_quantity=qty, db=db)
+    rec = transfer_advisor.evaluate_transfer(p.sku, needed_quantity=qty, db=db,
+                                             **({'product':p} if authority.uses_twin() else {}))
     return TransferResult(status="ok", sku=p.sku, recommendation=rec, quantity_source=source)
 
 
@@ -251,5 +320,8 @@ def publish_map_command(session_id: str, query_text: str, command: Dict[str, Any
     from agents.inventory_agent.schemas import UiCommand
     from database.twin import repository as twin_repo
     payload = UiCommand.model_validate(command).to_payload()
+    # The full answer travels in chat. Keep the notification below PostgreSQL's payload limit.
+    if payload.get('answer_text'):
+        payload['answer_text'] = payload['answer_text'][:1200]
     row = twin_repo.insert_ui_command(session_id, query_text, payload)
     return PublishMapCommandResult(status="ok", command_id=row.get("id"))

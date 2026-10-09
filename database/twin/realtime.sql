@@ -21,6 +21,7 @@ declare
 begin
   perform pg_notify('twin_changes', json_build_object(
     'table', tg_table_name,
+    'schema', tg_table_schema,
     'op',    tg_op,
     'row',   v_row
   )::text);
@@ -30,7 +31,7 @@ end $$;
 do $$
 declare t text;
 begin
-  foreach t in array array['stock_locations', 'alerts', 'ui_commands', 'nav_edges'] loop
+  foreach t in array array['products', 'stock_locations', 'alerts', 'ui_commands', 'nav_edges'] loop
     execute format('drop trigger if exists %I on %I', t || '_twin_notify', t);
     execute format('create trigger %I after insert or update or delete on %I
                     for each row execute function twin_notify_change()', t || '_twin_notify', t);

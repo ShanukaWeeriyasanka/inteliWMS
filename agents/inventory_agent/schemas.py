@@ -3,6 +3,12 @@ from typing import Annotated, Optional, List, Dict, Any, Literal
 from datetime import datetime
 
 class StockItemInfo(BaseModel):
+    product_id: Optional[str] = None
+    placements: List[Dict[str, Any]] = Field(default_factory=list)
+    quarantined_quantity: int = Field(0, ge=0)
+    unplaced_quantity: int = Field(0, ge=0)
+    updated_at: Optional[str] = None
+    data_source: str = 'unverified'
     """Detailed stock and location information for a specific SKU."""
     sku: str = Field(..., description="Unique product SKU identifier (e.g. SKU-4521)")
     name: str = Field(..., description="Product name")

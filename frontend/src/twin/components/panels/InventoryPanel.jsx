@@ -28,10 +28,11 @@ function ProductCard({ product, rows, selected, onClick }) {
         <span className="twin-value" title={product.name}>{product.name}</span>
         <span className="twin-value">
           <LevelBars value={stockGauge(product)} status={status} />
-          {best ? shortBinLabel(best.bin_id, best.rack_name) : 'Not stored'}
+          {best ? `${best.warehouse_id} · ${shortBinLabel(best.bin_id, best.rack_name)}` : 'Location unassigned'}
         </span>
       </div>
       <div className="twin-card-chips">
+        <span className="twin-chip">{product.data_source || 'unverified'} · updated {timeAgo(product.updated_at)}</span>
         <span className="twin-chip">{product.category || 'General'}</span>
         <span className="twin-chip">{product.bin_count} bin{product.bin_count === 1 ? '' : 's'}{floors > 1 ? ` · ${floors} floors` : ''}</span>
         <span className="twin-chip is-gauge">
@@ -81,7 +82,7 @@ export default function InventoryPanel({
   data, floorId, tab, onTab, query, onQuery, selection, onSelectProduct, onSelectRack, onSelectAlert, onClose,
 }) {
   const { layout, products, locationsByProduct, fillByRack, alerts } = data
-  const warehouse = layout.raw.warehouses[0]
+  const warehouse = layout.raw.warehouses.find((w) => w.id === layout.floorsById.get(floorId)?.warehouse_id)
   const floorRacks = layout.racksByFloor.get(floorId) || []
   const shown = useMemo(() => products.filter((p) => matchesProduct(p, query)), [products, query])
   const counts = { products: products.length, racks: floorRacks.length, alerts: alerts.length }
