@@ -124,11 +124,15 @@ def extract_warehouse_entities(text: str) -> Dict[str, Any]:
     doc_keywords = [
         "sop", "procedure", "policy", "safety", "rule", "rules", "protocol", 
         "protocols", "hazard", "manual", "documentation", "guide", "guideline", 
-        "guidelines", "limit", "limits", "regulations", "height", "speed", 
-        "battery", "spill", "pedestrian", "forklift", "stacking", "returns"
+        "guidelines", "regulations", "height limit", "speed limit", 
+        "battery spill", "battery acid", "forklift safety", "forklift speed",
+        "stacking limit", "pallet limits", "excursion", "limit", "limits"
     ]
     stock_keywords = ["how many", "stock", "quantity", "inventory", "count", "available", "reorder"]
-    loc_keywords = ["where", "location", "aisle", "shelf", "bin", "bay", "find", "stored", "kept", "which aisle"]
+    loc_keywords = [
+        "where", "location", "locate", "find", "aisle", "shelf", "bin", "bay", 
+        "stored", "kept", "which aisle", "which building", "coords", "position"
+    ]
 
     # If document/procedure/safety words are present, prioritize document_query
     if any(w in lower_text for w in doc_keywords):
