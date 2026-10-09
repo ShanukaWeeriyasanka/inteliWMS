@@ -3,15 +3,11 @@ Shared pytest fixtures and configuration for IntelliWMS test suite.
 Provides database initialisation, knowledge store seeding, and FastAPI test clients
 as reusable session and function-scoped fixtures.
 """
-import os
-os.environ["DATABASE_URL"] = "sqlite:///./intelliwms.db"
-
 import pytest
 from fastapi.testclient import TestClient
 
 from database.connection import init_db
 from agents.knowledge_agent.knowledge_store import knowledge_store, seed_warehouse_sops
-
 from agents.knowledge_agent.server import app as knowledge_app
 
 

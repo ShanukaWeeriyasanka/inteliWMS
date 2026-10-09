@@ -1,12 +1,9 @@
-@import url('https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Inter:ital,opsz,wght@0,14..32,300..800;1,14..32,300..800&family=JetBrains+Mono:wght@400;500;600&display=swap');
-
 /* =========================================================================
    INTELLIWMS — APPLE iOS SMOOTHED DESIGN SYSTEM
    SF Pro display typography, continuous squircles, vibrant glassmorphism & Apple physics
    ========================================================================= */
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Inter:ital,opsz,wght@0,14..32,300..800;1,14..32,300..800&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
 * {
   margin: 0;
