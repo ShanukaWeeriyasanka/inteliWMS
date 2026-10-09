@@ -4,7 +4,7 @@ import { api } from './services/api'
 import { apiErrorMessage } from './services/errors'
 import { composeQuery } from './chat/attachments'
 import { chatReducer, initialChatState, DRAFT } from './chat/chatState'
-import { storedToUiMessages, toAssistantMessage, toThreadSummary, toUserMessage } from './chat/messageMapping'
+import { storedToUiMessages, toAssistantMessage, toThreadSummary, toUserMessage, isFulfillmentMessage } from './chat/messageMapping'
 import { threadNavigator, useThreadRoute } from './chat/useThreadRoute'
 import {
   Sidebar,
@@ -18,6 +18,7 @@ import CommercializationModal from './components/CommercializationModal'
 import PricingModal from './components/PricingModal'
 import SplineScene from './components/SplineScene'
 import LoginPage from './pages/LoginPage'
+import FulfillmentDashboard from './pages/FulfillmentDashboard'
 import WarehouseTwin from './twin/WarehouseTwin'
 import {
   Menu,
@@ -468,7 +469,7 @@ export default function App() {
   // New Chat: an empty conversation at "/"; its thread is created with the first answer
   const handleNewChat = () => {
     const { activeKey, messages: current } = chatRef.current
-    if (activeKey === DRAFT && current.length === 0) return
+    if (activeKey === DRAFT && current.length === 0 && !route.view) return
     resetWorkspace()
     dispatchChat({ type: 'NEW_DRAFT' })
     threadNavigator.push({ threadId: null })
@@ -476,7 +477,7 @@ export default function App() {
 
   // Select Chat from History: the URL changes, the route effect loads that thread's messages
   const handleSelectChat = (chatId) => {
-    if (chatId === chatRef.current.activeKey) return
+    if (chatId === chatRef.current.activeKey && !route.view) return
     threadNavigator.push({ threadId: chatId })
   }
 
@@ -496,8 +497,25 @@ export default function App() {
   }
 
   const handleOpenArtifactTab = (tabName) => {
+    if (tabName === 'order_timeline') {
+      openFulfillmentDashboard()
+      return
+    }
     setArtifactTab(tabName)
     setArtifactOpen(true)
+  }
+
+  const openFulfillmentDashboard = (message) => {
+    setArtifactOpen(false)
+    const current = threadNavigator.current()
+    const index = message ? messages.findIndex((m) => m.id === message.id) : -1
+    threadNavigator.push({ threadId: current.threadId, view: 'fulfillment', messageIndex: index >= 0 ? index : null },
+      { fulfillmentPushed: true })
+  }
+
+  const closeFulfillmentDashboard = () => {
+    if (threadNavigator.pushedWith('fulfillmentPushed')) threadNavigator.back()
+    else threadNavigator.replace({ threadId: threadNavigator.current().threadId })
   }
 
   // View 1: Unauthenticated Session
@@ -518,6 +536,14 @@ export default function App() {
 
   return (
     <div className="claude-app-layout">
+      {route.view === 'fulfillment' && !chat.loadingHistory && chat.activeKey === (route.threadId || DRAFT) && (
+        <FulfillmentDashboard
+          selectedMessage={isFulfillmentMessage(messages[route.messageIndex])
+            ? messages[route.messageIndex] : [...messages].reverse().find(isFulfillmentMessage)}
+          currentUser={currentUser}
+          onBackToChat={closeFulfillmentDashboard}
+        />
+      )}
       {/* Collapsible Left Sidebar */}
       {/* Small screens: the expanded sidebar floats over the page; tapping outside closes it */}
       {overlaySidebar && sidebarOpen && (
@@ -631,6 +657,7 @@ export default function App() {
                   <ChatMessage
                     key={msg.id}
                     message={msg}
+                    onOpenFulfillmentDashboard={openFulfillmentDashboard}
                     onOpenArtifact={(m) => {
                       setSelectedArtifactMessage(m)
                       setArtifactTab('telemetry')
@@ -643,8 +670,7 @@ export default function App() {
                       setArtifactOpen(true)
                     }}
                     onInspectOrder={() => {
-                      setArtifactTab('order_timeline')
-                      setArtifactOpen(true)
+                      openFulfillmentDashboard(msg)
                     }}
                     onShowOnMap={(m) => {
                       // Replay the stored command (new id so the twin plays it again)

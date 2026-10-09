@@ -13,6 +13,15 @@ export function agentLabel(target) {
   return String(target || '').trim().replace(/_agent$/i, '').replace(/_+/g, ' ').trim().toUpperCase()
 }
 
+export function isFulfillmentMessage(message) {
+  if (!message || message.role !== 'assistant' || message.status === 'blocked' || message.routing?.status === 'blocked') return false
+  const meta = message.metadata || {}
+  const routing = message.routing || meta.routing || {}
+  const target = routing.target_agent || message.agent_used || meta.agent_used
+  return target === 'fulfillment_agent' || !!message.fulfillment_details || !!meta.fulfillment_details
+    || (routing.domain === 'FULFILLMENT' && !['inventory_agent', 'knowledge_agent'].includes(target))
+}
+
 export function skuDataFromItem(item) {
   if (!item) return null
   return {
@@ -73,6 +82,7 @@ export function toAssistantMessage(res, { text = '', id = nextId('a'), timestamp
       || 'Warehouse query coordinated and dispatched to specialist agent.',
     routing: res.routing || { target_agent: res.agent_used || 'coordinator' },
     inventory_details: invDetails,
+    fulfillment_details: res.fulfillment_details || null,
     skuData: skuDataFromItem(invDetails?.items?.[0]),
     uiCommand,
     orderData: hasOrder ? {
@@ -80,7 +90,7 @@ export function toAssistantMessage(res, { text = '', id = nextId('a'), timestamp
       status: 'In Transit — On Schedule',
       carrier: 'FreightExpress • Priority 1',
     } : null,
-    metadata: { agent_used: res.agent_used, audit: res.audit, inventory_details: invDetails },
+    metadata: { agent_used: res.agent_used, audit: res.audit, inventory_details: invDetails, fulfillment_details: res.fulfillment_details || null },
     timestamp,
     origin,
   }
@@ -110,6 +120,7 @@ export function storedToUiMessages(stored = [], senderName = 'Operator') {
       message: m.content,
       routing: meta.routing,
       inventory_details: meta.inventory_details,
+      fulfillment_details: meta.fulfillment_details,
       ui_command: meta.ui_command,
     }
     return toAssistantMessage(res, { text: lastUserText, id: `m-${m.id}`, timestamp, origin: 'stored' })

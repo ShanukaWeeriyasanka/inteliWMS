@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { buildPath, createThreadNavigator, parseLocation } from './threadRoute'
 import { chatReducer, DRAFT, initialChatState } from './chatState'
-import { agentLabel, storedToUiMessages, toAssistantMessage } from './messageMapping'
+import { agentLabel, storedToUiMessages, toAssistantMessage, isFulfillmentMessage } from './messageMapping'
 
 const T1 = '3f1c2b8e-1111-4a2b-9c3d-000000000001'
 const T2 = '3f1c2b8e-1111-4a2b-9c3d-000000000002'
@@ -42,6 +42,17 @@ function fakeWindow(start = '/') {
 }
 
 describe('threadRoute', () => {
+  it('restores a selected fulfillment reply and returns to the previous view', () => {
+    const win = fakeWindow(`/chat/${T1}?view=map`)
+    const nav = createThreadNavigator(win)
+    nav.push({ threadId: T1, view: 'fulfillment', messageIndex: 3 }, { fulfillmentPushed: true })
+    expect(win.location.search).toBe('?view=fulfillment&message=3')
+    expect(parseLocation(win.location)).toMatchObject({ threadId: T1, view: 'fulfillment', messageIndex: 3 })
+    expect(nav.pushedWith('fulfillmentPushed')).toBe(true)
+    nav.back()
+    expect(nav.current()).toMatchObject({ threadId: T1, view: 'map' })
+    expect(parseLocation({ search: '?view=fulfillment&message=-1' }).messageIndex).toBeNull()
+  })
   it('parses conversation urls and the map view', () => {
     expect(parseLocation({ pathname: '/' })).toEqual({ threadId: null, invalidThreadId: null, view: null })
     expect(parseLocation({ pathname: `/chat/${T1.toUpperCase()}`, search: '?view=map' }))
@@ -91,6 +102,24 @@ describe('threadRoute', () => {
     expect(nav.pushedWith('mapPushed')).toBe(true)
     nav.back()
     expect(nav.current().view).toBeNull()
+  })
+})
+
+describe('fulfillment dashboard messages', () => {
+  it('keeps order details and intent after conversation history reloads', () => {
+    const details = { order_id: 'ORD-1001', intent: 'ORDER_DELAY', success: true }
+    const response = { response: 'Order ORD-1001 is currently delayed.', agent_used: 'fulfillment_agent', fulfillment_details: details }
+    const live = toAssistantMessage(response)
+    const [stored] = storedToUiMessages([{ id: 2, role: 'assistant', content: response.response,
+      agent_used: response.agent_used, meta: { fulfillment_details: details } }])
+    expect(stored.fulfillment_details).toEqual(live.fulfillment_details)
+    expect(isFulfillmentMessage(stored)).toBe(true)
+  })
+
+  it('does not open fulfillment actions for user, inventory, or blocked responses', () => {
+    expect(isFulfillmentMessage({ role: 'user', content: 'ORD-1001' })).toBe(false)
+    expect(isFulfillmentMessage(toAssistantMessage({ agent_used: 'inventory_agent', response: 'ORD-1001' }))).toBe(false)
+    expect(isFulfillmentMessage({ role: 'assistant', status: 'blocked', fulfillment_details: {} })).toBe(false)
   })
 })
 

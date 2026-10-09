@@ -11,9 +11,15 @@ export const THREAD_ID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0
 const CHAT_PATH = /^\/chat\/([^/]+)\/?$/
 
 export function parseLocation({ pathname = '/', search = '' } = {}) {
-  const view = new URLSearchParams(search).get('view') === 'map' ? 'map' : null
+  const params = new URLSearchParams(search)
+  const requestedView = params.get('view')
+  const view = ['map', 'fulfillment'].includes(requestedView) ? requestedView : null
+  const rawIndex = params.get('message')
+  const selection = view === 'fulfillment'
+    ? { messageIndex: rawIndex !== null && /^\d+$/.test(rawIndex) && Number.isSafeInteger(Number(rawIndex)) ? Number(rawIndex) : null }
+    : {}
   const match = CHAT_PATH.exec(pathname)
-  if (!match) return { threadId: null, invalidThreadId: null, view }
+  if (!match) return { threadId: null, invalidThreadId: null, view, ...selection }
   let raw
   try {
     raw = decodeURIComponent(match[1])
@@ -21,12 +27,16 @@ export function parseLocation({ pathname = '/', search = '' } = {}) {
     raw = match[1]
   }
   return THREAD_ID_RE.test(raw)
-    ? { threadId: raw.toLowerCase(), invalidThreadId: null, view }
-    : { threadId: null, invalidThreadId: raw, view }
+    ? { threadId: raw.toLowerCase(), invalidThreadId: null, view, ...selection }
+    : { threadId: null, invalidThreadId: raw, view, ...selection }
 }
 
-export function buildPath({ threadId = null, view = null } = {}) {
+export function buildPath({ threadId = null, view = null, messageIndex = null } = {}) {
   const base = threadId ? `/chat/${encodeURIComponent(threadId)}` : '/'
+  if (view === 'fulfillment') {
+    const selection = Number.isSafeInteger(messageIndex) && messageIndex >= 0 ? `&message=${messageIndex}` : ''
+    return `${base}?view=fulfillment${selection}`
+  }
   return view === 'map' ? `${base}?view=map` : base
 }
 
