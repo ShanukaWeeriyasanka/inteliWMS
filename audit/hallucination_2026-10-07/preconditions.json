@@ -1,0 +1,172 @@
+{
+  "captured_at": "2026-10-07T11:45:33.452901+00:00",
+  "sqlite_tables_row_counts": {
+    "chat_messages": 260,
+    "chat_threads": 61,
+    "compliance_incidents": 0,
+    "conversation_logs": 0,
+    "inventory_transactions": 0,
+    "order_items": 3,
+    "orders": 3,
+    "products": 5,
+    "returns": 0,
+    "security_audit_logs": 17,
+    "shift_handoffs": 48,
+    "shipments": 0,
+    "users": 17,
+    "warehouse_locations": 0
+  },
+  "sqlite_columns": {
+    "products": [
+      "id",
+      "sku",
+      "name",
+      "category",
+      "quantity",
+      "safety_stock",
+      "reorder_point",
+      "reorder_quantity",
+      "reserved_quantity",
+      "unit",
+      "daily_burn_rate",
+      "lead_time_days",
+      "unit_price",
+      "weight_kg",
+      "location",
+      "aisle",
+      "shelf",
+      "tier",
+      "bay",
+      "occupancy_pct",
+      "temperature",
+      "is_hazardous",
+      "max_stack_tier",
+      "created_at",
+      "updated_at"
+    ],
+    "inventory_transactions": [
+      "id",
+      "product_id",
+      "sku",
+      "transaction_type",
+      "quantity_change",
+      "previous_quantity",
+      "new_quantity",
+      "source_location",
+      "destination_location",
+      "reference_id",
+      "performed_by",
+      "notes",
+      "created_at"
+    ],
+    "orders": [
+      "id",
+      "order_id",
+      "customer_name",
+      "customer_email",
+      "status",
+      "priority",
+      "total_amount",
+      "shipping_address",
+      "created_at",
+      "updated_at"
+    ]
+  },
+  "products_rows": {
+    "SKU-7788": {
+      "id": 2,
+      "sku": "SKU-7788",
+      "name": "Thermal Label Printer",
+      "category": "Dispatch Equipment",
+      "quantity": 15,
+      "safety_stock": 10,
+      "reorder_point": 20,
+      "reorder_quantity": 50,
+      "reserved_quantity": 2,
+      "unit": "units",
+      "daily_burn_rate": 6.2,
+      "lead_time_days": 6,
+      "unit_price": 310,
+      "weight_kg": 3.8,
+      "location": "Aisle 5, Shelf A1, Bay 02",
+      "aisle": 5,
+      "shelf": "A1",
+      "tier": "A",
+      "bay": "Bay 02",
+      "occupancy_pct": 45,
+      "temperature": "21.0 °C (Ambient)",
+      "is_hazardous": 0,
+      "max_stack_tier": 3,
+      "created_at": "2026-10-05 04:34:52",
+      "updated_at": "2026-10-05 04:34:52"
+    },
+    "SKU-4521": {
+      "id": 1,
+      "sku": "SKU-4521",
+      "name": "Wireless Barcode Scanner",
+      "category": "Electronics & Tech",
+      "quantity": 340,
+      "safety_stock": 30,
+      "reorder_point": 60,
+      "reorder_quantity": 150,
+      "reserved_quantity": 10,
+      "unit": "units",
+      "daily_burn_rate": 18.5,
+      "lead_time_days": 5,
+      "unit_price": 220,
+      "weight_kg": 0.45,
+      "location": "Aisle 12, Shelf B3, Bay 04",
+      "aisle": 12,
+      "shelf": "B3",
+      "tier": "B",
+      "bay": "Bay 04",
+      "occupancy_pct": 78.5,
+      "temperature": "20.2 °C (Climate Monitored)",
+      "is_hazardous": 0,
+      "max_stack_tier": 4,
+      "created_at": "2026-10-05 04:34:52",
+      "updated_at": "2026-10-05 04:34:52"
+    }
+  },
+  "products_matching_quantum_flux_capacitor": [],
+  "twin": {
+    "product_names": [
+      "USB-C Cable 1m",
+      "Power Adapter 65W",
+      "Hex Bolt M8 (box of 100)",
+      "Cordless Drill 18V",
+      "Shipping Box Medium",
+      "Packing Tape 48mm",
+      "Ceylon Black Tea 200g",
+      "Coconut Milk 400ml",
+      "Safety Gloves L",
+      "Safety Helmet White",
+      "LED Bulb 9W",
+      "Wood Screw 4x40 (box)"
+    ],
+    "name_hits": [],
+    "resolve_product": []
+  },
+  "seeded_daily_burn_rate_lines": [
+    {
+      "line": 63,
+      "text": "daily_burn_rate=18.5,"
+    },
+    {
+      "line": 87,
+      "text": "daily_burn_rate=6.2,"
+    },
+    {
+      "line": 111,
+      "text": "daily_burn_rate=32.0,"
+    },
+    {
+      "line": 135,
+      "text": "daily_burn_rate=45.0,"
+    },
+    {
+      "line": 159,
+      "text": "daily_burn_rate=4.5,"
+    }
+  ]
+}

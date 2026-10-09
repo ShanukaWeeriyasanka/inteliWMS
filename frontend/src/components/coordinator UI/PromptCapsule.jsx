@@ -16,6 +16,27 @@ import {
   X,
   Layers
 } from 'lucide-react'
+import {
+  CHAT_MAX_CHARS,
+  READ_LIMIT_BYTES,
+  TEXT_FILE_ACCEPT,
+  charCounterLabel,
+  composeQuery,
+  formatFileSize,
+  isReadableTextFile,
+  omittedFileNotice,
+  unsupportedFileNotice
+} from '../../chat/attachments'
+
+// Reads the start of a text file (enough for one message); `truncated` when the file is longer
+const readTextFile = (file) =>
+  new Promise((resolve, reject) => {
+    const truncated = file.size > READ_LIMIT_BYTES
+    const reader = new FileReader()
+    reader.onload = () => resolve({ content: String(reader.result || ''), truncated })
+    reader.onerror = () => reject(reader.error)
+    reader.readAsText(truncated ? file.slice(0, READ_LIMIT_BYTES) : file)
+  })
 
 export default function PromptCapsule({
   onSend,
@@ -27,7 +48,8 @@ export default function PromptCapsule({
 }) {
   const [inputVal, setInputVal] = useState('')
   const [isRecording, setIsRecording] = useState(false)
-  const [attachments, setAttachments] = useState([])
+  const [attachments, setAttachments] = useState([]) // readable text files: { name, size, content, truncated }
+  const [fileNotices, setFileNotices] = useState([]) // files that could not be attached / sent
   const [workMode, setWorkMode] = useState('floor') // 'floor' | 'cowork'
   const fileInputRef = useRef(null)
 
@@ -39,9 +61,13 @@ export default function PromptCapsule({
   }
 
   const handleSubmit = (overrideText) => {
-    const text = overrideText !== undefined ? overrideText : inputVal
+    const text = (overrideText !== undefined ? overrideText : inputVal).slice(0, CHAT_MAX_CHARS)
     if (!text.trim() && attachments.length === 0) return
     if (isLoading) return
+
+    // Files that no longer fit next to the typed text are named, not silently dropped
+    const { omitted } = composeQuery(text.trim(), attachments)
+    setFileNotices(omitted.map((name) => omittedFileNotice(name)))
 
     onSend({
       text: text.trim(),
@@ -54,15 +80,31 @@ export default function PromptCapsule({
     setAttachments([])
   }
 
-  const handleFileUpload = (e) => {
-    const files = Array.from(e.target.files || [])
+  const handleFileUpload = async (e) => {
+    const input = e.target
+    const files = Array.from(input.files || [])
     if (!files.length) return
-    const newItems = files.map((f) => ({
-      name: f.name,
-      size: (f.size / 1024).toFixed(1) + ' KB',
-      type: f.type.startsWith('image/') ? 'image' : 'doc'
-    }))
-    setAttachments([...attachments, ...newItems])
+    const notices = []
+    const added = []
+    for (const file of files) {
+      if (!isReadableTextFile(file)) {
+        notices.push(unsupportedFileNotice(file.name))
+        continue
+      }
+      try {
+        const { content, truncated } = await readTextFile(file)
+        if (!content.trim()) {
+          notices.push(`${file.name} is empty, so it was not attached.`)
+          continue
+        }
+        added.push({ name: file.name, size: formatFileSize(file.size), content, truncated })
+      } catch {
+        notices.push(`${file.name} could not be read.`)
+      }
+    }
+    input.value = '' // the same file can be picked again
+    setFileNotices(notices)
+    if (added.length) setAttachments((prev) => [...prev, ...added])
   }
 
   const removeAttachment = (idx) => {
@@ -93,7 +135,7 @@ export default function PromptCapsule({
           for (let i = 0; i < event.results.length; i++) {
             currentSessionText += event.results[i][0].transcript
           }
-          setInputVal(currentSessionText)
+          setInputVal(currentSessionText.slice(0, CHAT_MAX_CHARS))
         }
 
         recognition.onerror = (e) => {
@@ -186,6 +228,7 @@ export default function PromptCapsule({
           placeholder="Ask warehouse coordinator (e.g., 'Where is SKU-4521?' or 'Track order #4521')..."
           rows={inputVal.split('\n').length > 1 ? Math.min(inputVal.split('\n').length, 5) : 2}
           disabled={isLoading}
+          maxLength={CHAT_MAX_CHARS}
           className="capsule-textarea"
         />
 
@@ -198,13 +241,15 @@ export default function PromptCapsule({
               ref={fileInputRef}
               onChange={handleFileUpload}
               multiple
+              accept={TEXT_FILE_ACCEPT}
               className="hidden-file-input"
             />
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
               className="capsule-icon-btn"
-              title="Attach photo or inspection manifest"
+              title="Attach a text file (.txt, .csv, .eml, .md)"
+              aria-label="Attach a text file"
             >
               <Paperclip size={16} />
             </button>
@@ -221,6 +266,16 @@ export default function PromptCapsule({
           </div>
 
           <div className="controls-right">
+            {/* Character counter near the limit */}
+            {charCounterLabel(inputVal.length) && (
+              <span
+                className={`capsule-char-counter ${inputVal.length >= CHAT_MAX_CHARS ? 'at-limit' : ''}`}
+                aria-live="polite"
+              >
+                {charCounterLabel(inputVal.length)}
+              </span>
+            )}
+
             {/* Send Button */}
             <button
               type="button"
@@ -234,6 +289,25 @@ export default function PromptCapsule({
           </div>
         </div>
       </div>
+
+      {/* Files that could not be attached or sent */}
+      {fileNotices.length > 0 && (
+        <div className="capsule-file-notice" role="status">
+          <div className="capsule-file-notice-lines">
+            {fileNotices.map((notice, i) => (
+              <span key={i}>{notice}</span>
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={() => setFileNotices([])}
+            className="attachment-remove-btn"
+            aria-label="Dismiss notice"
+          >
+            <X size={12} />
+          </button>
+        </div>
+      )}
 
       {/* Clean & Independent Suggestion Chips */}
       <div className="prompt-quick-chips-row">

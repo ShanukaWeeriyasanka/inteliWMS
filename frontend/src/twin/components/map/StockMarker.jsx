@@ -14,8 +14,9 @@ export default function StockMarker({ marker, onClick, hoverProps }) {
       {tone === 'selected' && <circle className="twin-marker-pulse" r={1.5} />}
       <rect className="twin-marker-body" x={-0.72} y={-0.72} width={1.44} height={1.44} rx={0.36} filter="url(#twin-shadow)" />
       <path className="twin-marker-glyph" d={BOX} />
+      {/* the count sits beside the icon, level with it — above-right it ran into the rack name */}
       {label != null && (
-        <MapText className="twin-marker-label" x={0.95} y={-0.95} size={0.6} anchor="start">{label}</MapText>
+        <MapText className="twin-marker-label" x={0.95} y={0.02} size={0.6} anchor="start">{label}</MapText>
       )}
       {alert && (
         <g className="twin-alert" transform="translate(0.72 -0.72)">

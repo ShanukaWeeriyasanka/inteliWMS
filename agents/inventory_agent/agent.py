@@ -24,15 +24,18 @@ from typing import Any, Dict, List, Optional
 from agents.inventory_agent import responder as R
 from agents.inventory_agent import tool_contracts as C
 from agents.inventory_agent.config import inventory_config
+from agents.inventory_agent.document_parser import summarise as summarise_document
 from agents.inventory_agent.intents import (
     TWIN_SUB_INTENTS,
     detect_sub_intent_with_rule,
     extract_entities,
     meaningful_terms,
+    requested_quantity,
     resolve_follow_up,
 )
 from agents.inventory_agent.schemas import InventoryQueryRequest, InventoryQueryResponse, StockItemInfo
 from agents.inventory_agent.warehouse_map import get_full_warehouse_layout
+from security.rbac import rbac_manager
 from utils.async_bridge import run_sync
 from utils.decisions import RULE, record_decision
 from utils.logger import StructuredLogger
@@ -47,6 +50,10 @@ _MAX_SKUS_PER_ANSWER = 3
 _PLACE_WORDS = {"rack", "crate", "cold", "freezer", "floor", "shelf", "bin", "zone", "aisle", "storage", "level",
                 "bay", "room", "area", "section", "building", "site", "total", "everything", "altogether", "overall",
                 "place", "map", "ground", "first", "second", "third", "top", "basement"}
+# Words the twin reads as a kind of rack ("pallet racks", "the cabinets"); a product name may share them
+# ("Heavy Duty Pallet Wrap"), so a question also naming other product words is a product question
+_RACK_KIND_WORDS = _PLACE_WORDS | {"pallet", "cabinet", "fridge", "shelve", "shelving", "unit", "grid", "storage"}
+_MAX_TRANSFER_QUANTITY = 100_000
 
 
 class _ToolFailed(Exception):
@@ -57,14 +64,15 @@ class _ToolFailed(Exception):
 
 @dataclass
 class _Ref:
-    """Which product(s) the question is about."""
+    """Which product(s) — or, after a map clarification, which place — the question is about."""
     skus: List[str] = field(default_factory=list)
     product_ids: List[str] = field(default_factory=list)
+    location_ids: List[str] = field(default_factory=list)
     assumed: bool = False  # carried over from earlier in the conversation
 
     @property
     def any(self) -> bool:
-        return bool(self.skus or self.product_ids)
+        return bool(self.skus or self.product_ids or self.location_ids)
 
 
 class _Turn:
@@ -88,6 +96,8 @@ class _Turn:
         self.assumed_label: Optional[str] = None
         # How the product was identified (recorded as the inventory.product_ref decision)
         self.ref_source: str = "not_required"
+        # After a pick from a clarification: the question the options were offered for
+        self.pending_query: Optional[str] = None
 
     async def call(self, tool: str, **arguments: Any):
         """Tool call that must succeed (a failure ends the turn with an honest error)."""
@@ -110,7 +120,9 @@ class _Turn:
             agent=AGENT_NAME, query=self.query, sub_intent=sub_intent or self.sub_intent, response=text,
             source=source, items=items, needs_reorder=needs_reorder, outcome=outcome,
             context_update={"skus": skus or [], "product_ids": product_ids or [],
-                            "last_sub_intent": self.sub_intent, "pending_clarification": pending},
+                            "last_sub_intent": self.sub_intent, "pending_clarification": pending,
+                            # a pick ("2") re-asks this question for the chosen option
+                            "pending_query": self.query[:300] if pending else None},
             clarification_candidates=pending or [],
             execution_time_ms=round((time.perf_counter() - self.start) * 1000, 2),
             **attachments,
@@ -169,6 +181,12 @@ class InventoryAgent:
     async def _answer(self, turn: _Turn) -> InventoryQueryResponse:
         sub = turn.sub_intent
 
+        # Every inventory answer needs the query_location permission (all warehouse roles have it)
+        if not rbac_manager.check_permission(turn.request.user_role, "query_location"):
+            turn.ref_source = "forbidden_role"
+            return turn.respond(R.FAILURE_TEXT["unauthorized"], source="error", outcome="error",
+                                error_code="FORBIDDEN_ROLE")
+
         if sub == "document_parser":
             return await self._document(turn)
         if sub == "equipment_health":
@@ -180,14 +198,22 @@ class InventoryAgent:
             # The caller named a SKU we can't look up (e.g. a malformed code) — never substitute another
             turn.ref_source = "invalid_sku_hint"
             return turn.respond(R.not_found(turn.raw_sku_hint), source="database", outcome="not_found")
+        if turn.entities.invalid_skus and not turn.entities.any:
+            # "SKU-4521000": SKU-shaped but no such code can exist (SKUs have 3–6 digits)
+            turn.ref_source = "invalid_sku"
+            return turn.respond(R.not_found(turn.entities.invalid_skus[0]), source="database", outcome="not_found")
 
         ref = self._explicit_or_follow_up(turn)
 
         # Warehouse Digital Twin first for map questions (legacy SKU-xxxx lookups skip it)
-        if sub in TWIN_SUB_INTENTS and not ref.skus and not turn.raw_sku_hint:
+        if (sub in TWIN_SUB_INTENTS or ref.location_ids) and not ref.skus and not turn.raw_sku_hint:
             twin = await self._twin(turn, ref)
             if twin is not None:
                 return twin
+        if ref.location_ids:
+            # A place picked from a map clarification, and the map could not answer for it
+            return turn.respond(R.map_unavailable(), source="digital_twin", outcome="error",
+                                error_code="TWIN_UNAVAILABLE")
 
         if sub == "anomaly_watcher":
             return await self._anomalies(turn, ref)
@@ -229,7 +255,7 @@ class InventoryAgent:
             return await self._transfer(turn, ref.skus[0])
         if sub == "reorder_predictor":
             return await self._forecast(turn, ref.skus[0])
-        return await self._stock(turn, ref.skus[:_MAX_SKUS_PER_ANSWER])
+        return await self._stock(turn, ref.skus)
 
     # ── Product reference ───────────────────────────────────────────────────
 
@@ -245,8 +271,10 @@ class InventoryAgent:
         if fu.picked_from_clarification or (fu.assumed and not meaningful_terms(turn.query)):
             if fu.assumed:
                 turn.assumed_label = (fu.skus or fu.product_ids)[0]
+            if fu.picked_from_clarification:
+                turn.pending_query = fu.pending_query
             turn.ref_source = "clarification_pick" if fu.picked_from_clarification else "pointer_follow_up"
-            return _Ref(skus=fu.skus, product_ids=fu.product_ids, assumed=fu.assumed)
+            return _Ref(skus=fu.skus, product_ids=fu.product_ids, location_ids=fu.location_ids, assumed=fu.assumed)
         return _Ref()
 
     async def _search(self, turn: _Turn):
@@ -271,6 +299,7 @@ class InventoryAgent:
         items: List[StockItemInfo] = []
         parts: List[str] = []
         missing: List[str] = []
+        skus, left_out = skus[:_MAX_SKUS_PER_ANSWER], skus[_MAX_SKUS_PER_ANSWER:]
         for sku in skus:
             r = await turn.call(C.GET_PRODUCT_STOCK, sku=sku)
             if r.status.value == "not_found":
@@ -283,7 +312,8 @@ class InventoryAgent:
             parts.append(card)
         parts += [R.not_found(s) for s in missing]
         outcome = "answered" if items else "not_found"
-        return turn.respond("\n\n".join(parts), source="database", items=items, outcome=outcome,
+        text = "\n\n".join(parts) + (R.skus_left_out(left_out, _MAX_SKUS_PER_ANSWER) if left_out else "")
+        return turn.respond(text, source="database", items=items, outcome=outcome,
                             skus=[i.sku for i in items] or missing)
 
     async def _movements(self, turn: _Turn, ref: _Ref) -> InventoryQueryResponse:
@@ -310,13 +340,18 @@ class InventoryAgent:
                             prediction_result=pred, needs_reorder=pred.urgency in ("CRITICAL", "HIGH"))
 
     async def _transfer(self, turn: _Turn, sku: str) -> InventoryQueryResponse:
-        r = await turn.call(C.EVALUATE_TRANSFER, sku=sku)
+        quantity = requested_quantity(turn.query)
+        if quantity is not None and not 1 <= quantity <= _MAX_TRANSFER_QUANTITY:
+            return turn.respond(R.invalid_transfer_quantity(quantity, _MAX_TRANSFER_QUANTITY),
+                                source="transfer_advisor", outcome="invalid_request", skus=[sku])
+        args = {"sku": sku, **({"needed_quantity": quantity} if quantity else {})}
+        r = await turn.call(C.EVALUATE_TRANSFER, **args)
         if r.data.status == "not_found":
             return turn.respond(R.not_found(sku), source="transfer_advisor", outcome="not_found", skus=[sku])
         stock = await turn.call(C.GET_PRODUCT_STOCK, sku=sku)
-        items = [stock.data.item] if stock.data.item else []
-        return turn.respond(R.transfer(r.data), source="transfer_advisor", items=items, skus=[sku],
-                            transfer_result=r.data.recommendation, needs_reorder=False)
+        item = stock.data.item
+        return turn.respond(R.transfer(r.data, item), source="transfer_advisor", items=[item] if item else [],
+                            skus=[sku], transfer_result=r.data.recommendation, needs_reorder=False)
 
     async def _anomalies(self, turn: _Turn, ref: _Ref) -> InventoryQueryResponse:
         sku = ref.skus[0] if ref.skus else None
@@ -349,6 +384,17 @@ class InventoryAgent:
             stock = await turn.tools.call(C.GET_PRODUCT_STOCK, {"sku": sku})
             if not stock.failed and stock.data.item:
                 items = [stock.data.item]
+            elif not stock.failed:
+                # A SKU that isn't in the inventory: never draft a restock request for it
+                doc.problems.append(f"{sku} isn't in the inventory records")
+                doc.draft_order = None
+        if doc.draft_order and items:
+            doc.draft_order.item_name = items[0].name  # the catalogue's name, not the parser's guess
+        doc.raw_summary = summarise_document(
+            doc.document_type, doc.supplier_name or "an unnamed supplier",
+            items[0].name if items else (doc.draft_order.item_name if doc.draft_order else None),
+            sku, doc.extracted_quantity, doc.quantity_unit, doc.extracted_delivery_date, doc.po_reference,
+            doc.draft_order, doc.problems)
         return turn.respond(doc.raw_summary, source="document_parser", items=items, skus=[sku] if sku else [],
                             document_result=doc, needs_reorder=False)
 
@@ -357,10 +403,27 @@ class InventoryAgent:
         """Does the question name something other than a place ("rack 2", "cold storage", "floor 3")?"""
         return any(t not in _PLACE_WORDS and not t.isdigit() for t in meaningful_terms(query))
 
+    async def _names_catalogue_product(self, turn: _Turn) -> bool:
+        """
+        Does the question name a product of the SKU catalogue by words that aren't place words?
+        "where is the pallet wrap?" → yes (Heavy Duty Pallet Wrap); "where are the pallet racks?" → no.
+        """
+        if not [t for t in meaningful_terms(turn.query) if t not in _RACK_KIND_WORDS and not t.isdigit()]:
+            return False
+        r = await turn.tools.call(C.SEARCH_PRODUCTS, {"text": turn.query[:300], "limit": 5})
+        if r.failed or r.status.value not in ("ok", "ambiguous"):
+            return False
+        return any(term not in _RACK_KIND_WORDS for term in r.data.matched_terms)
+
     async def _twin(self, turn: _Turn, ref: _Ref) -> Optional[InventoryQueryResponse]:
         """Answer on the Digital Twin map; None lets the classic lookup try."""
         query = turn.query
-        if ref.product_ids and ref.product_ids[0] not in query.upper():
+        if ref.location_ids:
+            # A place picked from a map clarification: re-ask the original question for exactly that place
+            query = f"{turn.pending_query or 'where is'} {ref.location_ids[0]}"
+        elif ref.product_ids and turn.pending_query:
+            query = f"{turn.pending_query} {ref.product_ids[0]}"  # a product picked from a map clarification
+        elif ref.product_ids and ref.product_ids[0] not in query.upper():
             query = f"{query} {ref.product_ids[0]}"  # follow-up: name the product the user pointed back to
         r = await turn.tools.call(C.TWIN_ANSWER, {"query": query[:2000]})
         if r.failed:
@@ -378,7 +441,19 @@ class InventoryAgent:
             # ("how many barcode scanners?" → "the warehouse holds 580 units"): not an answer.
             record_decision("inventory.twin", "rejected_product_not_resolved", RULE, "twin.rejected_place_total")
             return None
+        place_answer = (action in ("show_location", "navigate", "count") and not command.get("product_ids")) or (
+            action == "clarify" and not any(c.get("product_id") for c in command.get("candidates", [])))
+        if place_answer and not ref.location_ids and await self._names_catalogue_product(turn):
+            # The twin read a product word as a kind of rack ("pallet wrap" → every pallet rack):
+            # the SKU catalogue names that product, so answer about the product instead
+            record_decision("inventory.twin", "rejected_catalogue_product", RULE, "twin.rejected_catalogue_product")
+            return None
         record_decision("inventory.twin", "accepted", RULE, "twin.accepted", action=action)
+        if action == "show_alerts" and set(command.get("alert_types") or []) & {"low_stock", "out_of_stock"}:
+            # The map tracks its own products; the SKU catalogue's low items belong in the same answer
+            low = await turn.tools.call(C.LIST_LOW_STOCK, {"limit": 50})
+            if not low.failed:
+                text += "\n\n" + R.low_stock_section(low.data.items, low.data.total_checked)
         command_id = None
         if turn.session_id:
             pub = await turn.tools.call(C.PUBLISH_MAP_COMMAND, {
@@ -393,8 +468,9 @@ class InventoryAgent:
         outcome = "answered"
         if action == "clarify":
             outcome = "clarification_needed"
-            pending = [{"label": c.get("label", ""), "product_id": c["product_id"]}
-                       for c in command.get("candidates", []) if c.get("product_id")] or None
+            # Products and places alike, so "2" picks the second option whatever it is
+            pending = [{"label": c.get("label", ""), **{k: c[k] for k in ("product_id", "location_id") if c.get(k)}}
+                       for c in command.get("candidates", []) if c.get("product_id") or c.get("location_id")] or None
         product_ids = command.get("product_ids") or ref.product_ids
         return turn.respond(text, source="digital_twin", sub_intent=f"twin_{action}", outcome=outcome,
                             product_ids=product_ids, pending=pending, needs_reorder=action == "show_alerts",
@@ -435,12 +511,29 @@ def _request(query: str, sku: Optional[str], user_role: str, session_id: Optiona
                                  context={"session_id": session_id, "conversation": conversation or {}})
 
 
+def _blank_question(query: Optional[str], sku: Optional[str]) -> Optional[Dict[str, Any]]:
+    """An empty question (no SKU either) is answered by asking for a product, not by raising."""
+    if (query or "").strip() or (sku or "").strip():
+        return None
+    return _to_dict(InventoryQueryResponse(
+        agent=AGENT_NAME, query="", sub_intent="stock_check", response=R.needs_product("stock_check"),
+        source="database", outcome="needs_product",
+        context_update={"skus": [], "product_ids": [], "last_sub_intent": "stock_check",
+                        "pending_clarification": None, "pending_query": None},
+        execution_time_ms=0.0,
+    ))
+
+
 async def handle_inventory_query_async(
     query: str, *, sku: Optional[str] = None, user_role: str = "staff", session_id: Optional[str] = None,
     conversation: Optional[Dict[str, Any]] = None, tools=None,
 ) -> Dict[str, Any]:
     """Async entry point used by the coordinator's dispatcher."""
-    resp = await inventory_agent.handle_query_async(_request(query, sku, user_role, session_id, conversation), tools)
+    blank = _blank_question(query, sku)
+    if blank is not None:
+        return blank
+    resp = await inventory_agent.handle_query_async(
+        _request(query or sku, sku, user_role, session_id, conversation), tools)
     return _to_dict(resp)
 
 
@@ -449,7 +542,10 @@ def handle_inventory_query(
     session_id: Optional[str] = None, conversation: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """Synchronous entry point (scripts, tests, the legacy coordinator client). `db` is unused."""
-    req = _request(query, sku, user_role, session_id, conversation)
+    blank = _blank_question(query, sku)
+    if blank is not None:
+        return blank
+    req = _request((query or "").strip() or sku, sku, user_role, session_id, conversation)
     out = _to_dict(run_sync(lambda: inventory_agent.handle_query_async(req)))
     out["warehouse_layout"] = get_full_warehouse_layout()
     return out

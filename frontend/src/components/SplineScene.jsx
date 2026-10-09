@@ -70,7 +70,9 @@ export default function SplineScene({ isChatActive = false, className = '' }) {
       attachObserver()
     }
 
+    // <spline-viewer> announces a finished scene with "load-complete" ("load" kept for older viewers)
     viewer.addEventListener('load', handleLoad)
+    viewer.addEventListener('load-complete', handleLoad)
 
     // Check shadowRoot periodically during initialization and scene loading
     const interval = setInterval(() => {
@@ -90,12 +92,28 @@ export default function SplineScene({ isChatActive = false, className = '' }) {
 
     return () => {
       viewer.removeEventListener('load', handleLoad)
+      viewer.removeEventListener('load-complete', handleLoad)
       clearInterval(interval)
       clearTimeout(timer)
       clearTimeout(stopIntervalTimer)
       if (observer) {
         observer.disconnect()
       }
+
+      // <spline-viewer> does not stop its WebGL app when removed from the page: the render loop
+      // keeps drawing into a detached 0x0 canvas ("Framebuffer is incomplete" on every frame).
+      // Once the element is really gone (not a StrictMode re-run), dispose the scene via the
+      // viewer's own unload() — now, or as soon as a load still in flight completes.
+      const releaseIfDetached = () => {
+        if (viewer.isConnected) return
+        try {
+          viewer.unload?.()
+        } catch (e) {
+          // the third-party viewer may already be torn down
+        }
+      }
+      setTimeout(releaseIfDetached, 0)
+      viewer.addEventListener('load-complete', releaseIfDetached, { once: true })
     }
   }, [])
 

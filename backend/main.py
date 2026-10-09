@@ -6,8 +6,8 @@ Orchestrates:
 - Task 3: API Gateway & MCP Delegation
 """
 from contextlib import asynccontextmanager
-from typing import Optional
-from fastapi import FastAPI, HTTPException, Header
+from typing import Any, Dict, Optional
+from fastapi import FastAPI, HTTPException, Header, Query
 from fastapi.middleware.cors import CORSMiddleware
 
 from config.settings import settings
@@ -15,7 +15,7 @@ from utils.logger import StructuredLogger
 from security.sanitizer import sanitize_input, sanitizer
 from security.jwt_handler import jwt_handler
 from security.rbac import rbac_manager, PERMISSION_MATRIX
-from security.auth import auth_service
+from security.auth import auth_service, ROLE_RANK, SELF_REGISTER_ROLES, SELF_REGISTER_DENIED
 from security.audit_logger import audit_logger
 from backend.routes.query import router as query_router
 from backend.routes.metrics import router as metrics_router
@@ -85,6 +85,31 @@ def get_current_user(authorization: Optional[str] = Header(None)) -> Optional[di
     except Exception:
         return None
 
+
+def require_user(authorization: Optional[str]) -> Dict[str, Any]:
+    """Token claims of the signed-in caller, or 401."""
+    user = get_current_user(authorization)
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    return user
+
+
+def _text_field(payload: Dict[str, Any], key: str, default: str = "") -> str:
+    """A login/register field that must be text (a number, list or null is a client error, not a 500)."""
+    value = payload.get(key, default)
+    if value is None:
+        value = default
+    if not isinstance(value, str):
+        raise HTTPException(status_code=400, detail=f"'{key}' must be text")
+    return value.strip()
+
+
+def _role_field(payload: Dict[str, Any], default: Optional[str]) -> Optional[str]:
+    role = _text_field(payload, "role", default or "").lower() or default
+    if role is not None and role not in ROLE_RANK:
+        raise HTTPException(status_code=400, detail=f"Unknown role '{role}'")
+    return role
+
 # ==================== Health Monitor ====================
 
 @app.get("/health")
@@ -102,10 +127,10 @@ def health_check():
 
 @app.post("/auth/login")
 def login_endpoint(payload: dict):
-    username = payload.get("username", "").strip()
-    password = payload.get("password", "").strip()
-    role = payload.get("role")
-    
+    username = _text_field(payload, "username")
+    password = _text_field(payload, "password")
+    role = _role_field(payload, default=None)
+
     success, token, user_info, message = auth_service.authenticate(
         username=username,
         password=password,
@@ -124,11 +149,13 @@ def login_endpoint(payload: dict):
 
 @app.post("/auth/register")
 def register_endpoint(payload: dict):
-    username = payload.get("username", "").strip()
-    password = payload.get("password", "").strip()
-    role = payload.get("role", "staff")
-    name = payload.get("name")
-    
+    username = _text_field(payload, "username")
+    password = _text_field(payload, "password")
+    role = _role_field(payload, default="staff")
+    name = _text_field(payload, "name") or None
+    if role not in SELF_REGISTER_ROLES:
+        raise HTTPException(status_code=403, detail=SELF_REGISTER_DENIED)
+
     success, token, user_info, message = auth_service.register(
         username=username,
         password=password,
@@ -151,14 +178,18 @@ def get_profile(authorization: Optional[str] = Header(None)):
     user = get_current_user(authorization)
     if not user:
         raise HTTPException(status_code=401, detail="Invalid or missing authentication token")
-    
+
+    # The role the token was issued for (a user may sign in with a lower role than their own)
     role = user.get("role", "staff")
-    permissions = rbac_manager.get_permissions(role)
-    
+    profile = auth_service.get_user_profile(str(user.get("user_id") or "")) or {}
     return {
         "user_id": user.get("user_id"),
+        "db_id": profile.get("db_id"),
+        "username": profile.get("username"),
+        "name": profile.get("name"),
+        "email": profile.get("email"),
         "role": role,
-        "permissions": permissions,
+        "permissions": rbac_manager.get_permissions(role),
         "exp": user.get("exp"),
         "iat": user.get("iat")
     }
@@ -166,39 +197,36 @@ def get_profile(authorization: Optional[str] = Header(None)):
 @app.post("/security/execute-action")
 def execute_role_action(payload: dict, authorization: Optional[str] = Header(None)):
     action = payload.get("action", "")
-    user = get_current_user(authorization)
-    if not user:
-        raise HTTPException(status_code=401, detail="Authentication required")
-        
+    user = require_user(authorization)
+
     role = user.get("role", "staff")
     user_id = user.get("user_id", "unknown")
-    
+
     try:
         rbac_manager.require_permission(role, action, user_id=user_id)
-        return {
-            "status": "allowed",
-            "action": action,
-            "role": role,
-            "message": f"Success: Action '{action}' authorized for role '{role}'."
-        }
     except PermissionError as e:
-        return {
-            "status": "denied",
-            "action": action,
-            "role": role,
-            "message": str(e)
-        }
+        raise HTTPException(status_code=403, detail=str(e))
+    return {
+        "status": "allowed",
+        "action": action,
+        "role": role,
+        "message": f"Success: Action '{action}' authorized for role '{role}'."
+    }
 
 @app.get("/security/rbac-matrix")
-def get_rbac_matrix():
+def get_rbac_matrix(authorization: Optional[str] = Header(None)):
+    require_user(authorization)
     return {
         "status": "success",
         "matrix": PERMISSION_MATRIX
     }
 
 @app.post("/security/test-injection")
-def test_injection(payload: dict):
+def test_injection(payload: dict, authorization: Optional[str] = Header(None)):
+    require_user(authorization)
     text = payload.get("text", "")
+    if not isinstance(text, str):
+        raise HTTPException(status_code=400, detail="'text' must be text")
     is_injection, reason = sanitizer.is_injection_attempt(text)
     cleaned, is_safe = sanitizer.sanitize_input(text)
     
@@ -211,7 +239,8 @@ def test_injection(payload: dict):
     }
 
 @app.post("/security/test-permission")
-def test_permission(payload: dict):
+def test_permission(payload: dict, authorization: Optional[str] = Header(None)):
+    require_user(authorization)
     role = payload.get("role", "staff")
     action = payload.get("action", "")
     is_allowed = rbac_manager.check_permission(role, action)
@@ -225,7 +254,14 @@ def test_permission(payload: dict):
     }
 
 @app.get("/security/audit-logs")
-def get_audit_logs(limit: int = 50, event_type: Optional[str] = None):
+def get_audit_logs(limit: int = Query(50, ge=1, le=500), event_type: Optional[str] = None,
+                   authorization: Optional[str] = Header(None)):
+    # Audit entries name users and their failed sign-ins: managers and admins only
+    user = require_user(authorization)
+    try:
+        rbac_manager.require_permission(user.get("role", "staff"), "view_audit_logs", user_id=user.get("user_id"))
+    except PermissionError:
+        raise HTTPException(status_code=403, detail="The security audit log is available to managers and admins.")
     return {
         "status": "success",
         "stats": audit_logger.get_summary_stats(),

@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest'
 import { parseLocationId, parentId, isWithin, shortBinLabel, isProductId, isNavNodeId } from './ids'
 import { splitRouteByFloor, routeSummary, pointAlong } from './route'
 import { validateCommand, commandIds } from './commands'
-import { fitView, focusView, racksBox, scaleBar, zoomAt } from './viewport'
+import { fitView, focusView, frameView, growBox, racksBox, scaleBar, unionBox, zoomAt } from './viewport'
+import { rackNamePlacement, ringRuns } from '../components/map/RackShape'
+import { zoneLabelY } from '../components/map/FloorMap'
 import { matchesProduct, productArt, stockGauge, stockStatus, sumBy, timeAgo } from './products'
 import uiCommandSchema from '../../../../database/twin/ui_command.schema.json'
 
@@ -38,10 +40,92 @@ describe('viewport maths', () => {
     expect((centre - covered.x) / covered.w).toBeCloseTo(0.3) // middle of the visible 60 %
   })
 
+  it('frames a box in the part of the map that floating UI leaves visible', () => {
+    const size = { w: 1000, h: 600 }
+    const box = { x: 40, y: 20, w: 6, h: 4 } // centre (43, 22)
+    const insets = { right: 372, bottom: 170, top: 12, left: 12 }
+    const v = frameView(box, size, { insets, scale: 1.6, minVisibleW: 18 })
+    const mpp = v.w / size.w
+    const toPx = (mx, my) => ({ x: (mx - v.x) / mpp, y: (my - v.y) / mpp })
+    // the box centre sits in the middle of the uncovered rectangle (12..628 × 12..430)
+    const c = toPx(43, 22)
+    expect(c.x).toBeCloseTo((12 + 628) / 2)
+    expect(c.y).toBeCloseTo((12 + 430) / 2)
+    // and the whole box is inside it, clear of the panel and the agent reply
+    const tl = toPx(box.x, box.y)
+    const br = toPx(box.x + box.w, box.y + box.h)
+    expect(tl.x).toBeGreaterThan(12)
+    expect(br.x).toBeLessThan(628)
+    expect(tl.y).toBeGreaterThan(12)
+    expect(br.y).toBeLessThan(430)
+    // at least 18 m stay visible for context
+    expect(616 * mpp).toBeGreaterThanOrEqual(18 - 1e-9)
+    expect(v.w / v.h).toBeCloseTo(size.w / size.h)
+  })
+
+  it('never lets floating UI take more than three quarters of the map when framing', () => {
+    const v = frameView({ x: 0, y: 0, w: 10, h: 10 }, { w: 400, h: 400 }, { insets: { bottom: 380 } })
+    const mpp = v.w / 400
+    expect((5 - v.y) / mpp).toBeCloseTo(50) // centred in the top 100 px that stay visible
+  })
+
+  it('grows and unions boxes', () => {
+    expect(growBox({ x: 1, y: 1, w: 2, h: 2 }, { left: 1, top: 0.5, bottom: 1 })).toEqual({ x: 0, y: 0.5, w: 3, h: 3.5 })
+    expect(unionBox([{ x: 0, y: 0, w: 1, h: 1 }, null, { x: 3, y: -1, w: 1, h: 1 }])).toEqual({ x: 0, y: -1, w: 4, h: 2 })
+    expect(unionBox([])).toBeNull()
+  })
+
   it('picks a round scale-bar length', () => {
     expect(scaleBar(0.1).metres).toBe(5)
     expect(scaleBar(0.05).metres).toBe(5)
     expect(scaleBar(0.2).metres).toBe(10)
+  })
+})
+
+describe('zone names', () => {
+  const zone = { id: 'Z1', y: 10 }
+  it('stay in the zone corner when racks start lower down', () => {
+    expect(zoneLabelY(zone, [{ zone_id: 'Z1', y: 13 }])).toBeCloseTo(10.75)
+  })
+  it('lift above a rack that starts near the zone edge, clear of its highlight outline', () => {
+    const y = zoneLabelY(zone, [{ zone_id: 'Z1', y: 10.8 }, { zone_id: 'Z2', y: 9 }])
+    expect(y + 0.3).toBeLessThanOrEqual(10.8 - 0.45) // label bottom above the outline's top edge
+  })
+})
+
+describe('rack names', () => {
+  const rack = { x: 10, y: 5, width_m: 8, depth_m: 6 } // bottom edge at y = 11
+  it('go under the rack, below the highlight outline when there is one', () => {
+    expect(rackNamePlacement(rack, 'normal', null)).toEqual({ x: 14, y: 11.6, anchor: 'middle' })
+    expect(rackNamePlacement(rack, 'selected', null).y).toBeCloseTo(11.95)
+    // a marker above the rack (aisle on the other side) leaves the name where it was
+    expect(rackNamePlacement(rack, 'selected', { x: 14, y: 3 }).anchor).toBe('middle')
+  })
+  it('go beside the stock marker when the marker sits right under the rack', () => {
+    const p = rackNamePlacement(rack, 'selected', { x: 14, y: 13 })
+    expect(p).toEqual({ x: 13, y: 13.02, anchor: 'end' }) // left of the 1.44 m icon, level with it
+  })
+})
+
+describe('target bin outlines', () => {
+  const geo = { y: 1, cw: 1, ch: 0.8, gap: 0.11 }
+  const overlaps = (a, b) => a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height
+  const cell = (col) => ({ col, x: 0.2 + (col - 1) * (geo.cw + geo.gap) })
+
+  it('draws one outline around neighbouring target bins', () => {
+    const runs = ringRuns([cell(3), cell(2)], geo)
+    expect(runs).toHaveLength(1)
+    expect(runs[0].x).toBeLessThan(cell(2).x)
+    expect(runs[0].x + runs[0].width).toBeGreaterThan(cell(3).x + geo.cw)
+  })
+
+  it('keeps outlines of separate bins and of adjacent shelves from crossing', () => {
+    const [a, b] = ringRuns([cell(1), cell(3)], geo)
+    expect(overlaps(a, b)).toBe(false)
+    // the shelf below starts one cell height + gap lower; with the ring stroke the outlines still don't meet
+    const below = ringRuns([cell(1)], { ...geo, y: geo.y + geo.ch + geo.gap })[0]
+    const stroke = 0.09
+    expect(a.y + a.height + stroke / 2).toBeLessThan(below.y - stroke / 2 + 1e-9)
   })
 })
 

@@ -1,6 +1,8 @@
-import React, { useState, useEffect, useRef, useReducer } from 'react'
+import React, { useState, useEffect, useRef, useReducer, useCallback } from 'react'
 import axios from 'axios'
 import { api } from './services/api'
+import { apiErrorMessage } from './services/errors'
+import { composeQuery } from './chat/attachments'
 import { chatReducer, initialChatState, DRAFT } from './chat/chatState'
 import { storedToUiMessages, toAssistantMessage, toThreadSummary, toUserMessage } from './chat/messageMapping'
 import { threadNavigator, useThreadRoute } from './chat/useThreadRoute'
@@ -53,15 +55,41 @@ const newTwinSessionId = () => {
   return getTwinSessionId()
 }
 
+// Only managers and admins may read the security audit stream (decided by the server-issued role)
+const canViewAuditLog = (role) => role === 'manager' || role === 'admin'
+
+// Width of the centre stage -> layout mode for the floating topbar items
+const stageModeFor = (width) => (width < 560 ? 'is-narrow is-compact' : width < 1180 ? 'is-narrow' : '')
+
+// Up to this width the expanded sidebar floats over the page (index.css, MOBILE RESPONSIVENESS)
+const OVERLAY_SIDEBAR_QUERY = '(max-width: 1024px)'
+const isOverlaySidebar = () => typeof window !== 'undefined' && window.matchMedia?.(OVERLAY_SIDEBAR_QUERY).matches
+
+function useOverlaySidebar() {
+  const [overlay, setOverlay] = useState(isOverlaySidebar)
+  useEffect(() => {
+    const mq = window.matchMedia?.(OVERLAY_SIDEBAR_QUERY)
+    if (!mq) return undefined
+    const onChange = () => setOverlay(mq.matches)
+    mq.addEventListener('change', onChange)
+    return () => mq.removeEventListener('change', onChange)
+  }, [])
+  return overlay
+}
+
 export default function App() {
   // Session & Authentication
   const [token, setToken] = useState(localStorage.getItem('token') || '')
   const [currentUser, setCurrentUser] = useState(null)
+  // Role the server issued the token for ("Switch Simulated Role" only changes currentUser.role)
+  const [authRole, setAuthRole] = useState(null)
   const [authError, setAuthError] = useState('')
   const [authLoading, setAuthLoading] = useState(false)
 
   // Layout & Navigation State
-  const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth >= 1024)
+  // Up to 1024px the sidebar overlays the page (index.css), so it starts collapsed there
+  const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth > 1024)
+  const overlaySidebar = useOverlaySidebar()
   const [artifactOpen, setArtifactOpen] = useState(false)
   const [artifactTab, setArtifactTab] = useState('telemetry')
   const [selectedArtifactMessage, setSelectedArtifactMessage] = useState(null)
@@ -91,6 +119,21 @@ export default function App() {
   // Security SOC Telemetry
   const [auditLogs, setAuditLogs] = useState([])
   const [auditStats, setAuditStats] = useState(null)
+  const [auditError, setAuditError] = useState('')
+  // Latest token / role for calls made from async callbacks
+  const tokenRef = useRef(token)
+  tokenRef.current = token
+  const authRoleRef = useRef(authRole)
+  authRoleRef.current = authRole
+
+  // Centre stage width: narrow stages move the floating map button into the top row
+  const [stageMode, setStageMode] = useState('')
+  const stageRef = useCallback((el) => {
+    if (!el || typeof ResizeObserver === 'undefined') return undefined
+    const observer = new ResizeObserver(([entry]) => setStageMode(stageModeFor(entry.contentRect.width)))
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
 
   const messagesEndRef = useRef(null)
 
@@ -106,11 +149,22 @@ export default function App() {
     }
   }, [])
 
+  // A narrow window can't fit sidebar + chat + artifact panel: make room for the chat
+  useEffect(() => {
+    if (artifactOpen && window.innerWidth < 1200) setSidebarOpen(false)
+  }, [artifactOpen])
+
+  // Where the sidebar floats over the page, the map gets the whole stage when it opens
+  useEffect(() => {
+    if (twinActive && overlaySidebar) setSidebarOpen(false)
+  }, [twinActive, overlaySidebar])
+
   const restoreSession = async (authToken) => {
     try {
       const user = await api.fetchMe(authToken)
       setCurrentUser(user)
-      fetchAuditData()
+      setAuthRole(user.role || null)
+      fetchAuditData({ authToken, role: user.role })
     } catch (e) {
       console.warn('Session restoration failed:', e.message)
       // Keep /chat/<id> so the conversation reopens after signing in again
@@ -214,13 +268,22 @@ export default function App() {
     else threadNavigator.replace({ threadId: current.threadId, view: null })
   }
 
-  const fetchAuditData = async () => {
+  const fetchAuditData = async ({ authToken = tokenRef.current, role = authRoleRef.current } = {}) => {
+    if (!authToken || !canViewAuditLog(role)) {
+      // Staff never ask: the panel explains the stream is for managers and admins
+      setAuditLogs([])
+      setAuditStats(null)
+      setAuditError('')
+      return
+    }
     try {
-      const data = await api.fetchAuditLogs()
+      const data = await api.fetchAuditLogs(authToken)
       setAuditLogs(data.logs || [])
       setAuditStats(data.stats || null)
+      setAuditError('')
     } catch (e) {
       console.warn('Could not fetch audit logs:', e.message)
+      setAuditError(apiErrorMessage(e, 'Could not load the security audit stream.'))
     }
   }
 
@@ -232,9 +295,10 @@ export default function App() {
       setToken(data.token)
       localStorage.setItem('token', data.token)
       setCurrentUser(data.user)
-      fetchAuditData()
+      setAuthRole(data.user?.role || null)
+      fetchAuditData({ authToken: data.token, role: data.user?.role })
     } catch (err) {
-      setAuthError(err.response?.data?.detail || err.message || 'Authentication failed')
+      setAuthError(apiErrorMessage(err, 'Authentication failed'))
     } finally {
       setAuthLoading(false)
     }
@@ -248,9 +312,10 @@ export default function App() {
       setToken(data.token)
       localStorage.setItem('token', data.token)
       setCurrentUser(data.user)
-      fetchAuditData()
+      setAuthRole(data.user?.role || null)
+      fetchAuditData({ authToken: data.token, role: data.user?.role })
     } catch (err) {
-      setAuthError(err.response?.data?.detail || err.message || 'Registration failed')
+      setAuthError(apiErrorMessage(err, 'Registration failed'))
     } finally {
       setAuthLoading(false)
     }
@@ -260,6 +325,10 @@ export default function App() {
     sessionEpochRef.current += 1
     setToken('')
     setCurrentUser(null)
+    setAuthRole(null)
+    setAuditLogs([])
+    setAuditStats(null)
+    setAuditError('')
     localStorage.removeItem('token')
     // Nothing from this user's session may leak into the next sign-in on this tab
     dispatchChat({ type: 'RESET' })
@@ -279,8 +348,12 @@ export default function App() {
   }
 
   // Handle Query Submission through Coordinator API Gateway
-  const handleSendMessage = async ({ text, attachments = [], mode, targetAgent }) => {
-    if (!text.trim() && attachments.length === 0) return
+  const handleSendMessage = async ({ text = '', attachments = [], mode, targetAgent }) => {
+    const typed = (text || '').trim()
+    if (!typed && attachments.length === 0) return
+    // Text files travel inside the question (cut to the 4,000-character limit)
+    const { query } = composeQuery(typed, attachments)
+    if (!query.trim()) return
 
     // The question belongs to the conversation on screen when it is asked
     const key = chatRef.current.activeKey
@@ -289,28 +362,36 @@ export default function App() {
     const threadId = key === DRAFT ? null : key
     lastAskKeyRef.current = key
 
-    setLastUserQuery(text)
-    dispatchChat({ type: 'SEND', key, message: toUserMessage(text, { senderName, attachments }) })
+    setLastUserQuery(typed || attachments.map((a) => a.name).join(', '))
+    // The bubble shows what was typed plus file chips, not the file bodies
+    const chips = attachments.map(({ name, size }) => ({ name, size }))
+    dispatchChat({ type: 'SEND', key, message: toUserMessage(typed, { senderName, attachments: chips }) })
 
     let res = null
     let assistantMsg
     try {
       // Execute query through real backend Coordinator API Gateway (same thread_id for the whole conversation)
-      res = await api.sendQuery(text, token, twinSessionId, threadId)
-      assistantMsg = toAssistantMessage(res, { text })
+      res = await api.sendQuery(query, token, twinSessionId, threadId)
+      assistantMsg = toAssistantMessage(res, { text: query })
     } catch (err) {
       if (err.response?.status === 401 && epoch === sessionEpochRef.current) {
         handleLogout({ keepUrl: true })
         return
       }
       const code = err.response?.data?.error_code
+      // This tab's map session belongs to another user: start a fresh one for the next question
+      if (code === 'TWIN_SESSION_FORBIDDEN' && epoch === sessionEpochRef.current) {
+        setTwinSessionId(newTwinSessionId())
+      }
       assistantMsg = {
         id: `e-${Date.now()}`,
         role: 'assistant',
         status: 'error',
         content: code === 'THREAD_NOT_FOUND'
           ? 'This conversation no longer exists (it may have been deleted). Start a new chat to continue.'
-          : `Error contacting Coordinator Agent: ${err.response?.data?.message || err.response?.data?.detail || err.message}`,
+          : code === 'TWIN_SESSION_FORBIDDEN'
+            ? 'The map session was reset — please ask again.'
+            : `Error contacting Coordinator Agent: ${apiErrorMessage(err)}`,
         timestamp: new Date()
       }
     }
@@ -362,9 +443,11 @@ export default function App() {
       fetchAuditData()
       return res
     } catch (err) {
+      // A denied action is HTTP 403 {error_code: "FORBIDDEN", message}
+      fetchAuditData()
       return {
         status: 'denied',
-        message: err.response?.data?.detail || err.message
+        message: apiErrorMessage(err, 'This action is not allowed for your role.')
       }
     } finally {
       setActionLoading(false)
@@ -374,11 +457,11 @@ export default function App() {
   // Handle Injection Testing
   const handleTestInjection = async (testText) => {
     try {
-      const res = await api.testInjection(testText)
+      const res = await api.testInjection(testText, token)
       fetchAuditData()
       return res
     } catch (e) {
-      return { is_safe: false, reason: e.message }
+      return { is_safe: false, reason: apiErrorMessage(e) }
     }
   }
 
@@ -431,9 +514,16 @@ export default function App() {
   }
 
   // View 2: Authenticated Claude.ai Operational Interface
+  const showHero = messages.length === 0 && !chat.loadingHistory
+
   return (
     <div className="claude-app-layout">
       {/* Collapsible Left Sidebar */}
+      {/* Small screens: the expanded sidebar floats over the page; tapping outside closes it */}
+      {overlaySidebar && sidebarOpen && (
+        <div className="sidebar-scrim" onClick={() => setSidebarOpen(false)} aria-hidden="true" />
+      )}
+
       <Sidebar
         isOpen={sidebarOpen}
         onToggle={() => setSidebarOpen(!sidebarOpen)}
@@ -451,7 +541,7 @@ export default function App() {
       />
 
       {/* Main Center Canvas */}
-      <div className="claude-main-stage">
+      <div className={`claude-main-stage ${stageMode}`.trim()} ref={stageRef}>
         {/* Floating Minimalist Topbar: Sidebar Icon & Who Logged In */}
         <header className="claude-topbar floating-minimal-topbar">
           <div className="topbar-left">
@@ -482,7 +572,9 @@ export default function App() {
               <div className="topbar-user-avatar">
                 {currentUser.name ? currentUser.name[0].toUpperCase() : (currentUser.username ? currentUser.username[0].toUpperCase() : 'U')}
               </div>
-              <span className="topbar-user-name">{currentUser.name || currentUser.username}</span>
+              <span className="topbar-user-name" title={currentUser.name || currentUser.username || 'Signed-in user'}>
+                {currentUser.name || currentUser.username || 'Signed-in user'}
+              </span>
               <span className={`role-badge-pill role-${currentUser.role || 'staff'}`}>
                 <ShieldCheck size={12} />
                 <span>{currentUser.role?.toUpperCase() || 'STAFF'}</span>
@@ -513,10 +605,11 @@ export default function App() {
             agentBusy={isLoading}
           />
 
-          {/* Spline 3D Scene */}
-          {!twinActive && <SplineScene isChatActive={messages.length > 0} />}
+          {/* Spline 3D Scene: only on the empty / hero screen. Behind the chat or the map it is
+              covered, and a hidden WebGL scene keeps rendering into an empty framebuffer. */}
+          {!twinActive && showHero && <SplineScene isChatActive={false} />}
 
-          {messages.length === 0 && !chat.loadingHistory ? (
+          {showHero ? (
             /* Pure 3D Scene + Floating Chat Box */
             <div className="spline-hero-chat-container">
               <div className="spline-capsule-floating-wrapper">
@@ -544,6 +637,8 @@ export default function App() {
                       setArtifactOpen(true)
                     }}
                     onInspectLocation={() => {
+                      // The Bay Map shows this answer's live numbers (not the visualizer's sample catalog)
+                      setSelectedArtifactMessage(msg)
                       setArtifactTab('bay_visualizer')
                       setArtifactOpen(true)
                     }}
@@ -601,7 +696,9 @@ export default function App() {
         currentUser={currentUser}
         auditLogs={auditLogs}
         auditStats={auditStats}
-        onRefreshAuditLogs={fetchAuditData}
+        auditAccess={canViewAuditLog(authRole)}
+        auditError={auditError}
+        onRefreshAuditLogs={() => fetchAuditData()}
       />
 
       {/* Operational Modal for Approvals and Sandbox */}

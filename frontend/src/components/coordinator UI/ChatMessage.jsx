@@ -17,6 +17,8 @@ import {
   Activity,
   Map as MapIcon
 } from 'lucide-react'
+import MarkdownText from './MarkdownText'
+import { agentLabel } from '../../chat/messageMapping'
 
 export default function ChatMessage({
   message,
@@ -67,7 +69,7 @@ export default function ChatMessage({
             {agentTarget && agentTarget !== 'coordinator' && (
               <span className="agent-route-tag">
                 <Bot size={11} />
-                <span>via {agentTarget.toUpperCase()} AGENT</span>
+                <span>via {agentLabel(agentTarget)} AGENT</span>
               </span>
             )}
             {routing.confidence && (
@@ -100,8 +102,11 @@ export default function ChatMessage({
             </div>
           )}
 
-          {/* Normal Assistant / User Content */}
-          {!isBlocked && (
+          {/* Normal Assistant / User Content (agent replies use light Markdown) */}
+          {!isBlocked && !isUser && (
+            <MarkdownText className="message-text-content" text={message.content} />
+          )}
+          {!isBlocked && isUser && message.content && (
             <div className="message-text-content">
               {message.content}
             </div>

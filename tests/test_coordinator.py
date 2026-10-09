@@ -102,17 +102,25 @@ def test_query_endpoint_prompt_injection_blocked(valid_staff_token):
     assert data["error_code"] == "PROMPT_INJECTION_DETECTED"
     assert "Security Alert" in data["message"]
 
-def test_query_endpoint_backwards_compatible_payload():
+def test_query_endpoint_backwards_compatible_payload(valid_staff_token):
     """Test POST /query with legacy frontend payload format ({"query": "..."})."""
     response = client.post(
         "/query",
-        json={"query": "where is SKU-4521 located?"}
+        json={"query": "where is SKU-4521 located?"},
+        headers={"Authorization": f"Bearer {valid_staff_token}"}
     )
     assert response.status_code == 200
     data = response.json()
     assert data["status"] == "success"
     assert "agent_used" in data
     assert "response" in data
+
+
+def test_query_endpoint_requires_sign_in():
+    """Warehouse data is never answered for an anonymous caller."""
+    response = client.post("/query", json={"query": "where is SKU-4521 located?"})
+    assert response.status_code == 401
+    assert response.json()["error_code"] == "AUTH_REQUIRED"
 
 # =========================================================================
 # 2. SPECIALIST AGENT ROUTING & DISPATCH TESTS

@@ -29,8 +29,10 @@ logger = StructuredLogger(__name__)
 _NAVIGATE = re.compile(r"\b(how (do|can|should) (i|we) (get|go|reach)|how to (get|go|reach)|directions?|take me|"
                        r"route|navigate|guide me|walk me|way to)\b", re.I)
 _ALERTS = re.compile(r"\b(running (low|out)|low stock|low on|out of stock|alerts?|over capacity|low)\b", re.I)
-_HEATMAP = re.compile(r"\b(heat ?map|busiest|fullest|how full|full|fill level|occupancy|capacity)\b", re.I)
-_FILL_METRIC = re.compile(r"\b(full|fullest|fill|occupancy|capacity)\b", re.I)
+_HEATMAP = re.compile(r"\b(heat ?map|busiest|fullest|how full|full|fill level|occupancy|capacity|emptiest|"
+                      r"least full|most (free )?(space|room)|free space|quietest)\b", re.I)
+_FILL_METRIC = re.compile(r"\b(full|fullest|fill|occupancy|capacity|emptiest|least full|space|room)\b", re.I)
+_EMPTIEST = re.compile(r"\b(emptiest|least full|most (free )?(space|room)|free space|quietest|least busy)\b", re.I)
 _COUNT = re.compile(r"\b(how many|how much|count|total units?)\b", re.I)
 _CLEAR = re.compile(r"^\s*(clear|reset|close)( the)?( map| view| twin)?\W*$", re.I)
 _STAIRS = re.compile(r"\b(stairs?|staircase|stairway)\b", re.I)
@@ -220,8 +222,10 @@ def _show_location(pick: _Pick, prefer: str) -> TwinAnswer:
         racks = twin_repo.get_racks([c.id for c in pick.items])
         kind = _RACK_TYPE_NOUN.get(racks[0]["type"], "racks") if racks else "racks"
         floors = sorted({r["floor_name"] for r in racks})
-        names = ", ".join(r["name"] for r in racks)
-        text = f"There are {len(racks)} {kind} on {' and '.join(floors)}: {names}."
+        # Rack names repeat across floors ("Rack 1" on Floor 1 and Floor 2), so list them per floor
+        per_floor = "; ".join(f"{floor}: " + ", ".join(r["name"] for r in racks if r["floor_name"] == floor)
+                              for floor in floors)
+        text = f"There are {len(racks)} {kind} — {per_floor}."
         cmd = {"action": "show_location", "location_ids": [r["id"] for r in racks],
                "floor_id": racks[0]["floor_id"], "answer_text": text}
         return TwinAnswer(cmd, text)
@@ -331,16 +335,19 @@ def _heatmap(query: str, res: Dict[str, Optional[_Pick]]) -> TwinAnswer:
     floor_id = loc_pick.top.floor_id if loc_pick and loc_pick.mode == "one" else None
     floor_id = floor_id or twin_repo.floor_with_most_units()
     metric = "fill_ratio" if _FILL_METRIC.search(query) else "total_units"
+    emptiest = bool(_EMPTIEST.search(query))
     fills = twin_repo.get_rack_fill(floor_id)
     floor_name = next((f["name"] for f in twin_repo.get_layout()["floors"] if f["id"] == floor_id), floor_id)
     key = (lambda f: f["fill_ratio"] or 0) if metric == "fill_ratio" else (lambda f: f["total_units"])
-    top = max(fills, key=key) if fills else None
+    top = (min if emptiest else max)(fills, key=key) if fills else None
     if top is None:
         text = f"Showing the heatmap for {floor_name}."
     elif metric == "fill_ratio":
-        text = f"Rack fill on {floor_name}: the fullest is {top['rack_name']} at {round((top['fill_ratio'] or 0) * 100)}%."
+        which = "emptiest" if emptiest else "fullest"
+        text = f"Rack fill on {floor_name}: the {which} is {top['rack_name']} at {round((top['fill_ratio'] or 0) * 100)}%."
     else:
-        text = f"Units per rack on {floor_name}: the busiest is {top['rack_name']} with {top['total_units']} units."
+        which = "quietest" if emptiest else "busiest"
+        text = f"Units per rack on {floor_name}: the {which} is {top['rack_name']} with {top['total_units']} units."
     return TwinAnswer({"action": "heatmap", "floor_id": floor_id, "metric": metric, "answer_text": text}, text)
 
 

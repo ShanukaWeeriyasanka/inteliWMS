@@ -2,7 +2,7 @@
 // coordinates are drawn as-is. Drag to pan, wheel to zoom, click a rack or a
 // stock marker to open its details. Every rack carries data-loc-id = its ID.
 import React, { useCallback, useEffect, useRef } from 'react'
-import RackShape from './RackShape'
+import RackShape, { RackName } from './RackShape'
 import ConnectorIcon from './ConnectorIcon'
 import RouteLayer from './RouteLayer'
 import StockMarker from './StockMarker'
@@ -11,6 +11,17 @@ import MapText from './MapText'
 const ICON_TYPES = new Set(['lift', 'stairs', 'entrance', 'dock', 'charging'])
 const DRAG_PX = 4
 const ZONE_FILL = { cold: 'is-cold', dock: 'is-dock', charging: 'is-dock' }
+
+// A rack's highlight outline reaches 0.45 m above it (RackShape); the 0.55 m label needs ~0.3 m
+// above its centre line. The zone name sits in the zone's corner, lifted when the zone's top
+// rack starts so close to the edge that its outline would run through the name.
+const HALO = 0.45
+const LABEL_HALF = 0.3
+export function zoneLabelY(zone, racks) {
+  const inZone = racks.filter((r) => r.zone_id === zone.id)
+  const topRack = inZone.length ? Math.min(...inZone.map((r) => r.y)) : Infinity
+  return Math.min(zone.y + 0.75, topRack - HALO - LABEL_HALF - 0.2)
+}
 
 export default function FloorMap({
   svgRef, layout, edges, floorId, vb, view, markers, binQty, route, playback, reducedMotion, registry,
@@ -49,6 +60,10 @@ export default function FloorMap({
   const walkEdges = edges.filter((e) => e.edge_type === 'walk' && e.from_floor_id === floorId)
   const doors = nodes.filter((n) => n.type === 'entrance' || n.type === 'dock')
   const focusing = view.highlight.size > 0 || !!view.zoneId
+  const markerFor = new Map(markers.map((m) => [m.rackId, m]))
+  const rackState = (r) => (view.selectedRackId === r.id ? 'selected'
+    : view.highlight.has(r.id) || (view.zoneId && r.zone_id === view.zoneId) ? 'target'
+      : focusing ? 'dim' : 'normal')
 
   const onPointerDown = (e) => {
     if (e.button !== 0) return
@@ -117,19 +132,11 @@ export default function FloorMap({
           <rect key={n.id} className="twin-notch is-door" x={-0.55} y={n.y - 1.2} width={1.1} height={2.4} rx={0.3} />
         ))}
 
-        {zones.map((z) => {
-          const [short, desc] = z.name.split(' — ')
-          return (
-            <g key={z.id}>
-              <rect data-loc-id={z.id} ref={(el) => register(z.id, el)} x={z.x} y={z.y}
-                width={z.width_m} height={z.height_m} rx={0.7}
-                className={`twin-zone ${ZONE_FILL[z.type] || ''}${view.zoneId === z.id ? ' is-target' : ''}`} />
-              <MapText className="twin-zone-label" x={z.x + 0.5} y={z.y + 0.75} size={0.55} anchor="start">
-                {desc ? `${short} · ${desc}` : short}
-              </MapText>
-            </g>
-          )
-        })}
+        {zones.map((z) => (
+          <rect key={z.id} data-loc-id={z.id} ref={(el) => register(z.id, el)} x={z.x} y={z.y}
+            width={z.width_m} height={z.height_m} rx={0.7}
+            className={`twin-zone ${ZONE_FILL[z.type] || ''}${view.zoneId === z.id ? ' is-target' : ''}`} />
+        ))}
 
         <g className="twin-aisles">
           {walkEdges.map((e) => {
@@ -143,18 +150,13 @@ export default function FloorMap({
           ))}
         </g>
 
-        {racks.map((r) => {
-          const state = view.selectedRackId === r.id ? 'selected'
-            : view.highlight.has(r.id) || (view.zoneId && r.zone_id === view.zoneId) ? 'target'
-              : focusing ? 'dim' : 'normal'
-          return (
-            <RackShape key={r.id} rack={r} grid={layout.rackGrid.get(r.id)} binsByShelf={layout.binsByShelf}
-              binQty={binQty} state={state} targetBins={view.targetBins} targetShelves={view.targetShelves}
-              heat={view.heat?.get(r.id)} badge={view.badges.get(r.id)} alert={view.alertRacks.has(r.id)}
-              flashKey={view.flash.get(r.id) || 0} register={register}
-              onClick={guard(onRack)} hoverProps={hover('rack', r.id)} />
-          )
-        })}
+        {racks.map((r) => (
+          <RackShape key={r.id} rack={r} grid={layout.rackGrid.get(r.id)} binsByShelf={layout.binsByShelf}
+            binQty={binQty} state={rackState(r)} targetBins={view.targetBins} targetShelves={view.targetShelves}
+            heat={view.heat?.get(r.id)} badge={view.badges.get(r.id)} alert={view.alertRacks.has(r.id)}
+            flashKey={view.flash.get(r.id) || 0} register={register}
+            onClick={guard(onRack)} hoverProps={hover('rack', r.id)} />
+        ))}
 
         {nodes.filter((n) => ICON_TYPES.has(n.type)).map((n) => <ConnectorIcon key={n.id} node={n} />)}
 
@@ -164,6 +166,19 @@ export default function FloorMap({
         {markers.map((m) => (
           <StockMarker key={m.rackId} marker={m} onClick={guard(onMarker)} hoverProps={hover('rack', m.rackId)} />
         ))}
+
+        {/* Names last, with a halo: a rack's outline or a stock marker never covers them */}
+        <g className="twin-labels" aria-hidden="true">
+          {racks.map((r) => <RackName key={r.id} rack={r} state={rackState(r)} marker={markerFor.get(r.id)} />)}
+          {zones.map((z) => {
+            const [short, desc] = z.name.split(' — ')
+            return (
+              <MapText key={z.id} className="twin-zone-label" x={z.x + 0.5} y={zoneLabelY(z, racks)} size={0.55} anchor="start">
+                {desc ? `${short} · ${desc}` : short}
+              </MapText>
+            )
+          })}
+        </g>
       </g>
     </svg>
   )

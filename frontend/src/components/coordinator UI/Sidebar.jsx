@@ -42,10 +42,11 @@ export default function Sidebar({
       )
     : chatHistory
 
+  const displayName = currentUser?.name || currentUser?.username || 'Signed-in user'
   const userInitial =
     currentUser?.name?.[0]?.toUpperCase() ||
     currentUser?.username?.[0]?.toUpperCase() ||
-    'S'
+    'U'
 
   return (
     <aside className={`gemini-sidebar ${isOpen ? 'expanded' : 'collapsed'}`}>
@@ -299,7 +300,7 @@ export default function Sidebar({
               </div>
               <div className="gemini-user-details">
                 <span className="gemini-user-name">
-                  {currentUser?.name || currentUser?.username || 'Shanuka Weeriyasanka'}
+                  {displayName}
                 </span>
                 <span className="gemini-user-role">
                   {currentUser?.role ? currentUser.role.charAt(0).toUpperCase() + currentUser.role.slice(1) : 'Staff'}
@@ -330,7 +331,7 @@ export default function Sidebar({
                 onToggle()
                 setUserDropdownOpen(true)
               }}
-              title={currentUser?.name || currentUser?.username || 'Operator'}
+              title={displayName}
             >
               {userInitial}
             </div>

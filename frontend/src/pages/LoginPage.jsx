@@ -17,7 +17,8 @@ export default function LoginPage({ onLogin, onRegister, authLoading, authError,
   const handleSubmit = (e) => {
     e.preventDefault()
     if (isRegisterMode) {
-      onRegister(username, password, role, fullName)
+      // Only staff accounts can be self-registered
+      onRegister(username, password, 'staff', fullName)
     } else {
       onLogin(username, password, role)
     }
@@ -89,7 +90,7 @@ export default function LoginPage({ onLogin, onRegister, authLoading, authError,
               <button
                 type="button"
                 className={`tab-link ${isRegisterMode ? 'active' : ''}`}
-                onClick={() => { setIsRegisterMode(true); setAuthError('') }}
+                onClick={() => { setIsRegisterMode(true); setRole('staff'); setAuthError('') }}
               >
                 Register Account
               </button>
@@ -137,11 +138,21 @@ export default function LoginPage({ onLogin, onRegister, authLoading, authError,
 
               <div className="input-group">
                 <label className="field-label" htmlFor="role">Warehouse Operational Role</label>
-                <select id="role" value={role} onChange={(e) => setRole(e.target.value)}>
+                <select
+                  id="role"
+                  value={isRegisterMode ? 'staff' : role}
+                  onChange={(e) => setRole(e.target.value)}
+                  aria-describedby={isRegisterMode ? 'role-register-note' : undefined}
+                >
                   <option value="staff">Staff — Floor Operations & Picking</option>
-                  <option value="manager">Manager — Shift Supervisor & Approvals</option>
-                  <option value="admin">Admin — System & Security SOC</option>
+                  <option value="manager" disabled={isRegisterMode}>Manager — Shift Supervisor & Approvals</option>
+                  <option value="admin" disabled={isRegisterMode}>Admin — System & Security SOC</option>
                 </select>
+                {isRegisterMode && (
+                  <span id="role-register-note" className="field-hint">
+                    Manager and admin accounts are created by an administrator.
+                  </span>
+                )}
               </div>
 
               {authError && <div className="error-banner">{authError}</div>}

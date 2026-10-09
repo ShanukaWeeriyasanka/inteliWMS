@@ -19,6 +19,7 @@ PERMISSION_MATRIX = {
         "approve_restock",          # "OK, order 200 more units of SKU-4521"
         "view_analytics",           # See warehouse statistics
         "view_vendor_performance",  # Check supplier data
+        "view_audit_logs",          # Security audit stream (who signed in, what was blocked)
     ],
     "admin": [
         # All permissions (for testing/admin only)
@@ -30,6 +31,7 @@ PERMISSION_MATRIX = {
         "approve_restock",
         "view_analytics",
         "view_vendor_performance",
+        "view_audit_logs",
         "delete_records",           # Remove old data
         "change_settings",          # Admin-only actions
     ]

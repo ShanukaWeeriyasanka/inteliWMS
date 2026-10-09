@@ -66,6 +66,10 @@ def clarification(candidates: List[ProductCandidate]) -> str:
     return "\n".join(lines)
 
 
+def map_unavailable() -> str:
+    return "⚠️ The warehouse map isn't reachable right now, so I can't show that place. Please try again shortly."
+
+
 def assumed_note(label: str) -> str:
     return f"↪️ Using **{label}** from earlier in this conversation.\n"
 
@@ -159,17 +163,30 @@ def depletion(result: DepletionResult) -> str:
     pred = result.prediction
     compliance = ("\n⚠️ *Regulated / hazmat item: Knowledge Agent compliance sign-off required before PO approval.*"
                   if pred.compliance_check_required else "")
+    if pred.days_until_stockout is None:
+        stockout = "• Estimated Days Until Stockout: no stockout projected — no consumption is recorded\n"
+    else:
+        stockout = (f"• Estimated Days Until Stockout: **{pred.days_until_stockout} days** "
+                    f"(Projected: {pred.projected_stockout_date})\n")
+    if pred.recommended_reorder_qty > 0:
+        replenish = (f"📦 **Recommended Replenishment**: Order **{pred.recommended_reorder_qty}** units — enough for "
+                     f"the {pred.lead_time_days}-day lead time plus {pred.buffer_days} days of use, "
+                     f"minus what is on hand.")
+    else:
+        replenish = (f"📦 **Recommended Replenishment**: none needed — stock on hand covers the "
+                     f"{pred.lead_time_days}-day lead time plus {pred.buffer_days} days of use.")
     text = (
         f"📉 **Stock Depletion & Reorder Forecast** (`{pred.sku}`)\n"
         f"• Item: **{pred.item_name}**\n"
         f"• Current Stock: **{pred.current_stock}** units\n"
         f"• Average Burn Rate: **{pred.daily_burn_rate}** units/day\n"
-        f"• Estimated Days Until Stockout: **{pred.days_until_stockout} days** "
-        f"(Projected: {pred.projected_stockout_date})\n"
+        f"{stockout}"
         f"• Depletion Urgency: **{pred.urgency}**\n"
-        f"📦 **Recommended Replenishment**: Order **{pred.recommended_reorder_qty}** units "
-        f"to cover lead time ({pred.lead_time_days} days).{compliance}"
+        f"{replenish}{compliance}"
     )
+    if not pred.burn_rate_valid:
+        text += ("\n⚠️ The recorded burn rate is negative, which can't be right — no stockout was projected. "
+                 "Please correct this item's consumption data.")
     defaults = [n for n, src in (("burn rate", result.burn_rate_source), ("lead time", result.lead_time_source))
                 if src == "default"]
     if defaults:
@@ -199,12 +216,40 @@ def anomaly(result: AnomalyResult) -> str:
     return text
 
 
-def transfer(result: TransferResult) -> str:
+def transfer(result: TransferResult, item: Optional[StockItemInfo] = None) -> str:
     text = result.recommendation.advisory_verdict
+    if item is not None and item.status in ("IN_STOCK", "OVERSTOCKED"):
+        # Above the reorder point: say so first, so the option below isn't read as a need
+        state = "overstocked" if item.status == "OVERSTOCKED" else "above its reorder point"
+        text = (f"ℹ️ **No transfer is needed**: **{item.name}** (`{item.sku}`) is {state} — "
+                f"{item.quantity_on_hand} on hand vs reorder point {item.reorder_point}.\n"
+                f"If you still want stock moved here, this is the best option:\n" + text)
     if result.quantity_source != "requested":
         text += (f"\nℹ️ No quantity was given, so the item's reorder quantity "
                  f"({result.recommendation.required_quantity}) was used.")
     return text
+
+
+def invalid_transfer_quantity(quantity: int, maximum: int) -> str:
+    return (f"⚠️ A transfer needs a quantity from 1 to {maximum:,} — you asked for {quantity}. "
+            f"Tell me how many you need, for example \"transfer 50 units of SKU-4521\".")
+
+
+def skus_left_out(skus: List[str], limit: int) -> str:
+    return (f"\n\nℹ️ I answer up to {limit} SKUs at a time, so these weren't checked: "
+            + ", ".join(f"`{s}`" for s in skus) + ". Ask again for them.")
+
+
+def low_stock_section(items: List[StockItemInfo], total_checked: int) -> str:
+    """The SKU catalogue's low items, added under the map's alerts (the two catalogues are separate)."""
+    if not items:
+        return f"📋 **SKU catalogue**: all {total_checked} items are above their reorder points."
+    lines = [f"📋 **SKU catalogue** — {len(items)} of {total_checked} item(s) at or below the reorder point:"]
+    for i in items:
+        emoji = "❌" if i.status == "OUT_OF_STOCK" else "⚠️"
+        lines.append(f"• {emoji} **{i.name}** (`{i.sku}`): {i.quantity_on_hand} on hand, reorder point "
+                     f"{i.reorder_point}" + (f", safety stock {i.safety_stock}" if i.below_safety_stock else ""))
+    return "\n".join(lines)
 
 
 def equipment(report) -> str:

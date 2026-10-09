@@ -1,6 +1,8 @@
 export { default as Sidebar } from './Sidebar'
 export { default as PromptCapsule } from './PromptCapsule'
 export { default as ChatMessage } from './ChatMessage'
+export { default as MarkdownText } from './MarkdownText'
+export { parseMarkdown } from '../../chat/markdown'
 export { default as ArtifactPanel } from './ArtifactPanel'
 export { default as OperationalModal } from './OperationalModal'
 export { default as CommercializationModal } from './CommercializationModal'

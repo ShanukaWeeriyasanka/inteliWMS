@@ -59,10 +59,13 @@ export default function MapHeader({
         <button className={`twin-count-pill is-alert${alertsOn ? ' is-on' : ''}`} onClick={onAlerts} title="Open alerts">
           <CircleAlert size={14} />{counts.alerts}
         </button>
-        <span className={`twin-live${live ? '' : ' is-paused'}`} role="status">
-          <span className="twin-live-dot" />{live ? 'Live' : 'Paused'}
+        <span className={`twin-live${live ? '' : ' is-paused'}`} role="status" title={live ? 'Live updates on' : 'Live updates paused'}
+          aria-label={live ? 'Live updates on' : 'Live updates paused'}>
+          <span className="twin-live-dot" /><span className="twin-head-text">{live ? 'Live' : 'Paused'}</span>
         </span>
-        <button className="twin-back-btn" onClick={onClose}><ArrowLeft size={14} />Chat</button>
+        <button className="twin-back-btn" onClick={onClose} aria-label="Back to chat" title="Back to chat">
+          <ArrowLeft size={14} /><span className="twin-head-text">Chat</span>
+        </button>
       </div>
     </header>
   )

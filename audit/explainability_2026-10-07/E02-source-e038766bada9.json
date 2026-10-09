@@ -1,0 +1,49 @@
+{
+  "product": {
+    "sku": "SKU-9402",
+    "name": "Synthetic Explanation Widget",
+    "category": "Synthetic assessment",
+    "quantity": 40,
+    "reserved_quantity": 0,
+    "safety_stock": 2,
+    "reorder_point": 5,
+    "reorder_quantity": 10,
+    "daily_burn_rate": 2,
+    "lead_time_days": 3,
+    "unit": "units",
+    "location": "Test bay",
+    "aisle": 1,
+    "shelf": "A1",
+    "tier": "A",
+    "bay": "01",
+    "occupancy_pct": 50,
+    "temperature": "20 C Ambient",
+    "unit_price": 10,
+    "weight_kg": 1,
+    "is_hazardous": false
+  },
+  "suppliers": [
+    {
+      "supplier_id": "SUP-A",
+      "name": "North Test Supply",
+      "unit_price_usd": 10,
+      "delivery_days": 5,
+      "on_time_deliveries": 98,
+      "evaluated_deliveries": 100,
+      "reliability_percent": 98
+    },
+    {
+      "supplier_id": "SUP-B",
+      "name": "South Test Supply",
+      "unit_price_usd": 12,
+      "delivery_days": 3,
+      "on_time_deliveries": 95,
+      "evaluated_deliveries": 100,
+      "reliability_percent": 95
+    }
+  ],
+  "supplier_record_origin": "Synthetic recorded fixture supplied verbatim in E02 prompt; no supplier table/tool exists",
+  "evaluation_weights": null,
+  "required_delivery_deadline": null,
+  "minimum_reliability": null
+}

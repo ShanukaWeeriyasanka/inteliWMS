@@ -13,7 +13,7 @@ import { createTwinApi } from './lib/api'
 import { commandIds, validateCommand } from './lib/commands'
 import { floorOf, isProductId, isWithin, parseLocationId, rackOf } from './lib/ids'
 import { formatMetric, heatColor } from './lib/heat'
-import { fitView, focusView, racksBox, zoomAt } from './lib/viewport'
+import { frameView, growBox, unionBox, zoomAt } from './lib/viewport'
 import { sumBy } from './lib/products'
 import { useTwinData } from './hooks/useTwinData'
 import { useRoute } from './hooks/useRoute'
@@ -35,6 +35,18 @@ const NARROW_W = 1080 // below this the inventory list becomes a drawer
 let localSeq = 0
 const localId = () => `local-${Date.now()}-${++localSeq}`
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v))
+
+// Everything drawn for a rack that must stay in view when the map frames it (metres): the
+// halo, the count badge above it, its name below, and the stock marker on the aisle in front
+// (icon, pulse and number) — see RackShape and StockMarker.
+function rackFootprint(rack, layout) {
+  const body = growBox({ x: rack.x, y: rack.y, w: rack.width_m, h: rack.depth_m },
+    { left: 0.6, right: 0.6, top: 1.5, bottom: 1.4 })
+  const node = layout?.nodesById.get(rack.access_node_id)
+  // pulse r 1.5, count on the right, and the rack name on the left when the marker is right below
+  const marker = node && { x: node.x - 4.2, y: node.y - 1.6, w: 7.0, h: 3.2 }
+  return unionBox([body, marker])
+}
 
 /** Stable callback ref that reports an element's width. */
 function useWidth() {
@@ -113,25 +125,64 @@ export default function WarehouseTwin({
   const floor = layout?.floorsById.get(currentFloor)
   const switchFloor = useCallback((fid) => { if (fid) setFloorId(fid) }, [])
   const focusOn = useCallback((fid, racks) => {
-    const box = racks?.length ? racksBox(racks.filter(Boolean)) : null
+    const layoutNow = dataRef.current?.layout
+    const box = racks?.length ? unionBox(racks.filter(Boolean).map((r) => rackFootprint(r, layoutNow))) : null
     setFocusReq({ floorId: fid, box, key: localId() })
   }, [])
   const fitFloor = useCallback((fid) => setFocusReq({ floorId: fid || floorRef.current, box: null, key: localId() }), [])
 
-  // ── viewport: frame the requested racks (or the whole floor) ──
+  // ── viewport: frame the requested racks (or the whole floor) in the part of the map that
+  //    the detail panel, the agent reply and the controls leave visible ──
   const panelOpen = !!selection
-  useEffect(() => {
+  const userMoved = useRef(false) // the user panned / zoomed since the last framing: don't undo it
+
+  // Pixels of the map covered by floating UI, measured from the DOM
+  const coveredInsets = () => {
+    const host = mapEl.current
+    if (!host) return {}
+    const map = host.getBoundingClientRect()
+    const insets = { top: 12, right: 12, bottom: 60, left: 12 } // bottom: zoom / layer controls
+    const panelEl = host.querySelector('.twin-detail')
+    if (panelEl) {
+      const p = panelEl.getBoundingClientRect()
+      if (p.top > map.top + map.height * 0.2) insets.bottom = Math.max(insets.bottom, map.bottom - p.top + 12) // bottom sheet
+      else insets.right = Math.max(insets.right, map.right - p.left + 12)
+    } else if (panelOpen && map.width > 700) {
+      insets.right = DETAIL_W + 28 // opening this render
+    }
+    const dockWrap = host.querySelector('.twin-dock-wrap')
+    if (dockWrap && getComputedStyle(dockWrap).display !== 'none') {
+      const dock = dockWrap.firstElementChild?.getBoundingClientRect()
+      if (dock?.height) insets.bottom = Math.max(insets.bottom, map.bottom - dock.top + 12)
+    }
+    return insets
+  }
+
+  const frameNow = () => {
     if (!floor || !vp.aspect) return
     const req = focusReq && focusReq.floorId === currentFloor ? focusReq : null
-    const occlude = panelOpen && vp.size.w > 700 ? (DETAIL_W + 28) / vp.size.w : 0
+    const opts = { insets: coveredInsets() }
     const target = req?.box
-      ? focusView(req.box, vp.aspect, { occludeRight: occlude, maxW: floor.width_m + 8 })
-      : fitView(floor, vp.aspect)
+      ? frameView(req.box, vp.size, { ...opts, scale: 1.6, minVisibleW: 18, maxW: floor.width_m + 8 })
+      : frameView({ x: -2, y: -2, w: floor.width_m + 4, h: floor.height_m + 4 }, vp.size, opts)
     if (vp.vb) vp.animateTo(target)
     else vp.set(target)
-    // re-frame only when the floor or the request changes (not on every resize)
+  }
+
+  // A new request or another floor: frame it, and forget the user's own pan / zoom
+  useEffect(() => {
+    userMoved.current = false
+    frameNow()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentFloor, focusReq, vp.aspect > 0, floor?.id])
+
+  // The visible part changed (panel opened or closed, the agent replied, the window was resized):
+  // frame the same target again so it is not left under the panel — unless the user moved the map
+  const sizeKey = `${Math.round(vp.size.w / 40)}x${Math.round(vp.size.h / 40)}`
+  useEffect(() => {
+    if (!userMoved.current) frameNow()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [panelOpen, sizeKey, !!agentReply])
 
   const toMetres = (clientX, clientY) => {
     const svg = svgRef.current
@@ -143,12 +194,19 @@ export default function WarehouseTwin({
     return p.matrixTransform(m.inverse())
   }
   const zoomLimits = { maxW: (floor?.width_m || 60) * 2 }
-  const onPan = (dx, dy) => vp.set((v) => v && { ...v, x: v.x - dx * (v.w / vp.size.w), y: v.y - dy * (v.w / vp.size.w) })
+  const onPan = (dx, dy) => {
+    userMoved.current = true
+    vp.set((v) => v && { ...v, x: v.x - dx * (v.w / vp.size.w), y: v.y - dy * (v.w / vp.size.w) })
+  }
   const onZoom = (factor, clientX, clientY) => {
     const pt = toMetres(clientX, clientY)
+    userMoved.current = true
     if (pt) vp.set((v) => v && zoomAt(v, factor, pt.x, pt.y, zoomLimits))
   }
-  const zoomCentre = (factor) => vp.vb && vp.animateTo(zoomAt(vp.vb, factor, vp.vb.x + vp.vb.w / 2, vp.vb.y + vp.vb.h / 2, zoomLimits))
+  const zoomCentre = (factor) => {
+    userMoved.current = true
+    if (vp.vb) vp.animateTo(zoomAt(vp.vb, factor, vp.vb.x + vp.vb.w / 2, vp.vb.y + vp.vb.h / 2, zoomLimits))
+  }
 
   // ── route + playback ──
   const route = useRoute(api, routeReq, routeVersion)
@@ -553,7 +611,9 @@ export default function WarehouseTwin({
   if (data.status === 'disabled') return null
   const ready = data.status === 'ready' && layout && currentFloor
   const launcher = !visible && ready && (
-    <button className="twin-launcher" onClick={onActivate}><MapIcon size={14} />Warehouse map</button>
+    <button className="twin-launcher" onClick={onActivate} title="Warehouse map" aria-label="Warehouse map">
+      <MapIcon size={14} /><span className="twin-launcher-label">Warehouse map</span>
+    </button>
   )
   if (!ready) {
     if (!visible) return null

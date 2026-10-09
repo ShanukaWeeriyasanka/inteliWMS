@@ -72,22 +72,59 @@ HISTORICAL_LOG_ARCHIVE = [
 ]
 
 
+# Machines the log can name: (pattern for the kind of machine, equipment type). The unit number or
+# code after the name is kept ("conveyor belt 2" → "Conveyor Belt 2", "AGV-08" → "AGV-08").
+_MACHINES = [
+    (r"forklift", "Forklift"),
+    (r"reach\s+truck", "Forklift"),
+    (r"pallet\s+jack", "Pallet Jack"),
+    (r"agv", "AGV"),
+    (r"conveyor(?:\s+(?:belt|line))?", "Conveyor"),
+    (r"(?:barcode\s+|handheld\s+)?scanner", "Scanner"),
+    (r"(?:label\s+|thermal\s+)?printer", "Printer"),
+    (r"(?:stretch\s+)?wrapper", "Wrapping Machine"),
+    (r"dock\s+(?:door|leveller|leveler)", "Dock Equipment"),
+]
+_UNIT = r"(?:[\s#-]*(?:no\.?\s*)?([a-z]?\d+[a-z0-9-]*|[a-z]-?\d+[a-z0-9-]*))?"
+_MACHINE_RE = [(re.compile(rf"\b({kind}){_UNIT}\b", re.I), etype) for kind, etype in _MACHINES]
+
+# When the symptom matches nothing in the taxonomy: say so instead of guessing a failure mode
+_UNCLASSIFIED = {
+    "failure_mode": "Unclassified symptom — needs a technician's inspection",
+    "risk": "MEDIUM",
+    "action": "Open a maintenance ticket and have a technician inspect the unit before its next shift.",
+    "window": "Within 48 Hours",
+}
+
+
+def identify_machine(text: str):
+    """(equipment_id, equipment_type) named in the text, or (None, None)."""
+    best = None
+    for pattern, etype in _MACHINE_RE:
+        m = pattern.search(text)
+        if m and (best is None or m.start() < best[0].start()):
+            best = (m, etype)
+    if best is None:
+        return None, None
+    m, etype = best
+    name = " ".join(w.upper() if w.lower() == "agv" else w.capitalize() for w in m.group(1).split())
+    unit = (m.group(2) or "").upper()
+    if not unit:
+        return name, etype
+    return (f"{name}-{unit.lstrip('-')}" if etype == "AGV" else f"{name} {unit}"), etype
+
+
 class EquipmentHealthAnalyzer:
     """Parses informal chatter & operator shift notes to preemptively detect equipment failures."""
 
     def analyze_log(self, text: str, equipment_id: Optional[str] = None) -> EquipmentHealthReport:
         logger.log_event("EQUIPMENT_HEALTH_ANALYSIS", {"text_preview": text[:80], "eq_id": equipment_id})
-        
+
         raw_lower = text.lower()
 
-        # 1. Detect or infer Equipment ID
-        if not equipment_id:
-            # Check pattern like "forklift 3", "agv-08", "conveyor a"
-            eq_match = re.search(r"\b(forklift\s*\d+|agv[-\s]*\d+|conveyor[-\s]*[a-z0-9-]+|scanner\s*\d+|pallet jack\s*\d+)\b", raw_lower)
-            if eq_match:
-                equipment_id = eq_match.group(0).title()
-            else:
-                equipment_id = "Forklift 3"  # default reference demonstration unit
+        # 1. Which machine: the one the log names (never a default unit)
+        named_id, named_type = identify_machine(text)
+        equipment_id = equipment_id or named_id
 
         # 2. Match Symptom against Taxonomy
         matched_tax = None
@@ -95,31 +132,31 @@ class EquipmentHealthAnalyzer:
             if any(k in raw_lower for k in tax["keywords"]):
                 matched_tax = tax
                 break
+        details = matched_tax or _UNCLASSIFIED
+        # The machine named in the log decides the type; the symptom's usual machine only when none is named
+        equipment_type = named_type or (matched_tax["equipment_type"] if matched_tax else "Unidentified equipment")
 
-        if not matched_tax:
-            # Default to mechanical wear check
-            matched_tax = SYMPTOM_TAXONOMY[0]
-
-        # 3. Check historical recurrence in shift logs
+        # 3. Check historical recurrence in shift logs (the same unit, not a unit whose name merely contains it)
         recurrence = 1
-        for log in HISTORICAL_LOG_ARCHIVE:
-            if equipment_id.lower() in log["equipment_id"].lower():
-                recurrence += 1
+        if equipment_id:
+            for log in HISTORICAL_LOG_ARCHIVE:
+                if equipment_id.lower() == log["equipment_id"].lower():
+                    recurrence += 1
 
         # Adjust risk if recurring
-        risk = matched_tax["risk"]
+        risk = details["risk"]
         if recurrence >= 3 and risk == "HIGH":
             risk = "IMMINENT"
 
         return EquipmentHealthReport(
-            equipment_id=equipment_id,
-            equipment_type=matched_tax["equipment_type"],
+            equipment_id=equipment_id or "Unidentified equipment (name the unit, e.g. 'forklift 3')",
+            equipment_type=equipment_type,
             reported_symptom=text.strip(),
-            detected_failure_mode=matched_tax["failure_mode"],
+            detected_failure_mode=details["failure_mode"],
             breakdown_risk=risk,
             recurrence_count=recurrence,
-            action_required=matched_tax["action"],
-            scheduled_maintenance_window=matched_tax["window"]
+            action_required=details["action"],
+            scheduled_maintenance_window=details["window"]
         )
 
     def scan_recent_equipment_alerts(self) -> List[EquipmentHealthReport]:

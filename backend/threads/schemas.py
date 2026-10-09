@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field, field_validator
 MAX_ENTITIES = 5
 _SKU = re.compile(r"^SKU-\d{3,6}$")
 _PRD = re.compile(r"^PRD-\d{5}$")
+_LOCATION = re.compile(r"^WH\d+(-F\d+(-Z\d{2}(-R\d{2}(-S\d{2}(-B\d{2})?)?)?)?)?$")
 
 
 class PendingCandidate(BaseModel):
@@ -15,6 +16,14 @@ class PendingCandidate(BaseModel):
     label: str = Field(..., max_length=200)
     sku: Optional[str] = None
     product_id: Optional[str] = None
+    location_id: Optional[str] = Field(None, max_length=40, description="A map place (e.g. Rack 2 on Floor 2)")
+
+    @field_validator("location_id")
+    @classmethod
+    def _location(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None and not _LOCATION.match(v):
+            raise ValueError("not a warehouse location id")
+        return v
 
 
 class InventoryThreadContext(BaseModel):
@@ -24,6 +33,8 @@ class InventoryThreadContext(BaseModel):
     last_sub_intent: Optional[str] = Field(None, max_length=50)
     # Offered candidates; valid for the very next turn only
     pending_clarification: Optional[List[PendingCandidate]] = None
+    # The question those candidates answer, so a pick ("2") re-asks it for the chosen option
+    pending_query: Optional[str] = Field(None, max_length=300)
 
     @field_validator("skus")
     @classmethod

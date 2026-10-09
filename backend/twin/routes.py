@@ -17,6 +17,7 @@ from sqlalchemy.exc import DBAPIError
 
 from agents.inventory_agent.schemas import UiCommandCreate
 from backend.twin.realtime import twin_broker
+from backend.twin.sessions import twin_sessions
 from config.settings import settings
 from database.twin import repository as twin_repo
 from database.twin.connection import TwinUnavailable, is_enabled
@@ -55,6 +56,13 @@ def _call(fn, *args, **kwargs):
     except DBAPIError as exc:
         message = str(getattr(exc, "orig", exc)).split("\n")[0]
         raise HTTPException(status_code=400, detail=message)
+
+
+def _own_session(session_id: Optional[str], user: Dict[str, Any]) -> None:
+    """A map session belongs to the first user who uses it; nobody else may read or write it."""
+    if session_id and not twin_sessions.claim(session_id, str(user.get("user_id") or "")):
+        logger.log_event("TWIN_SESSION_FORBIDDEN", {"user_id": user.get("user_id")}, level="WARNING")
+        raise HTTPException(status_code=403, detail="This map session belongs to another user")
 
 
 def _split_ids(ids: Optional[str]) -> List[str]:
@@ -130,14 +138,17 @@ def twin_resolve_location(q: str = Query(..., min_length=1, max_length=300)):
     return _call(twin_repo.resolve_location, q)
 
 
-@router.get("/commands", dependencies=[Depends(require_twin_user)])
-def twin_commands(session_id: str, limit: int = Query(10, ge=1, le=50)):
+@router.get("/commands")
+def twin_commands(session_id: str, limit: int = Query(10, ge=1, le=50),
+                  user: Dict[str, Any] = Depends(require_twin_user)):
+    _own_session(session_id, user)
     return _call(twin_repo.get_ui_commands, session_id, limit)
 
 
 @router.post("/commands")
 def twin_create_command(body: UiCommandCreate, user: Dict[str, Any] = Depends(require_twin_user)):
     """Store a command for a browser session (other agents, or the UI's clarify follow-up)."""
+    _own_session(body.session_id, user)
     row = _call(twin_repo.insert_ui_command, body.session_id, body.query_text, body.payload.to_payload())
     logger.log_event("TWIN_COMMAND_STORED", {"session_id": body.session_id, "action": body.payload.action,
                                               "user_id": user.get("user_id")})
@@ -145,10 +156,11 @@ def twin_create_command(body: UiCommandCreate, user: Dict[str, Any] = Depends(re
 
 
 @router.get("/stream")
-async def twin_stream(request: Request, session_id: Optional[str] = None,
-                      _user: Dict[str, Any] = Depends(require_twin_user)):
+async def twin_stream(request: Request, session_id: Optional[str] = Query(None, max_length=128),
+                      user: Dict[str, Any] = Depends(require_twin_user)):
     if not is_enabled():
         raise HTTPException(status_code=503, detail="Digital twin disabled")
+    _own_session(session_id, user)
     sub = twin_broker.subscribe(session_id)
 
     async def events():

@@ -3,8 +3,15 @@
 // looks the same after a refresh. Inventory cards are built only from the items the
 // backend returned — never from placeholder values.
 
+import { splitAttachedQuery } from './attachments'
+
 let seq = 0
 const nextId = (prefix) => `${prefix}-${Date.now()}-${(seq += 1)}`
+
+// "inventory_agent" → "INVENTORY" (the UI adds "AGENT": "via INVENTORY AGENT")
+export function agentLabel(target) {
+  return String(target || '').trim().replace(/_agent$/i, '').replace(/_+/g, ' ').trim().toUpperCase()
+}
 
 export function skuDataFromItem(item) {
   if (!item) return null
@@ -38,6 +45,19 @@ export function toAssistantMessage(res, { text = '', id = nextId('a'), timestamp
     }
   }
 
+  // Client errors (e.g. an empty question) are plain error messages, not security blocks
+  if (res.status === 'error' && res.error_code === 'EMPTY_QUERY') {
+    return {
+      id,
+      role: 'assistant',
+      status: 'error',
+      content: res.message || res.response || 'Type a question before sending.',
+      routing: { target_agent: 'coordinator', status: 'error', error_code: res.error_code },
+      timestamp,
+      origin,
+    }
+  }
+
   const invDetails = res.inventory_details || null
   // Digital Twin: only inventory answers drive the map behind the chat
   const uiCommand = res.agent_used === 'inventory_agent' && res.ui_command?.payload
@@ -49,7 +69,8 @@ export function toAssistantMessage(res, { text = '', id = nextId('a'), timestamp
   return {
     id,
     role: 'assistant',
-    content: res.response || 'Warehouse query coordinated and dispatched to specialist agent.',
+    content: res.response || (res.status === 'error' && res.message)
+      || 'Warehouse query coordinated and dispatched to specialist agent.',
     routing: res.routing || { target_agent: res.agent_used || 'coordinator' },
     inventory_details: invDetails,
     skuData: skuDataFromItem(invDetails?.items?.[0]),
@@ -76,7 +97,9 @@ export function storedToUiMessages(stored = [], senderName = 'Operator') {
     const timestamp = m.created_at ? new Date(m.created_at) : new Date()
     if (m.role === 'user') {
       lastUserText = m.content || ''
-      return toUserMessage(m.content, { senderName, id: `m-${m.id}`, timestamp })
+      // Questions sent with files show the typed text + file chips, like when they were asked
+      const { text, attachments } = splitAttachedQuery(m.content)
+      return toUserMessage(text, { senderName, id: `m-${m.id}`, timestamp, attachments })
     }
     const meta = m.meta || {}
     const res = {

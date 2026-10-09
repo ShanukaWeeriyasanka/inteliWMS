@@ -42,6 +42,20 @@ def _audit(request: Request) -> dict:
     }
 
 
+def _plain_errors(errors) -> list:
+    """Validation errors as plain JSON: a model validator's ValueError sits in `ctx` and can't be serialised."""
+    plain = []
+    for err in errors:
+        item = {k: err.get(k) for k in ("type", "loc", "msg") if k in err}
+        if "loc" in item:
+            item["loc"] = [part if isinstance(part, (str, int)) else str(part) for part in item["loc"]]
+        if err.get("ctx"):
+            item["ctx"] = {k: v if isinstance(v, (str, int, float, bool)) or v is None else str(v)
+                           for k, v in err["ctx"].items()}
+        plain.append(item)
+    return plain
+
+
 def register_error_handlers(app):
     """Registers exception handlers on the FastAPI app instance."""
 
@@ -87,7 +101,7 @@ def register_error_handlers(app):
                 "status": "error",
                 "error_code": "VALIDATION_ERROR",
                 "message": "Invalid request payload format",
-                "details": exc.errors(),
+                "details": _plain_errors(exc.errors()),
                 "audit": _audit(request)
             }
         )

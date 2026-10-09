@@ -7,6 +7,7 @@ Cross-checks compliance requirements (e.g. hazardous material battery storage).
 All burn-rate and lead-time data is read from the live Product database record.
 """
 import math
+import re
 from datetime import datetime, timedelta
 from typing import List, Optional
 
@@ -22,6 +23,11 @@ logger = StructuredLogger(__name__)
 # Default fallback values used only when the DB row has no burn_rate / lead_time
 _DEFAULT_BURN_RATE = 12.0
 _DEFAULT_LEAD_TIME = 3
+# The recommended order covers the supplier lead time plus this many days of use
+_BUFFER_DAYS = 14
+# Words in a product name that make it a regulated item (compliance sign-off before a PO)
+_REGULATED = re.compile(r"\b(battery|batteries|lithium|hazmat|hazardous|flammable|corrosive|toxic|aerosol|"
+                        r"spill kit|chemical|acid|solvent)\b", re.I)
 
 
 class ReorderPredictor:
@@ -60,9 +66,17 @@ class ReorderPredictor:
             if own:
                 db.close()
 
+        # A negative burn rate is bad data; zero means nothing is being used. Neither projects a stockout.
+        burn_rate_valid = burn_rate >= 0
+        consuming = burn_rate > 0
+
+        days_left: Optional[float]
         if current_stock <= 0:
             days_left = 0.0
             urgency = "CRITICAL"
+        elif not consuming:
+            days_left = None
+            urgency = "NORMAL"
         else:
             days_left = round(current_stock / burn_rate, 1)
             if days_left <= lead_time_days:
@@ -74,13 +88,16 @@ class ReorderPredictor:
             else:
                 urgency = "NORMAL"
 
-        target_date = datetime.now() + timedelta(days=max(0.5, days_left))
-        date_str = target_date.strftime("%Y-%m-%d")
+        date_str = None
+        if days_left is not None:
+            date_str = (datetime.now() + timedelta(days=max(0.5, days_left))).strftime("%Y-%m-%d")
 
-        # Economic order quantity: 2-week buffer
-        recommended_qty = max(50, int(burn_rate * 14))
+        # Enough to cover the supplier lead time plus a two-week buffer of use, minus what is on hand
+        recommended_qty = 0
+        if consuming:
+            recommended_qty = max(0, math.ceil(burn_rate * (lead_time_days + _BUFFER_DAYS) - max(0, current_stock)))
 
-        is_regulated = is_hazardous or "battery" in item_name.lower() or "lithium" in item_name.lower()
+        is_regulated = is_hazardous or bool(_REGULATED.search(item_name or ""))
 
         logger.log_event("REORDER_PREDICTION_CALCULATED", {
             "sku": sku,
@@ -101,6 +118,8 @@ class ReorderPredictor:
             lead_time_days=lead_time_days,
             urgency=urgency,
             recommended_reorder_qty=recommended_qty,
+            buffer_days=_BUFFER_DAYS,
+            burn_rate_valid=burn_rate_valid,
             compliance_check_required=is_regulated,
         )
 
@@ -116,7 +135,8 @@ class ReorderPredictor:
                 # Pass db=None so each call opens its own connection cleanly
                 pred = self.predict_depletion(p.sku, p.quantity or 0, p.name, db=db)
                 predictions.append(pred)
-            return sorted(predictions, key=lambda x: x.days_until_stockout)
+            # No projected stockout (None) sorts last
+            return sorted(predictions, key=lambda x: (x.days_until_stockout is None, x.days_until_stockout or 0))
         finally:
             if own:
                 db.close()

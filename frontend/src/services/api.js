@@ -34,7 +34,8 @@ export const api = {
   },
 
   sendQuery: async (queryText, token, sessionId, threadId = null, { signal } = {}) => {
-    const body = { query: queryText, token, session_id: sessionId }
+    // The token travels only in the Authorization header (the body `token` field is legacy)
+    const body = { query: queryText, session_id: sessionId }
     // thread_id continues a saved conversation; leaving it out starts a new one
     if (threadId) body.thread_id = threadId
     const res = await axios.post(
@@ -66,18 +67,26 @@ export const api = {
     return res.data
   },
 
-  fetchAuditLogs: async () => {
-    const res = await axios.get(`${API_BASE}/security/audit-logs`)
+  // Managers and admins only (staff get 403 FORBIDDEN); limit must be 1..500
+  fetchAuditLogs: async (token, { limit = 50, eventType } = {}) => {
+    const params = { limit: Math.min(500, Math.max(1, Math.round(Number(limit) || 50))) }
+    if (eventType) params.event_type = eventType
+    const res = await axios.get(`${API_BASE}/security/audit-logs`, { ...authHeader(token), params })
     return res.data
   },
 
-  testInjection: async (text) => {
-    const res = await axios.post(`${API_BASE}/security/test-injection`, { text })
+  testInjection: async (text, token) => {
+    const res = await axios.post(`${API_BASE}/security/test-injection`, { text }, authHeader(token))
     return res.data
   },
 
-  fetchRbacMatrix: async () => {
-    const res = await axios.get(`${API_BASE}/security/rbac-matrix`)
+  testPermission: async (role, action, token) => {
+    const res = await axios.post(`${API_BASE}/security/test-permission`, { role, action }, authHeader(token))
+    return res.data
+  },
+
+  fetchRbacMatrix: async (token) => {
+    const res = await axios.get(`${API_BASE}/security/rbac-matrix`, authHeader(token))
     return res.data
   }
 }

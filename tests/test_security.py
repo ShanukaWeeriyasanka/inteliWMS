@@ -121,9 +121,12 @@ class TestInputSanitizer:
         assert "    " not in cleaned
     
     def test_sanitize_limits_length(self):
+        # The same limit as the API: text the API accepts is never cut short
+        from config.settings import settings
         cleaned, is_safe = sanitizer.sanitize_input("a" * 2000)
-        assert is_safe == True
-        assert len(cleaned) <= 1000
+        assert is_safe == True and len(cleaned) == 2000
+        cleaned, is_safe = sanitizer.sanitize_input("a" * (settings.CHAT_MAX_MESSAGE_CHARS + 500))
+        assert len(cleaned) == settings.CHAT_MAX_MESSAGE_CHARS
     
     def test_sanitize_empty_input(self):
         cleaned, is_safe = sanitizer.sanitize_input("")

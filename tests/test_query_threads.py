@@ -108,9 +108,9 @@ def test_thread_id_without_sign_in_is_rejected(inventory_server):
     assert client.get("/threads").status_code == 401
 
 
-def test_anonymous_requests_stay_stateless(inventory_server, thread_db):
-    data = client.post("/query", json={"query": "where is SKU-1001 located?"}).json()
-    assert data["status"] == "success" and data["thread_id"] is None and data["persisted"] is False
+def test_anonymous_requests_are_refused_and_nothing_is_saved(inventory_server, thread_db):
+    res = client.post("/query", json={"query": "where is SKU-1001 located?"})
+    assert res.status_code == 401 and res.json()["error_code"] == "AUTH_REQUIRED"
     with thread_db() as s:
         assert s.query(ChatThread).count() == 0
 

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { buildPath, createThreadNavigator, parseLocation } from './threadRoute'
 import { chatReducer, DRAFT, initialChatState } from './chatState'
-import { storedToUiMessages, toAssistantMessage } from './messageMapping'
+import { agentLabel, storedToUiMessages, toAssistantMessage } from './messageMapping'
 
 const T1 = '3f1c2b8e-1111-4a2b-9c3d-000000000001'
 const T2 = '3f1c2b8e-1111-4a2b-9c3d-000000000002'
@@ -169,5 +169,39 @@ describe('messageMapping', () => {
         meta: { error_code: 'PROMPT_INJECTION_DETECTED' } },
     ])
     expect(blocked.status).toBe('blocked')
+  })
+
+  it('a live prompt-injection block is still a blocked bubble', () => {
+    const m = toAssistantMessage({ status: 'error', error_code: 'PROMPT_INJECTION_DETECTED',
+      message: 'Security Alert: the request matched the security filter (rule: ignore_instructions). Request blocked.' })
+    expect(m.status).toBe('blocked')
+    expect(m.content).toContain('rule: ignore_instructions')
+  })
+
+  it('an empty question is a plain error, not a security block', () => {
+    const m = toAssistantMessage({ status: 'error', error_code: 'EMPTY_QUERY', message: 'Type a question before sending.',
+      response: 'Type a question before sending.', routing: { rule_id: 'input.empty_query', status: 'blocked' } })
+    expect(m.status).toBe('error')
+    expect(m.content).toBe('Type a question before sending.')
+    expect(m.routing.status).not.toBe('blocked')
+  })
+
+  it('an error envelope without a response shows its message', () => {
+    expect(toAssistantMessage({ status: 'error', error_code: 'AGENT_FAILED', message: 'Inventory is unavailable' }).content)
+      .toBe('Inventory is unavailable')
+  })
+
+  it('a stored question with files shows the typed text and file chips', () => {
+    const [user] = storedToUiMessages([
+      { id: 1, role: 'user', content: 'Is this late?\n\n[Attached file: supplier.eml]\nSubject: delay' },
+    ])
+    expect(user).toMatchObject({ role: 'user', content: 'Is this late?', attachments: [{ name: 'supplier.eml' }] })
+  })
+
+  it('labels the routed agent without a doubled AGENT', () => {
+    expect(agentLabel('inventory_agent')).toBe('INVENTORY')
+    expect(agentLabel('INVENTORY_AGENT')).toBe('INVENTORY')
+    expect(agentLabel('security_sanitizer')).toBe('SECURITY SANITIZER')
+    expect(agentLabel('fulfillment')).toBe('FULFILLMENT')
   })
 })

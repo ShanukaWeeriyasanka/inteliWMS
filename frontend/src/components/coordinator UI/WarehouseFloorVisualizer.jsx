@@ -548,6 +548,11 @@ export default function WarehouseFloorVisualizer({ selectedMessage, currentUser 
                   <span className="inspector-sku-code">
                     {activeItem.sku} • {activeItem.category}
                   </span>
+                  {!live && (
+                    <span className="inspector-sample-note" title="Ask the inventory agent about this SKU for live stock">
+                      Sample figures — ask the agent for live stock
+                    </span>
+                  )}
                 </div>
               </div>
               <span className={`status-pill ${activeItem.status.toLowerCase()}`}>

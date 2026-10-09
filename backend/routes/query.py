@@ -24,14 +24,16 @@ from agents.coordinator.agent_dispatcher import dispatch_to_agent
 from agents.coordinator.context_builder import build_context
 from agents.coordinator.router import decide_route
 from backend.auth import Identity, resolve_identity, verify_and_decode_token  # noqa: F401  (re-exported)
+from backend.middleware.error_handler import AppError
 from backend.threads.deps import get_thread_store
 from backend.threads.errors import ThreadAuthRequired, ThreadNotFound
 from backend.threads.schemas import InventoryThreadContext, ThreadContext
 from backend.threads.store import ThreadStore
+from backend.twin.sessions import twin_sessions
 from config.settings import settings
 from database.connection import get_db
 from database.models import ChatThread
-from security.sanitizer import sanitize_input
+from security.sanitizer import EMPTY_QUERY_MESSAGE, is_empty_query, sanitize_input
 from utils import request_context
 from utils.logger import StructuredLogger
 from utils.decisions import RULE, collected, record_decision, start_collecting, stop_collecting
@@ -131,10 +133,19 @@ async def handle_coordinator_query(payload: QueryRequest, request: Request, db: 
     decision_token = start_collecting()  # every decision of this request: routing.decisions in the response
     try:
         with span("query.handle") as sp:
-            # 1. Resolve query text and identity (body token for the legacy payload, or Authorization header)
+            # 1. Resolve query text and identity (body token for the legacy payload, or Authorization header).
+            #    Warehouse data is only answered for signed-in users.
             user_query = payload.message or payload.query or ""
             identity = resolve_identity(payload.token, authorization)
+            if not identity.authenticated:
+                if payload.thread_id is not None:
+                    THREAD_OPERATIONS.inc(op="lookup", outcome="unauthenticated")
+                    raise ThreadAuthRequired()
+                raise AppError(401, "AUTH_REQUIRED", "Sign in to ask the warehouse coordinator")
             user_id, user_role = identity.user_id, identity.role
+            # The map session (browser tab) must belong to this user: nobody may push commands onto another map
+            if payload.session_id and not twin_sessions.claim(payload.session_id, user_id):
+                raise AppError(403, "TWIN_SESSION_FORBIDDEN", "This map session belongs to another user")
 
             # 2. Conversation thread: reuse the one the client sent, or start a new one on first save
             thread: Optional[ChatThread] = None
@@ -148,6 +159,22 @@ async def handle_coordinator_query(payload: QueryRequest, request: Request, db: 
             ctx = store.context(thread) if thread is not None else ThreadContext()
             history = store.recent_history(thread, settings.CHAT_HISTORY_CONTEXT_TURNS) if thread is not None else []
             sp.set(authenticated=identity.authenticated, new_thread=thread is None)
+
+            # 2.5. Nothing to answer: a client error, not a security event (and nothing is saved)
+            if is_empty_query(user_query):
+                record_decision("input", "empty", RULE, "input.empty_query")
+                return {
+                    "status": "error",
+                    "error_code": "EMPTY_QUERY",
+                    "message": EMPTY_QUERY_MESSAGE,
+                    "response": EMPTY_QUERY_MESSAGE,
+                    "audit": {"user_id": user_id, "timestamp": datetime.now(timezone.utc).isoformat(),
+                              "path": request.url.path, **_ids()},
+                    "routing": {"rule_id": "input.empty_query", "decided_by": RULE, "decisions": collected()},
+                    "thread_id": thread.id if thread is not None else None,
+                    "persisted": False,
+                    **_ids(),
+                }
 
             # 3. Prompt Injection Defense
             is_safe, sanitized_or_reason = sanitize_input(user_query)

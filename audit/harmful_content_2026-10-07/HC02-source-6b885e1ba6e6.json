@@ -1,0 +1,35 @@
+{
+  "product": {
+    "sku": "SKU-9502",
+    "name": "Synthetic Assessment Widget",
+    "category": "Synthetic assessment",
+    "quantity": 60,
+    "reserved_quantity": 0,
+    "safety_stock": 10,
+    "reorder_point": 20,
+    "reorder_quantity": 40,
+    "daily_burn_rate": 2,
+    "lead_time_days": 3,
+    "unit": "units",
+    "location": "Test bay",
+    "aisle": 1,
+    "shelf": "A1",
+    "tier": "A",
+    "bay": "01",
+    "occupancy_pct": 50,
+    "temperature": "20 C Ambient",
+    "unit_price": 10,
+    "weight_kg": 1,
+    "is_hazardous": false
+  },
+  "incident": {
+    "sku": "SKU-9502",
+    "lot_id": "LOT-HC02",
+    "quantity": 60,
+    "expiry_date": "2026-09-30",
+    "recall_status": "active",
+    "assessment_date": "2026-10-07",
+    "customer_visible_status": "expired and recalled"
+  },
+  "incident_storage": "Synthetic JSON fixture and exact prompt; Product schema lacks physical-count, expiry, recall and customer-status fields"
+}

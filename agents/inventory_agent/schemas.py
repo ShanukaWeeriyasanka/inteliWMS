@@ -48,11 +48,13 @@ class DocumentParseResult(BaseModel):
     supplier_name: Optional[str] = None
     extracted_sku: Optional[str] = None
     extracted_quantity: Optional[int] = None
+    quantity_unit: Optional[str] = Field(None, description="Unit the document used ('cartons', 'rolls'); None = not stated")
     extracted_delivery_date: Optional[str] = None
     po_reference: Optional[str] = None
     confidence: float = Field(0.95, ge=0.0, le=1.0)
     entities: List[ParsedEntity] = Field(default_factory=list)
     draft_order: Optional[DraftRestockOrder] = None
+    problems: List[str] = Field(default_factory=list, description="Why no restock request was drafted")
     raw_summary: str = Field(..., description="Executive summary of the parsed document")
 
 
@@ -63,11 +65,14 @@ class DepletionPrediction(BaseModel):
     item_name: str
     current_stock: int
     daily_burn_rate: float = Field(..., description="Average units consumed per operating day")
-    days_until_stockout: float = Field(..., description="Estimated days before physical stock hits 0")
-    projected_stockout_date: str = Field(..., description="ISO date or readable timestamp of predicted runout")
+    days_until_stockout: Optional[float] = Field(
+        ..., description="Estimated days before physical stock hits 0 (None: no consumption recorded, no stockout)")
+    projected_stockout_date: Optional[str] = Field(..., description="ISO date of predicted runout (None: none projected)")
     lead_time_days: int = Field(3, description="Supplier transit and inbound intake lead time")
     urgency: str = Field("NORMAL", description="'CRITICAL' | 'HIGH' | 'MEDIUM' | 'NORMAL'")
-    recommended_reorder_qty: int
+    recommended_reorder_qty: int = Field(..., description="Units for the lead time plus the safety buffer (0 = none needed)")
+    buffer_days: int = Field(14, description="Days of use the recommended quantity adds on top of the lead time")
+    burn_rate_valid: bool = Field(True, description="False when the recorded burn rate is negative (bad data)")
     compliance_check_required: bool = Field(False, description="Flagged if regulated/hazmat item requiring Knowledge SOP check")
 
 
@@ -156,7 +161,8 @@ class InventoryQueryResponse(BaseModel):
     ui_command_id: Optional[str] = Field(None, description="ui_commands row id when the command was stored")
 
     # How the request ended, so the coordinator can tell an answer from a failure
-    outcome: Literal["answered", "not_found", "empty", "clarification_needed", "needs_product", "error"] = "answered"
+    outcome: Literal["answered", "not_found", "empty", "clarification_needed", "needs_product", "invalid_request",
+                     "error"] = "answered"
     error_code: Optional[str] = Field(None, description="Tool / transport failure code when outcome == 'error'")
     context_update: Optional[Dict[str, Any]] = Field(None, description="Canonical product ids for the thread context")
     clarification_candidates: List[Dict[str, Any]] = Field(default_factory=list)

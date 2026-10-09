@@ -165,8 +165,9 @@ _INVENTORY_STRONG = [
     r"\bhow many (units|pieces|pcs|boxes|cases|cartons|pallets|rolls|items|of (the|our|those|these))\b",
     r"\b(running (low|out)|what'?s low|anything low|do we (have|stock|carry))\b",
     r"\b(inbound (shipment|delivery|deliveries|stock|receipt)s?|supplier (email|pdf|delivery|shipment))\b",
-    r"\b(forklift|conveyor|agv(-\d+)?|pallet jack)\b.*\b(grind\w*|leak\w*|noise|squeal\w*|slipping|shaking|"
-    r"vibrat\w*|overheat\w*|breakdown|broke\w*|not working|won'?t start|fault)\b",
+    r"\b(forklift|conveyor|agv(-\d+)?|pallet jack|reach truck|label printer|printer|scanner|wrapper)s?\b.*"
+    r"\b(grind\w*|leak\w*|noise|squeal\w*|slipping|shaking|vibrat\w*|overheat\w*|breakdown|broke\w*|not working|"
+    r"stopped working|won'?t start|fault\w*|jam\w*|stuck|keeps (stopping|failing|crashing|freezing))\b",
     r"\b(equipment health|complaint log)\b",
 ]
 # The original keyword lists, checked after the strong signals
@@ -194,6 +195,11 @@ _TWIN_ENTITY = [
     r"\b(product|item)\s*(no\.?|number|num)\s*\d+\b",
     r"\bprd-\d{5}\b",
     r"\bwh\d+-f\d+",
+    # Rack fill on the map ("which rack is the emptiest on floor 1", "fullest racks", "rack heatmap")
+    r"\b(fullest|emptiest|least full|busiest|quietest|heat ?map)\b.*\b(racks?|crates?|shel(f|ves)|bins?|floor \d+)\b",
+    r"\b(racks?|crates?|shel(f|ves)|bins?)\b.*\b(fullest|emptiest|least full|busiest|quietest|most (free )?space)\b",
+    # Map controls
+    r"^\s*(clear|reset|close)( the)? (warehouse )?(map|twin)\W*$",
 ]
 # Generic map wording: a weak hint only — the LLM is consulted and the hint is its fallback
 _TWIN_HINT = [

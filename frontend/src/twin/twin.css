@@ -185,6 +185,8 @@
   padding: 11px 14px; border-bottom: 1px solid var(--tw-line-2);
 }
 .twin-map-head-left, .twin-map-head-right { display: flex; align-items: center; gap: 8px; min-width: 0; }
+/* the buttons wrap onto a second row rather than running off the card */
+.twin-map-head-right { flex-wrap: wrap; }
 .twin-map-title { font-size: 19px; font-weight: 600; letter-spacing: -0.01em; white-space: nowrap; }
 .twin-floor-picker { position: relative; }
 .twin-floor-btn {
@@ -242,6 +244,12 @@
 .twin-zone.is-dock { fill: #FFF6EC; }
 .twin-zone.is-target { fill: rgba(59, 123, 246, 0.06); stroke: var(--tw-blue); stroke-width: 0.1; stroke-dasharray: 0.5 0.35; }
 .twin-zone-label { fill: var(--tw-faint); font-weight: 600; }
+/* Map text keeps a soft white halo so aisle lines, rack outlines and markers never run through it
+   (MapText draws at 20× and scales down, so stroke widths here are in that larger unit) */
+.twin-zone-label, .twin-rack-name, .twin-marker-label {
+  paint-order: stroke fill; stroke: rgba(255, 255, 255, 0.92); stroke-width: 4px; stroke-linejoin: round;
+}
+.twin-labels { pointer-events: none; }
 
 .twin-aisles line { stroke: #CBD1D8; stroke-width: 0.12; stroke-linecap: round; }
 .twin-aisles line.is-blocked { stroke: var(--tw-red); stroke-dasharray: 0.5 0.35; stroke-width: 0.16; }
@@ -253,12 +261,15 @@
 .twin-rack:hover .twin-rack-body { stroke: #8F9AA6; stroke-width: 0.09; }
 .twin-cell { transition: fill 0.3s ease; }
 .twin-cell.is-target { fill: var(--tw-orange); }
-.twin-cell-ring { fill: none; stroke: var(--tw-orange); stroke-width: 0.09; animation: twinRing 1.6s ease-in-out infinite; }
+/* stroke width: keep in sync with RING_STROKE in RackShape.jsx (outlines must not cross between bins) */
+.twin-cell-ring { fill: none; stroke: var(--tw-orange); stroke-width: 0.09; stroke-linejoin: round; animation: twinRing 1.6s ease-in-out infinite; }
 @keyframes twinRing { 50% { stroke-opacity: 0.2; } }
 .twin-rack-halo { fill: rgba(59, 123, 246, 0.06); stroke: rgba(59, 123, 246, 0.5); stroke-width: 0.09; }
 .twin-rack.is-selected .twin-rack-halo { fill: rgba(59, 123, 246, 0.1); stroke: var(--tw-blue); stroke-width: 0.15; }
-.twin-rack-name { fill: #7A838C; font-weight: 600; }
-.twin-rack.is-selected .twin-rack-name, .twin-rack.is-target .twin-rack-name { fill: var(--tw-text); }
+/* rack names are drawn in the label layer (FloorMap), so they carry the rack's state themselves */
+.twin-rack-name { fill: #7A838C; font-weight: 600; transition: opacity 0.3s ease; }
+.twin-rack-name.is-selected, .twin-rack-name.is-target { fill: var(--tw-text); }
+.twin-rack-name.is-dim { opacity: 0.38; }
 .twin-rack-flash { fill: #FFE7A3; opacity: 0; animation: twinFlash 1.1s ease-out 1; }
 @keyframes twinFlash { 0% { opacity: 0.85; } 100% { opacity: 0; } }
 .twin-alert circle { fill: var(--tw-red); stroke: #FFFFFF; stroke-width: 0.1; }
@@ -446,11 +457,18 @@
 }
 .twin-reply-body { flex: 1; min-width: 0; }
 .twin-reply-body strong { font-size: 12px; }
-.twin-reply-body p {
-  margin-top: 2px; font-size: 12.5px; white-space: pre-line;
-  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+/* agent text (MarkdownText): about three lines until "Show more" */
+.twin-reply-body .twin-reply-text { margin-top: 2px; font-size: 12.5px; max-height: 4.2em; overflow: hidden; overflow-wrap: anywhere; }
+.twin-reply-body .twin-reply-text.is-expanded { max-height: 220px; overflow-y: auto; }
+.twin-reply-body .twin-reply-text > * + * { margin-top: 4px; }
+.twin-reply-body .twin-reply-text strong { font-size: inherit; font-weight: 650; color: inherit; }
+.twin-reply-body .twin-reply-text .md-list { padding-left: 18px; }
+.twin-reply-body .twin-reply-text .md-list li + li { margin-top: 1px; }
+.twin-reply-body .twin-reply-text .md-list li::marker { color: var(--tw-muted); }
+.twin-reply-body .twin-reply-text .md-code {
+  font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 0.9em; padding: 0 5px; border-radius: 5px;
+  background: var(--tw-surface-2); border: 1px solid var(--tw-line); color: var(--tw-text);
 }
-.twin-reply-body p.is-expanded { display: block; max-height: 220px; overflow-y: auto; }
 .twin-typing { display: inline-flex; gap: 3px; }
 .twin-typing i { width: 6px; height: 6px; border-radius: 50%; background: var(--tw-blue); animation: twinDot 1s ease-in-out infinite; }
 .twin-typing i:nth-child(2) { animation-delay: 0.15s; }
@@ -469,6 +487,8 @@
 .twin-ask:focus-within { border-color: var(--tw-blue); box-shadow: 0 0 0 3px rgba(59, 123, 246, 0.14), var(--tw-shadow-lg); }
 .twin-ask input { flex: 1; min-width: 0; border: none; outline: none; background: transparent; font: inherit; font-size: 13.5px; color: var(--tw-text); }
 .twin-ask input::placeholder { color: var(--tw-faint); }
+.twin-ask-count { flex: none; font: 500 11px 'JetBrains Mono', ui-monospace, monospace; color: var(--tw-muted); white-space: nowrap; }
+.twin-ask-count.is-limit { color: var(--tw-red); }
 .twin-ask button {
   display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 50%;
   border: none; background: var(--tw-dark); color: #fff;
@@ -503,7 +523,8 @@
 
 /* ---------- small screens ---------- */
 @container twinmap (max-width: 700px) {
-  .twin-detail { top: auto; left: 8px; right: 8px; bottom: 8px; width: auto; max-height: 72%; }
+  /* bottom sheet: leaves the map ~40 % of the height for the framed target (it scrolls inside) */
+  .twin-detail { top: auto; left: 8px; right: 8px; bottom: 8px; width: auto; max-height: 58%; }
   .has-panel .twin-controls-right, .has-panel .twin-toasts { right: 14px; }
   .has-panel .twin-dock-wrap { display: none; }
 }
@@ -512,6 +533,15 @@
   .twin-map-title { font-size: 16px; }
   .twin-count-pill { padding: 0 8px; }
   .twin-root.is-narrow .twin-inventory { left: 8px; right: 8px; width: auto; top: 60px; bottom: 8px; }
+}
+@media (max-width: 520px) {
+  /* phone: "Live" and "Chat" keep their icon and accessible name, the words go */
+  .twin-map-head { padding: 9px 10px; gap: 8px; }
+  .twin-map-head-right { gap: 6px; }
+  .twin-head-text { display: none; }
+  .twin-live { padding: 0 10px; }
+  .twin-back-btn { padding: 0 10px; }
+  .twin-map-title { font-size: 15px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .twin-root *, .twin-root *::before, .twin-root *::after, .twin-root { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }

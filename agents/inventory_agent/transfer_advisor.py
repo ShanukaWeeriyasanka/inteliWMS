@@ -124,6 +124,11 @@ class TransferAdvisor:
                 f"• External Purchase Avoidance: **${ext_total:,.2f}**\n"
                 f"💰 **Net Logistics Savings: ${savings:,.2f}**"
             )
+            if transferable_qty < needed_quantity:
+                # The sibling can't cover the whole request: say how much is left to buy
+                verdict += (f"\nℹ️ {best.warehouse_name} has only **{best.available_surplus}** spare of the "
+                            f"**{needed_quantity}** requested — order the remaining **{needed_quantity - transferable_qty}** "
+                            f"from the external vendor ({ext_lead_days} days, ${ext_cost_per_unit:.2f}/unit).")
         else:
             verdict = (
                 f"ℹ️ No sibling warehouse currently has surplus stock of `{sku_clean}` above safety thresholds. "

@@ -40,3 +40,6 @@ htmlcov/
 postgres_data/
 chroma_data/
 data/chroma_db/
+
+# Playwright MCP test artefacts (screenshots, page snapshots, console logs)
+.playwright-mcp/

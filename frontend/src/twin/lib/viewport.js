@@ -56,6 +56,54 @@ export function racksBox(racks) {
   return { x: x1, y: y1, w: x2 - x1, h: y2 - y1 }
 }
 
+/** Smallest box holding every given box (nulls ignored). */
+export function unionBox(boxes) {
+  const list = boxes.filter(Boolean)
+  if (!list.length) return null
+  const x1 = Math.min(...list.map((b) => b.x))
+  const y1 = Math.min(...list.map((b) => b.y))
+  const x2 = Math.max(...list.map((b) => b.x + b.w))
+  const y2 = Math.max(...list.map((b) => b.y + b.h))
+  return { x: x1, y: y1, w: x2 - x1, h: y2 - y1 }
+}
+
+/** `box` grown by the given margins (metres). */
+export const growBox = (box, { left = 0, right = 0, top = 0, bottom = 0 }) =>
+  box && { x: box.x - left, y: box.y - top, w: box.w + left + right, h: box.h + top + bottom }
+
+// Floating UI may cover at most this share of the map's width or height when framing
+const MAX_COVERED = 0.75
+
+/**
+ * View that shows `box` (metres) in the part of the map that floating UI does not cover.
+ * `size` is the map container in px; `insets` are the px covered on each side (the detail
+ * panel on the right, the agent reply at the bottom, a bottom sheet on small screens).
+ * The box is grown by `scale` for context, at least `minVisibleW` metres stay visible,
+ * and the box is centred in the uncovered part.
+ */
+export function frameView(box, size, { insets = {}, scale = 1, minVisibleW = 0, maxW = Infinity } = {}) {
+  const W = size.w
+  const H = size.h
+  const fit = (a, b, total) => {
+    const covered = a + b
+    const cap = total * MAX_COVERED
+    return covered <= cap ? [a, b] : [(a * cap) / covered, (b * cap) / covered]
+  }
+  const [left, right] = fit(insets.left || 0, insets.right || 0, W)
+  const [top, bottom] = fit(insets.top || 0, insets.bottom || 0, H)
+  const visW = W - left - right
+  const visH = H - top - bottom
+  const w = clamp(
+    Math.max((box.w * scale * W) / visW, (box.h * scale * W) / visH, (minVisibleW * W) / visW),
+    MIN_VIEW_W,
+    Math.max(MIN_VIEW_W, maxW),
+  )
+  const mpp = w / W
+  const cx = box.x + box.w / 2
+  const cy = box.y + box.h / 2
+  return { x: cx - (left + visW / 2) * mpp, y: cy - (top + visH / 2) * mpp, w, h: H * mpp }
+}
+
 export const lerpView = (a, b, t) => ({
   x: a.x + (b.x - a.x) * t,
   y: a.y + (b.y - a.y) * t,

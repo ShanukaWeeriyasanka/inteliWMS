@@ -23,7 +23,11 @@ _DOCUMENT = _rx(r"supplier (email|pdf|note|notification)", r"parse (this |the )?
 _EQUIPMENT = _rx(r"\b(grinding|grind|squeal\w*|hydraulic leak|leak(ing|s)?|break(s|ing)? ?down|broke(n)? down|"
                  r"slipping|shaking|vibrat\w*|overheat\w*|sensor fault|agv stopped|won'?t start|"
                  r"strange noise|loud noise|making (a )?(\w+ )?noise)\b",
-                 r"\b(equipment (health|issue)|complaint log|maintenance (log|ticket))\b")
+                 r"\b(equipment (health|issue)|complaint log|maintenance (log|ticket))\b",
+                 # A named machine with a fault ("the label printer keeps jamming", "scanner not working")
+                 r"\b(forklift|conveyor|agv|pallet jack|reach truck|printer|scanner|wrapper|dock door)s?\b.*"
+                 r"\b(jam\w*|stuck|not working|stopped working|keeps (stopping|failing|crashing|freezing)|"
+                 r"error code|fault\w*|smok\w*|spark\w*|rattl\w*)\b")
 _ANOMALY = _rx(r"\b(anomal\w*|shrinkage|stolen|theft|loss prevention|discrepanc\w*|missing stock|"
                r"unauthori[sz]ed adjustment|unexplained drop)\b")
 _MOVEMENTS = _rx(r"\b(stock |inventory )?movements?\b", r"\b(stock|transaction|movement) history\b",
@@ -76,6 +80,7 @@ def detect_sub_intent(query: str) -> str:
 
 
 _SKU_IN_TEXT = re.compile(r"\bSKU[-\s]?\d{3,6}\b", re.I)
+_SKU_ANY_DIGITS = re.compile(r"\bSKU[-\s]?(\d+)\b", re.I)
 _PRD_IN_TEXT = re.compile(r"\bPRD-\d{5}\b", re.I)
 
 
@@ -83,6 +88,8 @@ _PRD_IN_TEXT = re.compile(r"\bPRD-\d{5}\b", re.I)
 class Entities:
     skus: List[str] = field(default_factory=list)
     product_ids: List[str] = field(default_factory=list)
+    # SKU-shaped codes with the wrong number of digits ("SKU-4521000"): reported as not found
+    invalid_skus: List[str] = field(default_factory=list)
 
     @property
     def any(self) -> bool:
@@ -92,7 +99,28 @@ class Entities:
 def extract_entities(query: str) -> Entities:
     skus = [canonical_sku(m.group(0)) for m in _SKU_IN_TEXT.finditer(query or "")]
     prds = [m.group(0).upper() for m in _PRD_IN_TEXT.finditer(query or "")]
-    return Entities(skus=list(dict.fromkeys(s for s in skus if s)), product_ids=list(dict.fromkeys(prds)))
+    invalid = [f"SKU-{m.group(1)}" for m in _SKU_ANY_DIGITS.finditer(query or "") if not 3 <= len(m.group(1)) <= 6]
+    return Entities(skus=list(dict.fromkeys(s for s in skus if s)), product_ids=list(dict.fromkeys(prds)),
+                    invalid_skus=list(dict.fromkeys(invalid)))
+
+
+# ── Quantities ("transfer 500 units of SKU-4521") ────────────────────────────
+
+_QTY_UNITS = r"units?|pcs|pieces?|rolls?|boxes|box|cases?|cartons?|pallets?|items?|kits?|packs?|crates?"
+_QTY_WITH_UNIT = re.compile(rf"(?<![\w-])(-?\d[\d,]*)\s*(?:{_QTY_UNITS})\b", re.I)
+_QTY_AFTER_VERB = re.compile(r"\b(?:transfer|move|send|ship|need|get|bring|order)\s+(-?\d[\d,]*)\b(?!\s*%)", re.I)
+
+
+def requested_quantity(query: str) -> Optional[int]:
+    """The quantity the user asked for (signed, so 0 and negatives can be rejected), or None."""
+    text = _SKU_ANY_DIGITS.sub(" ", _PRD_IN_TEXT.sub(" ", query or ""))  # SKU / PRD digits are not quantities
+    m = _QTY_WITH_UNIT.search(text) or _QTY_AFTER_VERB.search(text)
+    if not m:
+        return None
+    try:
+        return int(m.group(1).replace(",", ""))
+    except ValueError:
+        return None
 
 
 # ── Follow-ups ───────────────────────────────────────────────────────────────
@@ -113,12 +141,14 @@ _WORD = re.compile(r"[a-z0-9]+")
 class FollowUp:
     skus: List[str] = field(default_factory=list)
     product_ids: List[str] = field(default_factory=list)
+    location_ids: List[str] = field(default_factory=list)  # a map place picked from a clarification
     picked_from_clarification: bool = False
     assumed: bool = False  # carried over from the previous answer, not named in this message
+    pending_query: Optional[str] = None  # the question the clarification was asked for
 
     @property
     def any(self) -> bool:
-        return bool(self.skus or self.product_ids)
+        return bool(self.skus or self.product_ids or self.location_ids)
 
 
 def _pick_candidate(query: str, candidates: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
@@ -189,7 +219,8 @@ def resolve_follow_up(query: str, conversation: Optional[Dict[str, Any]], allow_
         if choice:
             return FollowUp(skus=[choice["sku"]] if choice.get("sku") else [],
                             product_ids=[choice["product_id"]] if choice.get("product_id") else [],
-                            picked_from_clarification=True)
+                            location_ids=[choice["location_id"]] if choice.get("location_id") else [],
+                            picked_from_clarification=True, pending_query=conv.get("pending_query"))
     skus, prds = list(conv.get("skus") or []), list(conv.get("product_ids") or [])
     if (skus or prds) and (points_back(query) or (allow_short and is_short(query))):
         return FollowUp(skus=skus[:1], product_ids=prds[:1], assumed=True)

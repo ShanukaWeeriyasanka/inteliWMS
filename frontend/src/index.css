@@ -347,6 +347,14 @@ svg.lucide {
   font-size: 12px;
 }
 
+.field-hint {
+  display: block;
+  margin-top: 6px;
+  font-size: 11.5px;
+  color: var(--text-muted);
+  letter-spacing: -0.01em;
+}
+
 .auth-privacy-notice {
   text-align: center;
   font-size: 10.5px;
@@ -1619,6 +1627,42 @@ spline-viewer a {
   letter-spacing: -0.01em;
 }
 
+/* "3,812 / 4,000" next to the send button near the message limit */
+.capsule-char-counter {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-right: 10px;
+  white-space: nowrap;
+}
+
+.capsule-char-counter.at-limit {
+  color: var(--accent-coral);
+}
+
+/* Files that could not be attached (e.g. images) or sent */
+.capsule-file-notice {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px 8px 14px;
+  border-radius: 14px;
+  background: rgba(245, 158, 11, 0.1);
+  border: 0.5px solid rgba(245, 158, 11, 0.3);
+  color: #fbbf24;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.capsule-file-notice-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
 .capsule-controls-row {
   display: flex;
   align-items: center;
@@ -1918,11 +1962,56 @@ spline-viewer a {
   word-break: break-word;
 }
 
+/* Agent replies rendered from light Markdown (MarkdownText) */
+.md-text > * + * {
+  margin-top: 8px;
+}
+
+.md-text .md-list {
+  padding-left: 20px;
+}
+
+.md-text .md-list li + li {
+  margin-top: 3px;
+}
+
+.md-text .md-list li {
+  padding-left: 2px;
+}
+
+.md-text .md-list li::marker {
+  color: var(--text-muted);
+}
+
+.md-text strong {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.md-text em {
+  font-style: italic;
+}
+
+.md-code {
+  font-family: var(--font-mono);
+  font-size: 0.86em;
+  background: rgba(255, 255, 255, 0.07);
+  border: 0.5px solid rgba(255, 255, 255, 0.1);
+  padding: 1px 6px;
+  border-radius: 6px;
+  color: #fbbf24;
+  overflow-wrap: anywhere;
+}
+
 .message-attachments-list {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
   margin-top: 10px;
+}
+
+.message-attachments-list:first-child {
+  margin-top: 0;
 }
 
 .msg-attachment-item {
@@ -2852,6 +2941,33 @@ spline-viewer a {
   display: flex;
   flex-direction: column;
   gap: 6px;
+}
+
+/* Staff: the audit stream is for managers and admins */
+.soc-restricted-notice {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 0.5px solid rgba(255, 255, 255, 0.08);
+  color: var(--text-secondary);
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+
+.soc-error-notice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: rgba(255, 69, 58, 0.08);
+  border: 0.5px solid rgba(255, 69, 58, 0.3);
+  color: #ff9f97;
+  font-size: 12px;
 }
 
 .soc-event-item {
@@ -4860,6 +4976,15 @@ spline-viewer a {
   font-family: var(--font-mono);
 }
 
+/* The visualizer's built-in catalog (no agent answer selected): never passed off as live stock */
+.inspector-sample-note {
+  display: block;
+  margin-top: 3px;
+  font-size: 10px;
+  color: #fbbf24;
+  letter-spacing: 0.01em;
+}
+
 .status-pill {
   font-size: 10px;
   font-weight: 600;
@@ -5507,3 +5632,114 @@ spline-viewer a {
 .twin-bg-active .message-timestamp { color: #5B636A; }
 .claude-main-stage:has(.twin-bg-active) .topbar-icon-btn { color: #1E2226; }
 .twin-show-on-map { margin-top: 10px; }
+
+/* =========================================================================
+   NARROW LAYOUTS
+   The floating topbar row (menu button, map button, user pill) never sits on
+   top of chat text, and cards wrap instead of clipping in a narrow chat column.
+   .is-narrow / .is-compact are set on .claude-main-stage from its measured width.
+   ========================================================================= */
+.claude-chat-stream-container {
+  padding-top: 56px; /* chat scrolls below the floating topbar row */
+}
+
+.chat-messages-scroll-area {
+  padding-top: 18px;
+}
+
+.message-bubble-wrapper {
+  min-width: 0;
+}
+
+.embedded-sku-card {
+  min-width: 0;
+}
+
+.embedded-sku-card .embedded-card-header {
+  flex-wrap: wrap;
+  gap: 6px 10px;
+}
+
+.embedded-sku-card .card-header-left {
+  min-width: 0;
+}
+
+.embedded-sku-card .card-header-left strong,
+.embedded-sku-card .stock-val {
+  overflow-wrap: anywhere;
+}
+
+.embedded-sku-card .sku-spec-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));
+}
+
+.embedded-sku-card .spec-tile {
+  min-width: 0;
+}
+
+.embedded-sku-card .coords-badge-group {
+  flex-wrap: wrap;
+}
+
+.embedded-sku-card .btn-inspect-artifact {
+  max-width: 100%;
+  text-align: left;
+}
+
+/* Narrow stage: the map button joins the topbar row, the user pill shrinks */
+.claude-main-stage.is-narrow .twin-launcher {
+  top: 18px;
+  right: auto;
+  left: 62px; /* beside the 32px menu button (20px topbar padding + 10px gap) */
+}
+
+.claude-main-stage.is-narrow .topbar-user-name {
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.claude-main-stage.is-compact .twin-launcher {
+  width: 32px;
+  padding: 0;
+  justify-content: center;
+}
+
+.claude-main-stage.is-compact .twin-launcher-label,
+.claude-main-stage.is-compact .topbar-user-name {
+  display: none;
+}
+
+.claude-main-stage.is-compact .topbar-logged-user-pill {
+  gap: 6px;
+  padding-right: 6px;
+}
+
+/* Small screens: dims the page behind the floating sidebar (below the sidebar's z-index 60) */
+.sidebar-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 59;
+  background: rgba(0, 0, 0, 0.45);
+  animation: sidebarScrimIn 0.18s ease-out;
+}
+
+@keyframes sidebarScrimIn {
+  from { opacity: 0; }
+}
+
+/* Small screens: the sidebar is fixed (see MOBILE RESPONSIVENESS). Keep the stage and the
+   artifact panel beside the 68px collapsed rail; the expanded sidebar overlays them. */
+@media (max-width: 1024px) {
+  .claude-main-stage {
+    margin-left: 68px;
+  }
+
+  .claude-artifact-panel {
+    left: 68px;
+    width: auto;
+    min-width: 0;
+    max-width: none;
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "product": {
+    "sku": "SKU-9401",
+    "name": "Synthetic Explanation Widget",
+    "category": "Synthetic assessment",
+    "quantity": 4,
+    "reserved_quantity": 0,
+    "safety_stock": 2,
+    "reorder_point": 5,
+    "reorder_quantity": 10,
+    "daily_burn_rate": 2,
+    "lead_time_days": 3,
+    "unit": "units",
+    "location": "Test bay",
+    "aisle": 1,
+    "shelf": "A1",
+    "tier": "A",
+    "bay": "01",
+    "occupancy_pct": 50,
+    "temperature": "20 C Ambient",
+    "unit_price": 10,
+    "weight_kg": 1,
+    "is_hazardous": false
+  },
+  "suppliers": [],
+  "supplier_record_origin": null,
+  "evaluation_weights": null,
+  "required_delivery_deadline": null,
+  "minimum_reliability": null
+}

@@ -118,13 +118,25 @@ def get_racks(ids: Iterable[str]) -> List[Dict[str, Any]]:
 def get_open_alerts() -> List[Dict[str, Any]]:
     """Open alerts placed on the map: the alert's bin, else the product's fullest bin.
     Emptied stock rows are kept at quantity 0, so an out-of-stock product still
-    points at the bin it was last picked from."""
+    points at the bin it was last picked from.
+
+    A stock alert's stored message is written once, when the alert opens; the quantity
+    keeps changing after that. Its message is therefore rebuilt from the live totals
+    (v_product_totals) on every read, so it never shows a stale count."""
     return _query(
-        "select a.id, a.type::text as type, a.level::text as level, a.product_id, a.bin_id, a.message, a.created_at, "
+        "select a.id, a.type::text as type, a.level::text as level, a.product_id, a.bin_id, "
+        "       case when a.type = 'low_stock' and t.product_id is not null then "
+        "              t.name || ' (' || t.sku || '): ' || t.total_quantity || ' left, reorder point ' "
+        "              || t.reorder_point "
+        "            when a.type = 'out_of_stock' and t.product_id is not null then "
+        "              t.name || ' (' || t.sku || ') is out of stock' "
+        "            else a.message end as message, "
+        "       a.created_at, "
         "       p.name as product_name, "
         "       substring(loc.bin_id from '^WH\\d+-F\\d+') as floor_id, "
         "       substring(loc.bin_id from '^WH\\d+-F\\d+-Z\\d{2}-R\\d{2}') as rack_id "
         "from alerts a left join products p on p.id = a.product_id "
+        "left join v_product_totals t on t.product_id = a.product_id "
         "cross join lateral (select coalesce(a.bin_id, "
         "    (select sl.bin_id from stock_locations sl where sl.product_id = a.product_id "
         "      order by sl.quantity desc, sl.updated_at desc limit 1)) as bin_id) loc "

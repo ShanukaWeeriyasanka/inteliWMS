@@ -49,6 +49,10 @@ def clf():
     "help me find SKU-4521",                              # used to be a META reply ("help")
     "what stock is in the cooling system",                # used to be a META reply ("what ... system")
     "forklift 3 is making a grinding noise",              # equipment health lives in the inventory agent
+    "the label printer near dock 2 keeps jamming",        # a named machine with a fault (used to need the LLM)
+    "which rack is the emptiest on floor 1",              # rack fill on the map (used to need the LLM)
+    "which rack is fullest on floor 2",
+    "clear the map",                                      # map control (used to need the LLM)
 ])
 def test_inventory_phrasings_route_to_inventory(clf, query):
     res = clf.classify(query)

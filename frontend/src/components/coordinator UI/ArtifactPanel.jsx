@@ -26,6 +26,8 @@ export default function ArtifactPanel({
   currentUser,
   auditLogs,
   auditStats,
+  auditAccess = true,
+  auditError = '',
   onRefreshAuditLogs
 }) {
   const [copied, setCopied] = useState(false)
@@ -276,7 +278,7 @@ export default function ArtifactPanel({
               <div className="claims-grid">
                 <div className="claim-row">
                   <span className="claim-key">Subject (User ID):</span>
-                  <span className="claim-val font-mono">{claims.sub}</span>
+                  <span className="claim-val font-mono">{claims.user_id || claims.sub || '—'}</span>
                 </div>
                 <div className="claim-row">
                   <span className="claim-key">Enforced Role:</span>
@@ -338,7 +340,19 @@ export default function ArtifactPanel({
         )}
 
         {/* TAB 5: SOC AUDIT STREAM */}
-        {activeTab === 'soc_audit' && (
+        {activeTab === 'soc_audit' && !auditAccess && (
+          <div className="soc-audit-tab-view">
+            <div className="soc-feed-header">
+              <strong>Real-Time Security Audit Stream</strong>
+            </div>
+            <div className="empty-soc-notice soc-restricted-notice">
+              <ShieldCheck size={16} className="text-amber" />
+              <span>The security audit stream is available to managers and admins.</span>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'soc_audit' && auditAccess && (
           <div className="soc-audit-tab-view">
             <div className="soc-stats-grid">
               <div className="soc-stat-tile">
@@ -366,6 +380,13 @@ export default function ArtifactPanel({
                 <span>Refresh</span>
               </button>
             </div>
+
+            {auditError && (
+              <div className="soc-error-notice" role="status">
+                <AlertCircle size={14} className="text-coral" />
+                <span>{auditError}</span>
+              </div>
+            )}
 
             <div className="soc-events-list">
               {(!auditLogs || auditLogs.length === 0) ? (

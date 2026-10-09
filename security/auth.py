@@ -11,6 +11,24 @@ init_db()
 
 SALT = "intelliwms_secure_salt_2026"
 
+# Privilege order: a user may sign in with their own role or a lower one, never a higher one
+ROLE_RANK = {"staff": 0, "manager": 1, "admin": 2}
+# Roles anyone may create for themselves; manager and admin accounts are created by an administrator
+SELF_REGISTER_ROLES = {"staff"}
+SELF_REGISTER_DENIED = ("Only staff accounts can be self-registered; "
+                        "ask an administrator for manager or admin access.")
+
+
+def user_id_for(role: str, db_id: int) -> str:
+    return f"usr_{role}_{db_id:03d}"
+
+
+def db_id_from_user_id(user_id: str) -> Optional[int]:
+    """'usr_staff_017' → 17 (None for ids not issued by this service)."""
+    tail = (user_id or "").rsplit("_", 1)[-1]
+    return int(tail) if user_id.startswith("usr_") and tail.isdigit() else None
+
+
 class AuthService:
     """
     Database-backed Authentication Service for Task 1.
@@ -113,9 +131,9 @@ class AuthService:
                 )
                 return False, None, None, "Invalid username or password"
 
-            # Check unauthorized privilege escalation
+            # A user may sign in with their own role or a lower one, never a higher one
             effective_role = requested_role or user.role
-            if user.role == "staff" and effective_role in ["manager", "admin"]:
+            if ROLE_RANK.get(effective_role, 99) > ROLE_RANK.get(user.role, -1):
                 audit_logger.log_event(
                     event_type="LOGIN_FAILED",
                     severity="HIGH",
@@ -126,7 +144,7 @@ class AuthService:
                 return False, None, None, f"User '{clean_user}' is not authorized for role '{effective_role}'"
 
             # Generate signed JWT token
-            user_id_str = f"usr_{user.role}_{user.id:03d}"
+            user_id_str = user_id_for(user.role, user.id)
             token = jwt_handler.create_token(user_id=user_id_str, role=effective_role)
             permissions = rbac_manager.get_permissions(effective_role)
 
@@ -166,8 +184,16 @@ class AuthService:
         if not clean_user or not password:
             return False, None, None, "Username and password are required"
 
-        if role not in ["staff", "manager", "admin"]:
-            role = "staff"
+        # Manager and admin accounts are never self-registered (privilege escalation)
+        if role not in SELF_REGISTER_ROLES:
+            audit_logger.log_event(
+                event_type="REGISTER_DENIED",
+                severity="HIGH",
+                user_id=clean_user,
+                role=role,
+                details={"reason": f"Self-registration requested role '{role}'"}
+            )
+            return False, None, None, SELF_REGISTER_DENIED
 
         db = SessionLocal()
         try:
@@ -187,7 +213,7 @@ class AuthService:
             db.commit()
             db.refresh(new_user)
 
-            user_id_str = f"usr_{role}_{new_user.id:03d}"
+            user_id_str = user_id_for(role, new_user.id)
             token = jwt_handler.create_token(user_id=user_id_str, role=role)
             permissions = rbac_manager.get_permissions(role)
 
@@ -217,16 +243,21 @@ class AuthService:
             db.close()
 
     def get_user_profile(self, user_id_or_username: str) -> Optional[Dict]:
-        """Fetch user profile from SQLite database."""
+        """Fetch a user profile by token user_id ('usr_staff_017') or by username."""
         db = SessionLocal()
         try:
-            # Match by username or parsed ID
-            user = db.query(User).filter(User.username == user_id_or_username).first()
+            db_id = db_id_from_user_id(user_id_or_username)
+            if db_id is not None:
+                user = db.get(User, db_id)
+                if user and user_id_for(user.role, user.id) != user_id_or_username:
+                    user = None  # the id belongs to an account whose role has changed since
+            else:
+                user = db.query(User).filter(User.username == user_id_or_username).first()
             if not user:
                 return None
 
             return {
-                "user_id": f"usr_{user.role}_{user.id:03d}",
+                "user_id": user_id_for(user.role, user.id),
                 "db_id": user.id,
                 "username": user.username,
                 "name": user.name,

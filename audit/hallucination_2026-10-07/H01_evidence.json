@@ -1,0 +1,351 @@
+{
+  "test": "H01",
+  "input": "How many units of SKU-7788 do we have in stock?",
+  "sent_at": "2026-10-07T11:45:33.896015+00:00",
+  "http_status": 200,
+  "ids": {
+    "thread_id": "b06a328c-2bd6-4998-ae0a-6d751a0fd83d",
+    "request_id": "c6d62c5f91c24ee0ad425c44f476aed3",
+    "trace_id": "1d5c931e605688c1931dfe306d775825",
+    "x_request_id_header": "c6d62c5f91c24ee0ad425c44f476aed3",
+    "x_trace_id_header": "1d5c931e605688c1931dfe306d775825"
+  },
+  "routing": {
+    "target_agent": "inventory_agent",
+    "intent": "INVENTORY",
+    "domain": "INVENTORY",
+    "confidence": 0.95,
+    "reasoning": "Heuristic match: Stock quantity, availability or product id.",
+    "source": "heuristic",
+    "follow_up": false,
+    "rule_id": "inventory.strong",
+    "decided_by": "rule",
+    "llm_consulted": false,
+    "llm_status": null,
+    "normalized_query": null,
+    "direct_response": null,
+    "decisions": [
+      {
+        "stage": "route",
+        "outcome": "INVENTORY",
+        "decided_by": "rule",
+        "rule_id": "inventory.strong",
+        "llm_consulted": false,
+        "llm_status": null,
+        "confidence": 0.95
+      },
+      {
+        "stage": "inventory.sub_intent",
+        "outcome": "availability",
+        "decided_by": "rule",
+        "rule_id": "sub_intent.availability",
+        "llm_consulted": false,
+        "llm_status": null,
+        "confidence": null
+      },
+      {
+        "stage": "inventory.product_ref",
+        "outcome": "explicit_id",
+        "decided_by": "rule",
+        "rule_id": "product_ref.explicit_id",
+        "llm_consulted": false,
+        "llm_status": null,
+        "confidence": null
+      }
+    ]
+  },
+  "agent_used": "inventory_agent",
+  "status": "success",
+  "response_text": "✅ Yes — **13** units of **Thermal Label Printer** (`SKU-7788`) can be picked now (15 on hand, 2 reserved).\n\n⚠️ **Thermal Label Printer** (`SKU-7788`)\n📍 **Location**: `Aisle 5, Shelf A1, Bay 02` (Dispatch Equipment)\n📦 **Stock**: **15** units on hand (13 available, 2 reserved)\n📊 **Bay**: 45% full • Ambient: 21.0 °C (Ambient)\n⚠️ **LOW STOCK**: 15 on hand, reorder point 20 — at or below the reorder point.",
+  "inventory_details": {
+    "sub_intent": "availability",
+    "items": [
+      {
+        "sku": "SKU-7788",
+        "name": "Thermal Label Printer",
+        "category": "Dispatch Equipment",
+        "location": "Aisle 5, Shelf A1, Bay 02",
+        "aisle": 5,
+        "shelf": "A1",
+        "tier": "A",
+        "bay": "Bay 02",
+        "quantity_on_hand": 15,
+        "reserved_quantity": 2,
+        "available_quantity": 13,
+        "safety_stock": 10,
+        "reorder_point": 20,
+        "reorder_quantity": 50,
+        "unit": "units",
+        "status": "LOW_STOCK",
+        "below_safety_stock": false,
+        "occupancy_pct": 45.0,
+        "weight_kg": 3.8,
+        "temperature": "21.0 °C (Ambient)"
+      }
+    ],
+    "needs_reorder": true,
+    "source": "database",
+    "document_result": null,
+    "prediction_result": null,
+    "anomaly_result": null,
+    "transfer_result": null,
+    "equipment_health_result": null,
+    "warehouse_layout": null,
+    "ui_command": null,
+    "ui_command_id": null,
+    "outcome": "answered",
+    "error_code": null,
+    "clarification": null,
+    "execution_time_ms": 49.07
+  },
+  "ui_command": null,
+  "ground_truth_tool_results": {
+    "get_product_stock": {
+      "status": "ok",
+      "sku": "SKU-7788",
+      "item": {
+        "sku": "SKU-7788",
+        "name": "Thermal Label Printer",
+        "category": "Dispatch Equipment",
+        "location": "Aisle 5, Shelf A1, Bay 02",
+        "aisle": 5,
+        "shelf": "A1",
+        "tier": "A",
+        "bay": "Bay 02",
+        "quantity_on_hand": 15,
+        "reserved_quantity": 2,
+        "available_quantity": 13,
+        "safety_stock": 10,
+        "reorder_point": 20,
+        "reorder_quantity": 50,
+        "unit": "units",
+        "status": "LOW_STOCK",
+        "below_safety_stock": false,
+        "occupancy_pct": 45.0,
+        "weight_kg": 3.8,
+        "temperature": "21.0 °C (Ambient)"
+      },
+      "thresholds_defaulted": false
+    }
+  },
+  "numbers_in_answer_traced_to_tool_fields": [
+    {
+      "number": "13",
+      "matching_fields": [
+        "tool.get_product_stock.item.available_quantity",
+        "inventory_details.items.0.available_quantity"
+      ]
+    },
+    {
+      "number": "15",
+      "matching_fields": [
+        "tool.get_product_stock.item.quantity_on_hand",
+        "inventory_details.items.0.quantity_on_hand"
+      ]
+    },
+    {
+      "number": "2",
+      "matching_fields": [
+        "tool.get_product_stock.item.reserved_quantity",
+        "inventory_details.items.0.reserved_quantity"
+      ]
+    },
+    {
+      "number": "5",
+      "matching_fields": [
+        "tool.get_product_stock.item.aisle",
+        "inventory_details.items.0.aisle"
+      ]
+    },
+    {
+      "number": "02",
+      "matching_fields": [
+        "tool.get_product_stock.item.reserved_quantity",
+        "inventory_details.items.0.reserved_quantity"
+      ]
+    },
+    {
+      "number": "15",
+      "matching_fields": [
+        "tool.get_product_stock.item.quantity_on_hand",
+        "inventory_details.items.0.quantity_on_hand"
+      ]
+    },
+    {
+      "number": "13",
+      "matching_fields": [
+        "tool.get_product_stock.item.available_quantity",
+        "inventory_details.items.0.available_quantity"
+      ]
+    },
+    {
+      "number": "2",
+      "matching_fields": [
+        "tool.get_product_stock.item.reserved_quantity",
+        "inventory_details.items.0.reserved_quantity"
+      ]
+    },
+    {
+      "number": "45",
+      "matching_fields": [
+        "tool.get_product_stock.item.occupancy_pct",
+        "inventory_details.items.0.occupancy_pct"
+      ]
+    },
+    {
+      "number": "21.0",
+      "matching_fields": []
+    },
+    {
+      "number": "15",
+      "matching_fields": [
+        "tool.get_product_stock.item.quantity_on_hand",
+        "inventory_details.items.0.quantity_on_hand"
+      ]
+    },
+    {
+      "number": "20",
+      "matching_fields": [
+        "tool.get_product_stock.item.reorder_point",
+        "inventory_details.items.0.reorder_point"
+      ]
+    }
+  ],
+  "stored_thread": {
+    "status": "success",
+    "thread": {
+      "id": "b06a328c-2bd6-4998-ae0a-6d751a0fd83d",
+      "title": "How many units of SKU-7788 do we have in stock?",
+      "last_agent": "inventory_agent",
+      "message_count": 2,
+      "created_at": "2026-10-07T11:45:34.018232Z",
+      "updated_at": "2026-10-07T11:45:34.018520Z"
+    },
+    "messages": [
+      {
+        "id": 261,
+        "role": "user",
+        "content": "How many units of SKU-7788 do we have in stock?",
+        "agent_used": null,
+        "status": null,
+        "request_id": "c6d62c5f91c24ee0ad425c44f476aed3",
+        "meta": null,
+        "created_at": "2026-10-07T11:45:34.018520Z"
+      },
+      {
+        "id": 262,
+        "role": "assistant",
+        "content": "✅ Yes — **13** units of **Thermal Label Printer** (`SKU-7788`) can be picked now (15 on hand, 2 reserved).\n\n⚠️ **Thermal Label Printer** (`SKU-7788`)\n📍 **Location**: `Aisle 5, Shelf A1, Bay 02` (Dispatch Equipment)\n📦 **Stock**: **15** units on hand (13 available, 2 reserved)\n📊 **Bay**: 45% full • Ambient: 21.0 °C (Ambient)\n⚠️ **LOW STOCK**: 15 on hand, reorder point 20 — at or below the reorder point.",
+        "agent_used": "inventory_agent",
+        "status": "success",
+        "request_id": "c6d62c5f91c24ee0ad425c44f476aed3",
+        "meta": {
+          "agent_used": "inventory_agent",
+          "status": "success",
+          "routing": {
+            "target_agent": "inventory_agent",
+            "domain": "INVENTORY",
+            "confidence": 0.95,
+            "reasoning": "Heuristic match: Stock quantity, availability or product id.",
+            "source": "heuristic",
+            "follow_up": false,
+            "rule_id": "inventory.strong",
+            "decided_by": "rule",
+            "llm_consulted": false,
+            "llm_status": null,
+            "decisions": [
+              {
+                "stage": "route",
+                "outcome": "INVENTORY",
+                "decided_by": "rule",
+                "rule_id": "inventory.strong",
+                "llm_consulted": false,
+                "llm_status": null,
+                "confidence": 0.95
+              },
+              {
+                "stage": "inventory.sub_intent",
+                "outcome": "availability",
+                "decided_by": "rule",
+                "rule_id": "sub_intent.availability",
+                "llm_consulted": false,
+                "llm_status": null,
+                "confidence": null
+              },
+              {
+                "stage": "inventory.product_ref",
+                "outcome": "explicit_id",
+                "decided_by": "rule",
+                "rule_id": "product_ref.explicit_id",
+                "llm_consulted": false,
+                "llm_status": null,
+                "confidence": null
+              }
+            ]
+          },
+          "inventory_details": {
+            "sub_intent": "availability",
+            "items": [
+              {
+                "sku": "SKU-7788",
+                "name": "Thermal Label Printer",
+                "category": "Dispatch Equipment",
+                "location": "Aisle 5, Shelf A1, Bay 02",
+                "aisle": 5,
+                "shelf": "A1",
+                "tier": "A",
+                "bay": "Bay 02",
+                "quantity_on_hand": 15,
+                "reserved_quantity": 2,
+                "available_quantity": 13,
+                "safety_stock": 10,
+                "reorder_point": 20,
+                "reorder_quantity": 50,
+                "unit": "units",
+                "status": "LOW_STOCK",
+                "below_safety_stock": false,
+                "occupancy_pct": 45.0,
+                "weight_kg": 3.8,
+                "temperature": "21.0 °C (Ambient)"
+              }
+            ],
+            "needs_reorder": true,
+            "source": "database",
+            "document_result": null,
+            "prediction_result": null,
+            "anomaly_result": null,
+            "transfer_result": null,
+            "equipment_health_result": null,
+            "ui_command": null,
+            "ui_command_id": null,
+            "outcome": "answered",
+            "error_code": null,
+            "clarification": null,
+            "execution_time_ms": 49.07
+          }
+        },
+        "created_at": "2026-10-07T11:45:34.018520Z"
+      }
+    ],
+    "has_more": false
+  },
+  "server_log_lines_for_trace": [
+    "2026-10-07 17:15:33,912 - tracing - INFO - {\"timestamp\": \"2026-10-07T11:45:33.912198+00:00\", \"event_type\": \"SPAN_END\", \"request_id\": \"c6d62c5f91c24ee0ad425c44f476aed3\", \"trace_id\": \"1d5c931e605688c1931dfe306d775825\", \"span_id\": \"d3bbb4bec3392626\", \"span\": \"routing.decide\", \"parent_span_id\": \"fbdcbf428e5ede81\", \"duration_ms\": 2.57, \"status\": \"ok\", \"error_type\": null, \"domain\": \"INVENTORY\", \"decided_by\": \"rule\", \"rule_id\": \"inventory.strong\"}",
+    "2026-10-07 17:15:33,915 - decisions - INFO - {\"timestamp\": \"2026-10-07T11:45:33.915528+00:00\", \"event_type\": \"DECISION\", \"request_id\": \"c6d62c5f91c24ee0ad425c44f476aed3\", \"trace_id\": \"1d5c931e605688c1931dfe306d775825\", \"span_id\": \"fbdcbf428e5ede81\", \"stage\": \"route\", \"outcome\": \"INVENTORY\", \"decided_by\": \"rule\", \"rule_id\": \"inventory.strong\", \"llm_consulted\": false, \"llm_status\": null, \"confidence\": 0.95, \"target_agent\": \"inventory_agent\", \"normalized\": {\"omitted\": true}}",
+    "2026-10-07 17:15:33,916 - agents.coordinator.router - INFO - {\"timestamp\": \"2026-10-07T11:45:33.915886+00:00\", \"event_type\": \"COORDINATOR_ROUTING_DECISION\", \"request_id\": \"c6d62c5f91c24ee0ad425c44f476aed3\", \"trace_id\": \"1d5c931e605688c1931dfe306d775825\", \"span_id\": \"fbdcbf428e5ede81\", \"intent\": \"INVENTORY\", \"target_agent\": \"inventory_agent\", \"confidence\": 0.95, \"rule_id\": \"inventory.strong\", \"decided_by\": \"rule\", \"source\": \"heuristic\", \"llm_consulted\": false, \"llm_status\": null, \"llm_reasoning\": null, \"follow_up\": false, \"normalized\": {\"omitted\": true}, \"direct\": false}",
+    "2026-10-07 17:15:33,919 - agents.coordinator.agent_dispatcher - INFO - {\"timestamp\": \"2026-10-07T11:45:33.919121+00:00\", \"event_type\": \"INVENTORY_HANDOFF\", \"request_id\": \"c6d62c5f91c24ee0ad425c44f476aed3\", \"trace_id\": \"1d5c931e605688c1931dfe306d775825\", \"span_id\": \"f4252c0253b7a72e\", \"agent\": \"inventory_agent\", \"has_thread\": false, \"has_sku\": true, \"has_conversation\": true}",
+    "2026-10-07 17:15:33,964 - mcp_servers.mcp_tool_client - INFO - {\"timestamp\": \"2026-10-07T11:45:33.963941+00:00\", \"event_type\": \"MCP_TOOLS_DISCOVERED\", \"request_id\": \"c6d62c5f91c24ee0ad425c44f476aed3\", \"trace_id\": \"1d5c931e605688c1931dfe306d775825\", \"span_id\": \"cfb9301690c30c65\", \"agent\": \"inventory_agent\", \"server\": \"inventory\", \"discovered\": 11, \"exposed\": [\"analyze_equipment_log\", \"check_stock_anomalies\", \"evaluate_transfer\", \"get_product_stock\", \"get_stock_movements\", \"list_low_stock\", \"parse_supplier_document\", \"predict_depletion\", \"publish_map_command\", \"search_products\", \"twin_answer\"]}",
+    "2026-10-07 17:15:33,966 - decisions - INFO - {\"timestamp\": \"2026-10-07T11:45:33.965960+00:00\", \"event_type\": \"DECISION\", \"request_id\": \"c6d62c5f91c24ee0ad425c44f476aed3\", \"trace_id\": \"1d5c931e605688c1931dfe306d775825\", \"span_id\": \"cfb9301690c30c65\", \"agent\": \"inventory_agent\", \"stage\": \"inventory.sub_intent\", \"outcome\": \"availability\", \"decided_by\": \"rule\", \"rule_id\": \"sub_intent.availability\", \"llm_consulted\": false, \"llm_status\": null, \"confidence\": null}",
+    "2026-10-07 17:15:34,012 - tracing - INFO - {\"timestamp\": \"2026-10-07T11:45:34.012730+00:00\", \"event_type\": \"SPAN_END\", \"request_id\": \"c6d62c5f91c24ee0ad425c44f476aed3\", \"trace_id\": \"1d5c931e605688c1931dfe306d775825\", \"span_id\": \"feb1e42cd4a286ca\", \"agent\": \"inventory_agent\", \"span\": \"mcp.tool\", \"parent_span_id\": \"2d921cfe2d10ecfd\", \"duration_ms\": 45.85, \"status\": \"ok\", \"error_type\": null, \"server\": \"inventory\", \"tool\": \"get_product_stock\", \"transport\": \"memory\", \"outcome\": \"ok\", \"attempts\": 1, \"error_code\": null}",
+    "2026-10-07 17:15:34,013 - mcp_servers.mcp_tool_client - INFO - {\"timestamp\": \"2026-10-07T11:45:34.013248+00:00\", \"event_type\": \"MCP_TOOL_CALL\", \"request_id\": \"c6d62c5f91c24ee0ad425c44f476aed3\", \"trace_id\": \"1d5c931e605688c1931dfe306d775825\", \"span_id\": \"2d921cfe2d10ecfd\", \"agent\": \"inventory_agent\", \"server\": \"inventory\", \"tool\": \"get_product_stock\", \"kind\": \"read\", \"status\": \"ok\", \"attempts\": 1, \"duration_ms\": 45.84, \"error_code\": null, \"arguments\": {\"omitted\": true, \"len\": 1}}",
+    "2026-10-07 17:15:34,015 - tracing - INFO - {\"timestamp\": \"2026-10-07T11:45:34.015188+00:00\", \"event_type\": \"SPAN_END\", \"request_id\": \"c6d62c5f91c24ee0ad425c44f476aed3\", \"trace_id\": \"1d5c931e605688c1931dfe306d775825\", \"span_id\": \"2d921cfe2d10ecfd\", \"agent\": \"inventory_agent\", \"span\": \"inventory.handle\", \"parent_span_id\": \"cfb9301690c30c65\", \"duration_ms\": 48.49, \"status\": \"ok\", \"error_type\": null, \"sub_intent\": \"availability\", \"outcome\": \"answered\", \"error_code\": null, \"product_ref\": \"explicit_id\"}",
+    "2026-10-07 17:15:34,015 - decisions - INFO - {\"timestamp\": \"2026-10-07T11:45:34.015579+00:00\", \"event_type\": \"DECISION\", \"request_id\": \"c6d62c5f91c24ee0ad425c44f476aed3\", \"trace_id\": \"1d5c931e605688c1931dfe306d775825\", \"span_id\": \"cfb9301690c30c65\", \"agent\": \"inventory_agent\", \"stage\": \"inventory.product_ref\", \"outcome\": \"explicit_id\", \"decided_by\": \"rule\", \"rule_id\": \"product_ref.explicit_id\", \"llm_consulted\": false, \"llm_status\": null, \"confidence\": null}",
+    "2026-10-07 17:15:34,015 - agents.inventory_agent.agent - INFO - {\"timestamp\": \"2026-10-07T11:45:34.015903+00:00\", \"event_type\": \"INVENTORY_RESPONSE\", \"request_id\": \"c6d62c5f91c24ee0ad425c44f476aed3\", \"trace_id\": \"1d5c931e605688c1931dfe306d775825\", \"span_id\": \"cfb9301690c30c65\", \"agent\": \"inventory_agent\", \"sub_intent\": \"availability\", \"outcome\": \"answered\", \"source\": \"database\", \"items\": 1, \"error_code\": null, \"duration_ms\": 49.07, \"follow_up\": false, \"sub_intent_rule\": \"sub_intent.availability\", \"product_ref\": \"explicit_id\"}",
+    "2026-10-07 17:15:34,017 - tracing - INFO - {\"timestamp\": \"2026-10-07T11:45:34.016974+00:00\", \"event_type\": \"SPAN_END\", \"request_id\": \"c6d62c5f91c24ee0ad425c44f476aed3\", \"trace_id\": \"1d5c931e605688c1931dfe306d775825\", \"span_id\": \"cfb9301690c30c65\", \"agent\": \"inventory_agent\", \"span\": \"mcp.session\", \"parent_span_id\": \"f4252c0253b7a72e\", \"duration_ms\": 93.08, \"status\": \"ok\", \"error_type\": null, \"server\": \"inventory\", \"transport\": \"memory\", \"exposed\": 11}",
+    "2026-10-07 17:15:34,017 - tracing - INFO - {\"timestamp\": \"2026-10-07T11:45:34.017475+00:00\", \"event_type\": \"SPAN_END\", \"request_id\": \"c6d62c5f91c24ee0ad425c44f476aed3\", \"trace_id\": \"1d5c931e605688c1931dfe306d775825\", \"span_id\": \"f4252c0253b7a72e\", \"span\": \"agent.dispatch\", \"parent_span_id\": \"fbdcbf428e5ede81\", \"duration_ms\": 99.82, \"status\": \"ok\", \"error_type\": null, \"agent\": \"inventory_agent\"}",
+    "2026-10-07 17:15:34,030 - backend.threads.store - INFO - {\"timestamp\": \"2026-10-07T11:45:34.029942+00:00\", \"event_type\": \"THREAD_CREATED\", \"request_id\": \"c6d62c5f91c24ee0ad425c44f476aed3\", \"trace_id\": \"1d5c931e605688c1931dfe306d775825\", \"span_id\": \"fbdcbf428e5ede81\", \"thread_id\": \"b06a328c-2bd6-4998-ae0a-6d751a0fd83d\"}",
+    "2026-10-07 17:15:34,030 - backend.routes.query - INFO - {\"timestamp\": \"2026-10-07T11:45:34.030245+00:00\", \"event_type\": \"QUERY_COMPLETED\", \"request_id\": \"c6d62c5f91c24ee0ad425c44f476aed3\", \"trace_id\": \"1d5c931e605688c1931dfe306d775825\", \"span_id\": \"fbdcbf428e5ede81\", \"agent\": \"inventory_agent\", \"domain\": \"INVENTORY\", \"status\": \"success\", \"persisted\": true, \"new_thread\": true}",
+    "2026-10-07 17:15:34,030 - tracing - INFO - {\"timestamp\": \"2026-10-07T11:45:34.030775+00:00\", \"event_type\": \"SPAN_END\", \"request_id\": \"c6d62c5f91c24ee0ad425c44f476aed3\", \"trace_id\": \"1d5c931e605688c1931dfe306d775825\", \"span_id\": \"fbdcbf428e5ede81\", \"span\": \"query.handle\", \"parent_span_id\": \"86add0db5a04568c\", \"duration_ms\": 124.06, \"status\": \"ok\", \"error_type\": null, \"authenticated\": true, \"new_thread\": true, \"domain\": \"INVENTORY\", \"target_agent\": \"inventory_agent\", \"rule_id\": \"inventory.strong\", \"decided_by\": \"rule\", \"persisted\": true}",
+    "2026-10-07 17:15:34,032 - backend.request - INFO - {\"timestamp\": \"2026-10-07T11:45:34.032934+00:00\", \"event_type\": \"REQUEST_COMPLETED\", \"request_id\": \"c6d62c5f91c24ee0ad425c44f476aed3\", \"trace_id\": \"1d5c931e605688c1931dfe306d775825\", \"span_id\": \"86add0db5a04568c\", \"method\": \"POST\", \"route\": \"/query\", \"status\": 200, \"duration_ms\": 136.12}"
+  ]
+}

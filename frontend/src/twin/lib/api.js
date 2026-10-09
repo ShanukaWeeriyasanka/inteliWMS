@@ -23,7 +23,9 @@ export function createTwinApi(token) {
     }
     if (!res.ok) {
       const body = await res.json().catch(() => ({}))
-      throw new TwinApiError(body.detail || body.message || `Request failed (${res.status})`, res.status)
+      // Error envelope: {status: "error", error_code, message, audit} (`detail` is the older shape)
+      const detail = typeof body.detail === 'string' ? body.detail : null
+      throw new TwinApiError(body.message || detail || `Request failed (${res.status})`, res.status)
     }
     return res.json()
   }
