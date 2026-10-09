@@ -436,3 +436,49 @@ def test_server_upload_sop_file_invalid_extension():
     )
     assert resp.status_code == 400
     assert "Only .txt and .md" in resp.json()["detail"]
+
+
+# ==================== 10. 3D Spatial Digital Twin Tests ====================
+
+def test_resolve_rack_number_and_waypoints():
+    """Test resolving Rack #4 returns UCID, 3D coordinates, and corridor waypoints."""
+    res = resolve_location("where is rack no 4 located?")
+    assert res["found"] is True
+    assert res["target_type"] == "rack"
+    assert res["ucid"] == "WH-01:FL-01:ZN-A:AISLE-02:BAY-04"
+    assert res["floor"] == 1
+
+    assert "coordinates" in res
+    assert len(res["waypoints"]) >= 2
+    assert "Rack #4" in res["formatted_message"]
+
+
+def test_resolve_forklift_fleet():
+    """Test query 'where are the forklifts' returns all active static pins."""
+    res = resolve_location("where are the forklifts stationed?")
+    assert res["found"] is True
+    assert res["target_type"] == "equipment_fleet"
+    assert len(res["all_pins"]) >= 4
+    assert any(eq["id"] == "EQ-FL-01" for eq in res["all_pins"])
+
+
+def test_resolve_special_zone_bay_11():
+    """Test query 'where is bay 11' resolves quarantine staging."""
+    res = resolve_location("where is bay 11?")
+    assert res["found"] is True
+    assert res["target_type"] == "special_zone"
+    assert "Quarantine" in res["name"]
+    assert len(res["waypoints"]) >= 2
+
+
+def test_server_spatial_layout_endpoint():
+    """Test GET /tools/spatial_layout returns full 3D layout for the map viewer."""
+    resp = client.get("/tools/spatial_layout")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["status"] == "success"
+    layout = data["layout"]
+    assert "racks" in layout and len(layout["racks"]) >= 15
+    assert "equipment" in layout and len(layout["equipment"]) >= 4
+    assert "origin_points" in layout and len(layout["origin_points"]) >= 3
+

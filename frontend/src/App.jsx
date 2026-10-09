@@ -18,8 +18,11 @@ import {
   Cpu,
   Database,
   RefreshCw,
-  LogOut
+  LogOut,
+  Compass,
+  MapPin
 } from 'lucide-react'
+
 
 export default function App() {
   // Session & Authentication
@@ -190,6 +193,29 @@ export default function App() {
       // Helper parser for SKU or Order cards
       const hasSku = text.toUpperCase().includes('SKU-') || res.response?.includes('SKU-') || (res.routing?.extracted_params?.sku)
       const hasOrder = text.includes('#4521') || res.response?.includes('#4521') || (res.routing?.extracted_params?.order_id)
+      const spatialTarget = res.spatial_target || (res.agent_used === 'knowledge_agent' && res.data?.coordinates ? res.data : null)
+
+      // Location Query Automation: Open /map in background and broadcast target
+      const isLocationPrompt = spatialTarget || /where|location|rack|forklift|bay\s*11|stored|find/i.test(text)
+      if (isLocationPrompt) {
+        try {
+          const bc = new BroadcastChannel('intelliwms_map_channel')
+          bc.postMessage({
+            type: 'LOCATE_TARGET',
+            payload: spatialTarget || { name: 'Queried Location', formatted_message: res.response }
+          })
+          bc.close()
+
+          // Automatically open /map in background tab/window
+          const mapWin = window.open('/map', 'intelliwms_map')
+          if (mapWin && typeof mapWin.blur === 'function') {
+            mapWin.blur()
+            window.focus()
+          }
+        } catch (e) {
+          console.warn('Map broadcast / auto-open notification:', e)
+        }
+      }
 
       const assistantMsg = {
         id: Date.now() + 1,
@@ -200,6 +226,7 @@ export default function App() {
           confidence: 0.95,
           latency_ms: 28
         },
+        spatialTarget: spatialTarget,
         skuData: hasSku ? {
           sku: 'SKU-4521',
           location: 'Aisle 12, Shelf B3, Bay 04',
@@ -220,6 +247,7 @@ export default function App() {
       setMessages((prev) => [...prev, assistantMsg])
       setSelectedArtifactMessage(assistantMsg)
       fetchAuditData()
+
     } catch (err) {
       const errorMsg = {
         id: Date.now() + 1,
@@ -357,8 +385,19 @@ export default function App() {
           </div>
 
           <div className="topbar-right">
+            {/* 3D Map Window Launcher */}
+            <button
+              onClick={() => window.open('/map', 'intelliwms_map')}
+              className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 border border-blue-200 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition shadow-sm cursor-pointer mr-2"
+              title="Open 3D Digital Twin Floor Map"
+            >
+              <Compass size={14} className="text-blue-600" />
+              <span>3D Digital Twin Map</span>
+            </button>
+
             {/* Who Logged In */}
             <div className="topbar-logged-user-pill">
+
               <div className="topbar-user-avatar">
                 {currentUser.name ? currentUser.name[0].toUpperCase() : (currentUser.username ? currentUser.username[0].toUpperCase() : 'U')}
               </div>
@@ -406,10 +445,15 @@ export default function App() {
                       setArtifactTab('telemetry')
                       setArtifactOpen(true)
                     }}
-                    onInspectLocation={() => {
-                      setArtifactTab('bay_visualizer')
-                      setArtifactOpen(true)
+                    onInspectLocation={(locData) => {
+                      try {
+                        const bc = new BroadcastChannel('intelliwms_map_channel')
+                        bc.postMessage({ type: 'LOCATE_TARGET', payload: locData || msg.spatialTarget })
+                        bc.close()
+                      } catch (e) {}
+                      window.open('/map', 'intelliwms_map')
                     }}
+
                     onInspectOrder={() => {
                       setArtifactTab('order_timeline')
                       setArtifactOpen(true)

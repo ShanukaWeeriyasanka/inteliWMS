@@ -154,8 +154,9 @@ def execute_knowledge_query(query: str, user_role: str = "staff", context: Optio
 
 
 
-    # 1. Fast-Path: RAG SOP & Policy Retrieval (Prioritized for procedure/safety queries)
-    if intent == "document_query" or any(w in clean_query.lower() for w in ["sop", "procedure", "policy", "safety", "rule", "protocol", "height", "speed", "hazard", "battery", "spill", "stacking", "limit"]):
+    # 1. Fast-Path: RAG SOP & Policy Retrieval (Prioritized for procedure, safety, rules, limits)
+    is_doc_or_sop = intent == "document_query" or any(w in lower_q for w in ["sop", "procedure", "policy", "safety", "rule", "protocol", "height", "speed", "hazard", "battery", "spill", "stacking", "limit"])
+    if is_doc_or_sop:
         rag_hits = knowledge_store.query(clean_query, n_results=knowledge_config.DEFAULT_RAG_TOP_K)
         if rag_hits:
             best_hit = rag_hits[0]
@@ -169,8 +170,9 @@ def execute_knowledge_query(query: str, user_role: str = "staff", context: Optio
                 "source": "vector_rag"
             }
 
-    # 2. Fast-Path: Physical Location Lookup
-    if intent == "location_query" or entities.get("skus") or entities.get("locations"):
+    # 2. Fast-Path: Physical Location, Racks, Equipment & SKU Lookups
+    is_location_prompt = any(k in lower_q for k in ["where", "location", "find", "stored", "rack", "bay 11", "forklift", "aisle"]) or intent == "location_query" or entities.get("skus") or entities.get("locations")
+    if is_location_prompt:
         loc_result = resolve_location(clean_query)
         if loc_result.get("found"):
             return {
@@ -179,8 +181,24 @@ def execute_knowledge_query(query: str, user_role: str = "staff", context: Optio
                 "response": loc_result.get("formatted_message"),
                 "entities": entities,
                 "data": loc_result,
+                "spatial_target": loc_result,
                 "source": "database_location"
             }
+
+
+    # 2. Fast-Path: Physical Location Lookup (General)
+    loc_result = resolve_location(clean_query)
+    if loc_result.get("found"):
+        return {
+            "agent": "knowledge_agent",
+            "query": clean_query,
+            "response": loc_result.get("formatted_message"),
+            "entities": entities,
+            "data": loc_result,
+            "spatial_target": loc_result,
+            "source": "database_location"
+        }
+
 
     # 3. Fallback: Check RAG once more before declaring item not found
     rag_fallback = knowledge_store.query(clean_query, n_results=1)

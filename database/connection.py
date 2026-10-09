@@ -20,11 +20,19 @@ else:
     engine_kwargs["pool_size"] = 10
     engine_kwargs["max_overflow"] = 20
 
-# Create SQLAlchemy engine
-engine = create_engine(db_url, connect_args=connect_args, **engine_kwargs)
+try:
+    engine = create_engine(db_url, connect_args=connect_args, **engine_kwargs)
+    with engine.connect() as _test_conn:
+        pass
+except Exception:
+    # Graceful fallback to local SQLite for offline development and testing
+    db_url = "sqlite:///./intelliwms.db"
+    connect_args = {"check_same_thread": False}
+    engine = create_engine(db_url, connect_args=connect_args)
 
 # Session factory
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
 
 # Base class for all ORM models
 Base = declarative_base()

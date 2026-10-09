@@ -32,6 +32,7 @@ from agents.knowledge_agent.schemas import (
     ComplianceCheckRequest,
     ReturnTriageRequest
 )
+from agents.knowledge_agent.spatial_registry import get_all_spatial_data
 from utils.logger import StructuredLogger
 
 
@@ -106,6 +107,13 @@ def tool_lookup_location(req: LocationLookupRequest):
     """Direct tool endpoint for physical location lookup."""
     res = resolve_location(req.query_or_sku)
     return {"status": "success", "result": res}
+
+
+@app.get("/tools/spatial_layout")
+def tool_get_spatial_layout():
+    """Returns complete 3D warehouse layout data for digital twin visualization."""
+    layout = get_all_spatial_data()
+    return {"status": "success", "layout": layout}
 
 
 @app.post("/tools/query_knowledge")

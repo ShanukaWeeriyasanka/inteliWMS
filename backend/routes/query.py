@@ -196,4 +196,10 @@ async def handle_coordinator_query(payload: QueryRequest, request: Request, db: 
     if "fulfillment_details" in agent_result:
         final_response["fulfillment_details"] = agent_result["fulfillment_details"]
 
+    if "spatial_target" in agent_result:
+        final_response["spatial_target"] = agent_result["spatial_target"]
+    elif "data" in agent_result and isinstance(agent_result["data"], dict) and "coordinates" in agent_result["data"]:
+        final_response["spatial_target"] = agent_result["data"]
+
     return final_response
+
