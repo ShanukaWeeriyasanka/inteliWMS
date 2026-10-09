@@ -27,6 +27,7 @@ import InventoryPanel from './components/panels/InventoryPanel'
 import { ClarifyDetail, CountDetail, GroupDetail, ProductDetail, RackDetail } from './components/panels/DetailPanel'
 import AgentDock from './components/AgentDock'
 import Toasts from './components/Toasts'
+import KnowledgeCampusTwin from './KnowledgeCampusTwin'
 import './twin.css'
 
 const RACK_KIND = { shelf_unit: 'shelf units', pallet_grid: 'pallet racks', crate_rack: 'crate racks', cabinet: 'cold cabinets' }
@@ -90,6 +91,7 @@ export default function WarehouseTwin({
   const [routeVersion, setRouteVersion] = useState(0)
   const [toasts, setToasts] = useState([])
   const [ask, setAsk] = useState('')
+  const [twinMode, setTwinMode] = useState('campus') // Default to 'campus' for Knowledge Agent Spatial Twin
   const narrow = rootW > 0 && rootW < NARROW_W
 
   // ── toasts ──
@@ -608,6 +610,23 @@ export default function WarehouseTwin({
   const send = (text) => { onAsk?.(text); setAsk('') }
 
   // ── render ──
+  if (twinMode === 'campus') {
+    return (
+      <>
+        <KnowledgeCampusTwin
+          visible={visible}
+          onClose={onClose}
+          onSwitchToInventoryTwin={() => setTwinMode('inventory')}
+        />
+        {data.status === 'ready' && !visible && (
+          <button className="twin-launcher" onClick={onActivate} title="Warehouse map" aria-label="Warehouse map">
+            <MapIcon size={14} /><span className="twin-launcher-label">Warehouse map</span>
+          </button>
+        )}
+      </>
+    )
+  }
+
   if (data.status === 'disabled') return null
   const ready = data.status === 'ready' && layout && currentFloor
   const launcher = !visible && ready && (
@@ -693,7 +712,8 @@ export default function WarehouseTwin({
             onProducts={() => { setTab('products'); setListOpen(true) }}
             onRacks={() => { setTab('racks'); setListOpen(true) }}
             onAlerts={() => { setTab('alerts'); setListOpen(true) }}
-            onClose={onClose} onToggleList={narrow ? () => setListOpen((o) => !o) : null} listOpen={listOpen} />
+            onClose={onClose} onToggleList={narrow ? () => setListOpen((o) => !o) : null} listOpen={listOpen}
+            twinMode={twinMode} onToggleMode={() => setTwinMode('campus')} />
 
           <div className={`twin-map-viewport${panel ? ' has-panel' : ''}`} ref={setMapEl}>
             <FloorMap svgRef={svgRef} layout={layout} edges={data.edges} floorId={currentFloor} vb={vp.vb}

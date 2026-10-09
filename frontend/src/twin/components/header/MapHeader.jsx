@@ -1,7 +1,7 @@
 // Map header: building + floor picker on the left; product / rack / alert
 // counters, live status and "back to chat" on the right.
 import React, { useEffect, useRef, useState } from 'react'
-import { ArrowLeft, Boxes, ChevronDown, CircleAlert, Layers, LayoutGrid, PanelLeft } from 'lucide-react'
+import { ArrowLeft, Boxes, ChevronDown, CircleAlert, Layers, LayoutGrid, PanelLeft, Building2, Compass } from 'lucide-react'
 
 function FloorPicker({ floors, floorId, targetFloors, onChange }) {
   const [open, setOpen] = useState(false)
@@ -40,7 +40,7 @@ function FloorPicker({ floors, floorId, targetFloors, onChange }) {
 
 export default function MapHeader({
   warehouse, floors, floorId, targetFloors, onFloor, counts, live, alertsOn, onAlerts, onRacks, onProducts, onClose,
-  onToggleList, listOpen,
+  onToggleList, listOpen, twinMode = 'inventory', onToggleMode
 }) {
   return (
     <header className="twin-map-head">
@@ -52,6 +52,16 @@ export default function MapHeader({
         )}
         <h1 className="twin-map-title" title={warehouse?.address}>{warehouse?.name}</h1>
         <FloorPicker floors={floors} floorId={floorId} targetFloors={targetFloors} onChange={onFloor} />
+        {onToggleMode && (
+          <button
+            className="twin-floor-btn hover:bg-slate-200 transition"
+            onClick={onToggleMode}
+            title="Switch to Multi-Building Campus Twin"
+          >
+            <Compass size={13} className="text-blue-600" />
+            <span className="font-semibold text-slate-800">Campus Twin ➔</span>
+          </button>
+        )}
       </div>
       <div className="twin-map-head-right">
         <button className="twin-count-pill" onClick={onProducts} title="Products"><Boxes size={14} />{counts.products}</button>

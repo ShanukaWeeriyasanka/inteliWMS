@@ -543,6 +543,100 @@
   .twin-back-btn { padding: 0 10px; }
   .twin-map-title { font-size: 15px; }
 }
-@media (prefers-reduced-motion: reduce) {
-  .twin-root *, .twin-root *::before, .twin-root *::after, .twin-root { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }
+/* ---------- campus quick card (floating bottom HUD) ---------- */
+.twin-quick-card {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 16px;
+  background: rgba(255, 255, 255, 0.98);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--tw-line);
+  border-radius: 16px;
+  box-shadow: var(--tw-shadow-lg);
+  max-width: 90%;
+  width: 580px;
+  pointer-events: auto;
+  animation: twinUp 0.22s ease-out;
+}
+.twin-quick-card-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  flex: none;
+}
+.twin-quick-card-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.twin-quick-card-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.twin-quick-card-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--tw-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.twin-quick-card-badges {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.twin-quick-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+}
+.twin-quick-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 13px;
+  border-radius: 9px;
+  border: none;
+  background: var(--tw-blue);
+  color: #fff;
+  font-weight: 600;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.twin-quick-btn:hover {
+  background: #2563EB;
+}
+.twin-quick-close {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: var(--tw-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.twin-quick-close:hover {
+  background: var(--tw-surface-2);
+  color: var(--tw-text);
 }
