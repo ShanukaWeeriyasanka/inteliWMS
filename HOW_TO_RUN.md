@@ -1,4 +1,4 @@
-# 🚀 How to Run IntelliWMS (Full Stack)
+# 🚀 How to Run IntelliWMS & ML Forecasting Model
 
 > **Use PowerShell** for everything. Not CMD.  
 > Open it from VS Code: `Ctrl + Shift + `` ` (backtick)
@@ -13,7 +13,7 @@ C:\Users\rxrat\Documents\Sliit\Y3S2\IRWA\inteliWMS
 
 ## ⚠️ One-Time Setup (Do This First, Ever)
 
-Open **PowerShell** and run this **once** on your machine to allow scripts to run:
+Open **PowerShell** in the project root directory and run this **once** on your machine to allow scripts to run:
 
 ```powershell
 Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned -Force
@@ -41,19 +41,64 @@ Also make sure `GEMINI_API_KEY` is set in `.env` (in the project folder).
 
 ---
 
-## 🖥️ Step-by-Step: Open 3 Terminals
+## 🤖 How to Run the ML Model Separately (DemandIQ Standalone)
 
-In VS Code press **`Ctrl + Shift + `` `** to open a terminal.  
-Click the **`+`** button in the terminal panel to open more tabs.  
-You need **3 tabs open at the same time** (4 if you want the digital-twin map, see Optional step below).
+The ML Model service (**DemandIQ Amazon Product Demand Forecasting**) is an independent, self-contained service featuring a pre-trained XGBoost regression model (31 features) and its own built-in web UI dashboard.
+
+### Option 1: Run ML Model Alongside IntelliWMS (Port 8001 — Recommended)
+When running together with the main IntelliWMS backend (which occupies port 8000), run the ML model on **port 8001**:
+
+```powershell
+# 1. Navigate to the ML-MODEL folder from the repository root
+cd ML-MODEL
+
+# 2. Start the Uvicorn server on port 8001
+..\venv\Scripts\python.exe -m uvicorn app:app --reload --port 8001
+```
+
+✅ It's working when you see:
+```
+INFO:     Uvicorn running on http://127.0.0.1:8001 (Press CTRL+C to quit)
+INFO:     Application startup complete.
+```
+
+- 🌐 **Interactive Dashboard UI**: [http://localhost:8001](http://localhost:8001)
+- 📄 **Swagger API Docs**: [http://localhost:8001/docs](http://localhost:8001/docs)
+- 🩺 **Health Check**: [http://localhost:8001/api/health](http://localhost:8001/api/health)
+
+#### Run Automated Sanity Test for ML Model:
+In another PowerShell tab (inside `ML-MODEL`):
+```powershell
+..\venv\Scripts\python.exe test_api.py
+```
 
 ---
 
-## Terminal 1 — Backend API (Port 8000)
+### Option 2: Run ML Model Purely Standalone (Port 8000)
+If you are **not** running the main IntelliWMS backend API simultaneously, you can run the ML service on default **port 8000**:
 
 ```powershell
-cd C:\Users\rxrat\Documents\Sliit\Y3S2\IRWA\inteliWMS
+cd ML-MODEL
+..\venv\Scripts\python.exe -m uvicorn app:app --reload --port 8000
+```
 
+- 🌐 **Interactive Dashboard UI**: [http://localhost:8000](http://localhost:8000)
+- 📄 **Swagger API Docs**: [http://localhost:8000/docs](http://localhost:8000/docs)
+- 🧪 **Sanity Test**:
+```powershell
+..\venv\Scripts\python.exe test_api.py http://127.0.0.1:8000
+```
+
+---
+
+## 🖥️ Full Stack IntelliWMS: Step-by-Step Terminals
+
+Open terminals in VS Code (`Ctrl + Shift + `` `) using the **`+`** button to open multiple tabs.
+
+### Terminal 1 — Backend API (Port 8000)
+
+```powershell
+# In project root:
 .\venv\Scripts\python.exe -m uvicorn backend.main:app --reload --port 8000 --timeout-graceful-shutdown 3
 ```
 
@@ -67,15 +112,14 @@ INFO:     Application startup complete.
 > this limit every auto-reload (after a code change) waits for that connection forever. The backend
 > then stops answering, and login hangs on "Authenticating...".
 
-📄 Swagger API docs → http://localhost:8000/docs
+📄 Swagger API docs → [http://localhost:8000/docs](http://localhost:8000/docs)
 
 ---
 
-## Terminal 2 — Knowledge Agent (Port 8002)
+### Terminal 2 — Knowledge Agent (Port 8002)
 
 ```powershell
-cd C:\Users\rxrat\Documents\Sliit\Y3S2\IRWA\inteliWMS
-
+# In project root:
 .\venv\Scripts\python.exe -m uvicorn agents.knowledge_agent.server:app --reload --port 8002
 ```
 
@@ -85,15 +129,14 @@ INFO:     Uvicorn running on http://127.0.0.1:8002
 INFO:     Application startup complete.
 ```
 
-📄 Knowledge Agent docs → http://localhost:8002/docs
+📄 Knowledge Agent docs → [http://localhost:8002/docs](http://localhost:8002/docs)
 
 ---
 
-## Terminal 3 — Frontend (Port 5173)
+### Terminal 3 — Frontend (Port 5173)
 
 ```powershell
-cd C:\Users\rxrat\Documents\Sliit\Y3S2\IRWA\inteliWMS\frontend
-
+cd frontend
 npm run dev
 ```
 
@@ -103,7 +146,18 @@ npm run dev
   ➜  Local:   http://localhost:5173/
 ```
 
-🌐 Open your browser → **http://localhost:5173**
+🌐 Open your browser → **[http://localhost:5173](http://localhost:5173)**
+
+---
+
+### Terminal 4 (Optional) — ML Model / DemandIQ (Port 8001)
+
+```powershell
+cd ML-MODEL
+..\venv\Scripts\python.exe -m uvicorn app:app --reload --port 8001
+```
+
+🌐 Open your browser → **[http://localhost:8001](http://localhost:8001)**
 
 ---
 
@@ -162,15 +216,17 @@ To stop Postgres: `docker compose stop postgres`
 
 ## 🧭 Summary — What Runs Where
 
-| Terminal | Command location | URL |
-|---|---|---|
-| 1 — Backend API | `inteliWMS\` | http://localhost:8000 |
-| 2 — Knowledge Agent | `inteliWMS\` | http://localhost:8002 |
-| 3 — Frontend | `inteliWMS\frontend\` | http://localhost:5173 |
-| (optional) Postgres | Windows service (or Docker) | localhost:5432 |
+| Terminal / Service | Working Directory | Command | URL / Port |
+|---|---|---|---|
+| **Terminal 1: Backend API** | Project Root (`inteliWMS\`) | `.\venv\Scripts\python.exe -m uvicorn backend.main:app --reload --port 8000 --timeout-graceful-shutdown 3` | [http://localhost:8000](http://localhost:8000) |
+| **Terminal 2: Knowledge Agent** | Project Root (`inteliWMS\`) | `.\venv\Scripts\python.exe -m uvicorn agents.knowledge_agent.server:app --reload --port 8002` | [http://localhost:8002](http://localhost:8002) |
+| **Terminal 3: Frontend** | `frontend\` | `npm run dev` | [http://localhost:5173](http://localhost:5173) |
+| **Terminal 4: ML Model (DemandIQ)** | `ML-MODEL\` | `..\venv\Scripts\python.exe -m uvicorn app:app --reload --port 8001` | [http://localhost:8001](http://localhost:8001) |
+| **(optional) Postgres** | Background / Service | Local Windows service or Docker | `localhost:5432` |
 
-> The frontend **automatically** talks to the backend at port 8000.  
-> You only ever open **http://localhost:5173** in your browser.
+> 💡 **Notes:**
+> - The IntelliWMS frontend automatically communicates with the backend at port 8000.
+> - The ML Model service contains its own complete web UI and can be accessed independently at [http://localhost:8001](http://localhost:8001) (or port 8000 when running standalone).
 
 ---
 
@@ -206,25 +262,20 @@ To stop Postgres: `docker compose stop postgres`
   - `/` is a new chat; its thread is created with the first answer.
   - `/chat/<thread-id>` opens a saved one.
   - `?view=map` means the warehouse map is open.
-- Refreshing the page and using browser Back/Forward keep you on the same conversation.
+- The UI maps every answer back to the conversation thread that received it, so switching tabs or opening multiple windows never mixes them up.
 
-**Logs, traces and metrics:**
-- **Logs:** `logs/app.log` holds JSON lines.
-- **IDs on every request:** each response carries an `X-Request-ID` and `X-Trace-ID`, and every log line includes `request_id`, `trace_id`, `thread_id` and `agent`.
-- **Spans:** recorded as `SPAN_END` events.
-- **Metrics:** Prometheus text at http://localhost:8000/metrics. Set `METRICS_TOKEN` to protect them.
-- **Message text in logs:** omitted unless `LOG_INCLUDE_CONTENT=true`.
-- **Per-logger levels:** set with `LOG_LEVELS` (e.g. `mcp=WARNING`).
+---
 
-**How decisions are made (rules first, LLM last):**
-1. **Code rules** decide whenever they can. Each rule has an id:
-   - Conversation:
-     - `meta.greeting`, `meta.capability`, `meta.help`, `meta.weak`
-     - `social.ack`, `social.bye`
-   - Follow-ups in a conversation:
-     - `context.clarification_reply`, `context.inventory_follow_up`
-   - Domains (strongest first):
-     - `knowledge.strong`, `fulfillment.strong`, `inventory.strong`
+## 🧠 Coordinator Routing & Decisions
+
+Every query runs through an intent classifier (Task 2) that decides which agent handles it:
+
+1. **Rules (heuristics)** decide first, in code:
+   - Strong keywords:
+     - `knowledge.strong`
+     - `fulfillment.strong`
+     - `inventory.strong`
+   - Keyword lists:
      - `*.keywords`
      - `inventory.twin_entity`
    - Security: `security.prompt_injection`
@@ -288,6 +339,11 @@ Chat threads written by tests go to a temporary database, never `intelliwms.db`.
 ## ❌ Common Errors & Fixes
 
 ### `cannot be loaded because running scripts is disabled`
+You opened PowerShell and saw:
+```
+File ...\venv\Scripts\Activate.ps1 cannot be loaded because running scripts is disabled on this system.
+```
+Run the command in **Step 0** above in this same PowerShell window:
 ```powershell
 Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned -Force
 ```
@@ -308,11 +364,10 @@ If it still fails, re-run `.\venv\Scripts\python.exe -m pip install -r requireme
 ---
 
 ### `Port 8000 already in use`
+A previous run is still running in the background. Kill it:
 ```powershell
-# Find the process using the port
 netstat -ano | findstr :8000
-
-# Kill it (replace 12345 with the PID number you see)
+# look at the PID in the right column (e.g. 12345)
 taskkill /PID 12345 /F
 ```
 
