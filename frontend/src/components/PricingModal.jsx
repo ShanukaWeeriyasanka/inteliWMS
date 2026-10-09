@@ -1,15 +1,9 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import {
   X,
-  Crown,
   Check,
   CheckCircle2,
   ArrowRight,
-  Shield,
-  Zap,
-  Building2,
-  Sparkles,
-  Info
 } from 'lucide-react'
 import './PricingModal.css'
 
@@ -20,24 +14,48 @@ export default function PricingModal({
   onSelectPlan
 }) {
   const [selectedPlan, setSelectedPlan] = useState(initialPlan)
+  const [showYearly, setShowYearly] = useState(false)
   const [activeNotification, setActiveNotification] = useState(null)
+  const dialogRef = useRef(null)
 
   // Close on Escape key
   useEffect(() => {
+    if (!isOpen) return undefined
+    const previousFocus = document.activeElement
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    dialogRef.current?.querySelector('button')?.focus({ preventScroll: true })
     const handleKeyDown = (e) => {
       if (e.key === 'Escape' && isOpen) {
         onClose()
       }
+      if (e.key === 'Tab') {
+        const controls = [...dialogRef.current.querySelectorAll('button, summary')]
+          .filter((el) => el.getClientRects().length && !el.disabled)
+        const first = controls[0]
+        const last = controls.at(-1)
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault()
+          last?.focus()
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault()
+          first?.focus()
+        }
+      }
     }
     window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+      document.body.style.overflow = previousOverflow
+      previousFocus?.focus?.({ preventScroll: true })
+    }
   }, [isOpen, onClose])
 
   if (!isOpen) return null
 
   const handleChoosePlan = (planKey, planName, planPrice) => {
     setSelectedPlan(planKey)
-    setActiveNotification(`${planName} (${planPrice}/month) selected! Your operational workspace is ready.`)
+    setActiveNotification(`${planName} (${planPrice}/month) selected! Your plan preference has been updated.`)
     if (onSelectPlan) {
       onSelectPlan(planKey)
     }
@@ -104,7 +122,7 @@ export default function PricingModal({
     }
   ]
 
-  // Feature Comparison Matrix rows
+  // A plan for every operation. rows
   const comparisonRows = [
     {
       featureName: 'Price',
@@ -199,38 +217,20 @@ export default function PricingModal({
     <div className="pricing-modal-backdrop" onClick={onClose}>
       <div
         className="pricing-modal-container"
+        ref={dialogRef}
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
         aria-labelledby="pricing-modal-title"
       >
-        {/* MODAL HEADER */}
-        <header className="pricing-modal-header">
-          <div className="pricing-header-left">
-            <div className="pricing-header-icon-wrap">
-              <Crown size={22} />
-            </div>
-            <div>
-              <div className="pricing-title-row">
-                <h2 id="pricing-modal-title" className="pricing-modal-title">
-                  IntelliWMS SaaS Pricing & Plans
-                </h2>
-                <span className="pricing-header-badge">COMMERCIAL PLANS</span>
-              </div>
-              <p className="pricing-modal-subtitle">
-                Flexible tiers designed for small hubs, growing fulfillment centers, and enterprise logistics networks.
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={onClose}
-            className="pricing-close-btn"
-            title="Close modal (Esc)"
-            aria-label="Close modal"
-          >
-            <X size={18} />
-          </button>
-        </header>
+        <nav className="pricing-capsule-nav" aria-label="Subscription navigation">
+          <button type="button" className="pricing-close-btn" onClick={onClose} aria-label="Close pricing"><X size={15} /></button>
+          <button type="button" onClick={onClose}>Home</button>
+          <button type="button" className="pricing-nav-active" onClick={() => document.getElementById('pricing-plans')?.scrollIntoView({ behavior: 'smooth' })}>Pricing</button>
+          <button type="button" onClick={() => document.getElementById('pricing-faq')?.scrollIntoView({ behavior: 'smooth' })}>FAQ</button>
+          <button type="button" onClick={() => document.getElementById('pricing-comparison')?.scrollIntoView({ behavior: 'smooth' })}>Compare</button>
+          <button type="button" className="pricing-nav-cta" onClick={onClose}>Back to app</button>
+        </nav>
 
         {/* NOTIFICATION BANNER */}
         {activeNotification && (
@@ -251,16 +251,8 @@ export default function PricingModal({
         {/* MODAL SCROLLABLE CONTENT */}
         <div className="pricing-modal-body">
           {/* 1. TOP SECTION — 3 PRICING TIERS */}
-          <section className="pricing-tiers-section">
-            <div className="section-headline-group">
-              <span className="section-label">
-                <Sparkles size={14} /> Tiered Deployment Options
-              </span>
-              <h3 className="section-title">Select the Ideal Tier for Your Warehouse</h3>
-              <p className="section-desc">
-                Transparent monthly pricing with instant multi-agent orchestration setup.
-              </p>
-            </div>
+          <section className="pricing-tiers-section" id="pricing-plans">
+            <h2 id="pricing-modal-title" className="pricing-display-title">Pricing</h2>
 
             <div className="pricing-tiers-grid">
               {tiers.map((tier) => {
@@ -289,7 +281,7 @@ export default function PricingModal({
                       <div className="card-price-block">
                         <span className="price-currency">$</span>
                         <span className="price-value">{tier.price}</span>
-                        <span className="price-frequency">{tier.period}</span>
+                        <span className="price-frequency">/m</span>
                       </div>
 
                       <ul className="card-bullet-list">
@@ -310,7 +302,7 @@ export default function PricingModal({
                         handleChoosePlan(tier.key, tier.name, `$${tier.price}`)
                       }}
                     >
-                      <span>{isSelected ? 'Current Selection' : 'Get Started'}</span>
+                      <span>{activeNotification && isSelected ? 'Selected' : 'Get Started'}</span>
                       <ArrowRight size={15} className="btn-arrow-icon" />
                     </button>
                   </div>
@@ -319,15 +311,23 @@ export default function PricingModal({
             </div>
           </section>
 
+          <div className="pricing-billing-row">
+            <button type="button" className="pricing-billing-control" role="switch" aria-checked={showYearly} onClick={() => setShowYearly(!showYearly)}>
+              <span className="pricing-toggle-track"><span /></span><span>Show yearly totals</span>
+            </button>
+            {showYearly && <span className="pricing-yearly-note">Annual equivalent: $600 / $960 / $2,160. Plans remain billed monthly.</span>}
+          </div>
+
           {/* 2. BOTTOM SECTION — FEATURE COMPARISON TABLE */}
-          <section className="comparison-section">
+          <section className="comparison-section" id="pricing-comparison">
+            <div className="pricing-section-divider"><span>Plans</span></div>
             <div className="section-headline-group">
               <span className="section-label">
-                <Building2 size={14} /> Detailed Breakdown
+                Everything at a glance
               </span>
-              <h3 className="section-title">Feature Comparison Matrix</h3>
+              <h3 className="section-title">A plan for every operation.</h3>
               <p className="section-desc">
-                Side-by-side comparison across Starter, Professional, and Enterprise plans.
+                Start with what you need. Grow at your own pace.
               </p>
             </div>
 
@@ -375,18 +375,16 @@ export default function PricingModal({
           </section>
         </div>
 
-        {/* MODAL FOOTER */}
+        <section className="pricing-faq-section" id="pricing-faq" aria-labelledby="pricing-faq-title">
+          <span className="section-label">A few more details</span>
+          <h3 id="pricing-faq-title">Good questions. Clear answers.</h3>
+          <details><summary>What is included in every plan?</summary><p>All tiers include autonomous agent triage, audit logging, and continuous deployment updates.</p></details>
+          <details><summary>How are plans billed?</summary><p>Plans are billed monthly per facility: Starter at $50, Professional at $80, and Enterprise at $180. Yearly totals show twelve monthly payments.</p></details>
+          <details><summary>Which plan supports multiple warehouses?</summary><p>Professional and Enterprise include multi-tenant warehouse keying. Enterprise also includes custom agent orchestration and SLA backing.</p></details>
+        </section>
         <footer className="pricing-modal-footer">
-          <div className="footer-info-text">
-            <Info size={15} className="footer-info-icon" />
-            <span>All tiers include autonomous agent triage, audit logging, and continuous deployment updates.</span>
-          </div>
-          <button
-            onClick={onClose}
-            className="pricing-btn-close"
-          >
-            Close
-          </button>
+          <span>IntelliWMS</span><span>Built for the way your warehouse works.</span>
+          <button type="button" onClick={onClose} className="pricing-btn-close">Back to workspace</button>
         </footer>
       </div>
     </div>
