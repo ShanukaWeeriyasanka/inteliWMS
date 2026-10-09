@@ -139,6 +139,16 @@ def test_deleting_threads(inventory_server):
 
 
 def test_unrelated_questions_still_reach_their_agents_and_are_saved(inventory_server):
+    from database.connection import SessionLocal
+    from database.models import User
+    with SessionLocal() as db:
+        dave_user = db.query(User).filter_by(username="dave").first()
+        if not dave_user:
+            db.add(User(username="dave", name="Dave", email="dave@test.local", hashed_password="x", role="staff", plan="enterprise"))
+            db.commit()
+        else:
+            dave_user.plan = "enterprise"
+            db.commit()
     tid = ask("dave", "hello").json()["thread_id"]
     sop = ask("dave", "where is the returns SOP documentation?", thread_id=tid).json()
     assert sop["agent_used"] == "knowledge_agent" and sop["thread_id"] == tid

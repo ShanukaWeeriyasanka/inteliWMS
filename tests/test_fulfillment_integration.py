@@ -17,8 +17,8 @@ TEST_SECRET = settings.JWT_SECRET
 def valid_staff_token():
     payload = {
         "user_id": "user_123",
-        "username": "john_staff",
-        "role": "staff",
+        "username": "admin_user",
+        "role": "admin",
         "exp": int(time.time()) + 3600
     }
     return jwt.encode(payload, TEST_SECRET, algorithm="HS256")
