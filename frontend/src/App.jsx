@@ -92,7 +92,7 @@ export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth > 1024)
   const overlaySidebar = useOverlaySidebar()
   const [artifactOpen, setArtifactOpen] = useState(false)
-  const [artifactTab, setArtifactTab] = useState('telemetry')
+  const [artifactTab, setArtifactTab] = useState('site_plan')
   const [selectedArtifactMessage, setSelectedArtifactMessage] = useState(null)
   const [operationalModal, setOperationalModal] = useState(null) // null | 'approvals' | 'injection_sandbox'
   const [isPricingModalOpen, setIsPricingModalOpen] = useState(false)
@@ -420,16 +420,25 @@ export default function App() {
     const uiCommand = assistantMsg.uiCommand
     if (uiCommand) {
       setTwinCommand(uiCommand)
-      setArtifactOpen(false)
-      openMap()
-    } else {
-      closeMap()
     }
 
-    // Auto open visualizer for classic SKU inventory inquiries
-    const isInventory = res.agent_used === 'inventory_agent' || !!res.inventory_details
-    if (!uiCommand && (isInventory || assistantMsg.skuData)) {
-      setArtifactTab('bay_visualizer')
+    // Auto open right artifact panel based on query intent & agent response
+    const isLocationQuery = 
+      res.agent_used === 'knowledge_agent' ||
+      !!res.knowledge_details ||
+      /where|location|locate|find|building|facility|site plan|layout|forklift|dock|gate|bld-|depot|weighbridge|cold vault|quarantine/i.test(query)
+    
+    const isInventoryQuery =
+      res.agent_used === 'inventory_agent' ||
+      !!res.inventory_details ||
+      !!assistantMsg.skuData ||
+      /how many|stock|inventory|quantity|count|reorder|available|sku[-\s]?\d+/i.test(query)
+
+    if (isLocationQuery) {
+      setArtifactTab('site_plan')
+      setArtifactOpen(true)
+    } else if (isInventoryQuery) {
+      setArtifactTab('floor_map')
       setArtifactOpen(true)
     }
 
@@ -499,6 +508,11 @@ export default function App() {
   const handleOpenArtifactTab = (tabName) => {
     if (tabName === 'order_timeline') {
       openFulfillmentDashboard()
+      return
+    }
+    if (tabName === 'bay_visualizer') {
+      setArtifactTab('floor_map')
+      setArtifactOpen(true)
       return
     }
     setArtifactTab(tabName)
@@ -660,13 +674,13 @@ export default function App() {
                     onOpenFulfillmentDashboard={openFulfillmentDashboard}
                     onOpenArtifact={(m) => {
                       setSelectedArtifactMessage(m)
-                      setArtifactTab('telemetry')
+                      const isLoc = m.routing?.target_agent === 'knowledge' || m.knowledge_details || /building|facility|where|location/i.test(m.content || '')
+                      setArtifactTab(isLoc ? 'site_plan' : 'floor_map')
                       setArtifactOpen(true)
                     }}
                     onInspectLocation={() => {
-                      // The Bay Map shows this answer's live numbers (not the visualizer's sample catalog)
                       setSelectedArtifactMessage(msg)
-                      setArtifactTab('bay_visualizer')
+                      setArtifactTab('site_plan')
                       setArtifactOpen(true)
                     }}
                     onInspectOrder={() => {
@@ -711,20 +725,14 @@ export default function App() {
         </main>
       </div>
 
-      {/* Right Slide-out Artifact & Telemetry Drawer */}
+      {/* Right Slide-out Artifact & Spatial Intelligence Drawer */}
       <ArtifactPanel
         isOpen={artifactOpen}
         onClose={() => setArtifactOpen(false)}
         activeTab={artifactTab}
         setActiveTab={setArtifactTab}
         selectedMessage={selectedArtifactMessage}
-        token={token}
-        currentUser={currentUser}
-        auditLogs={auditLogs}
-        auditStats={auditStats}
-        auditAccess={canViewAuditLog(authRole)}
-        auditError={auditError}
-        onRefreshAuditLogs={() => fetchAuditData()}
+        onOpenFullscreenMap={openMap}
       />
 
       {/* Operational Modal for Approvals and Sandbox */}

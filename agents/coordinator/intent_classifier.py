@@ -150,7 +150,8 @@ _KNOWLEDGE_STRONG = [
     r"\b(returns|how to return|compliance|shift handover|shift notes|speed limit)\b",
     r"\bmanual\b(?!\s+(count|counts|adjustment|adjustments|stock))",
     r"\b(building\s*#?[1-7]|bld-0[1-7]|cold vault|cold storage|quarantine yard|quarantine bay\s*11|high-bay hub|high-bay|bulk distribution|tech mezzanine|fleet depot|gatehouse|weighbridge|60t scale|airlock port|spill berm|freight lift)\b",
-    r"\b(campus layout|campus map|site plan|campus plan|campus facilities|all buildings)\b",
+    r"\b(campus layout|campus map|site plan|campus plan|campus facilities|all buildings|warehouse site plan|warehouse layout|warehouse facilities|warehouse complex)\b",
+    r"\b(how many\s+(buildings|facilities)|which\s+buildings|buildings?\s+in\s+(this\s+|the\s+)?warehouse|buildings?\s+(this|the|our)\s+warehouse\s+(got|has|have))\b",
     r"\b(where is|locate|find|position of)\b.*\b(forklift|reach truck|pallet jack|agv|shunt truck|tugger|scale|charger)\b",
     r"\b(fl-01|rt-01|rt-02|pj-01|agv-01)\b",
 ]

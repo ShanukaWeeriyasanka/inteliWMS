@@ -56,10 +56,10 @@ export default function MapHeader({
           <button
             className="twin-floor-btn hover:bg-slate-200 transition"
             onClick={onToggleMode}
-            title="Switch to Multi-Building Campus Twin"
+            title="Switch to Multi-Building Warehouse Site Plan"
           >
             <Compass size={13} className="text-blue-600" />
-            <span className="font-semibold text-slate-800">Campus Twin ➔</span>
+            <span className="font-semibold text-slate-800">Site Plan ➔</span>
           </button>
         )}
       </div>

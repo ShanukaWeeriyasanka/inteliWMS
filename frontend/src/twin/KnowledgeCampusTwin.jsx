@@ -237,7 +237,7 @@ export default function KnowledgeCampusTwin({
         <header className="twin-map-head">
           <div className="twin-map-head-left">
             <Compass size={18} style={{ color: '#3B7BF6' }} />
-            <h1 className="twin-map-title">Colombo Logistics Complex · Campus Site Plan</h1>
+            <h1 className="twin-map-title">Colombo Logistics Complex · Warehouse Site Plan</h1>
             <span className="twin-tag">7 Facilities · Live Fleet</span>
           </div>
 
@@ -253,18 +253,18 @@ export default function KnowledgeCampusTwin({
               <span>Warehouse 1 Floor Map ➔</span>
             </button>
 
-            {/* Fit Campus View */}
+            {/* Fit Site Plan View */}
             <button
               className="twin-floor-btn"
               onClick={handleResetFit}
-              title="Fit Entire Campus Map"
+              title="Fit Entire Warehouse Site Plan"
             >
               <Maximize2 size={13} />
-              <span>Fit Campus</span>
+              <span>Fit Site Plan</span>
             </button>
 
             {/* Live Indicator */}
-            <span className="twin-live" role="status" title="Live Campus Telemetry">
+            <span className="twin-live" role="status" title="Live Warehouse Telemetry">
               <span className="twin-live-dot" />
               <span className="twin-head-text">Live</span>
             </span>

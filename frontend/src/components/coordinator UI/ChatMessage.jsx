@@ -238,10 +238,10 @@ export default function ChatMessage({
               <button
                 onClick={() => onOpenArtifact(message)}
                 className="btn-view-artifact-link"
-                title="View Routing Telemetry & Artifact"
+                title="View Warehouse Site Plan & Floor Map"
               >
                 <Layers size={13} className="text-amber" />
-                <span>Telemetry & Visual Artifact</span>
+                <span>Warehouse Map & Artifact</span>
               </button>
 
               <div className="footer-actions-right">

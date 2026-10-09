@@ -128,11 +128,12 @@ def is_campus_overview_query(query_text: str) -> bool:
         return False
     ql = query_text.lower().strip()
     overview_patterns = [
-        r"\b(campus layout|campus map|site plan|campus plan)\b",
-        r"\b(list|all|what|which)\s+(buildings|facilities|warehouses)\b",
+        r"\b(campus layout|campus map|site plan|campus plan|warehouse site plan|warehouse layout|warehouse map)\b",
+        r"\b(list|all|what|which|how many)\s+(buildings|facilities|warehouses)\b",
         r"\b(how many buildings|how many facilities)\b",
-        r"\b(tell me about (the )?campus|overview of (the )?campus|campus overview)\b",
-        r"\bwhat.*stored.*campus\b"
+        r"\bbuildings?\s+(this|the|our)\s+warehouse\s+(got|has|have)\b",
+        r"\b(tell me about (the )?(campus|warehouse complex)|overview of (the )?(campus|warehouse)|campus overview|warehouse overview)\b",
+        r"\bwhat.*stored.*(campus|complex|warehouse)\b"
     ]
     return any(re.search(p, ql) for p in overview_patterns)
 

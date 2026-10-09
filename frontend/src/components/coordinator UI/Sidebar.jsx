@@ -175,9 +175,18 @@ export default function Sidebar({
           </div>
         )}
 
-        {/* Operational Modules (Floor, Fleet, RBAC, SOC) */}
+        {/* Operational Modules (Site Plan, Floor Map, Fleet, RBAC, SOC) */}
         <button
-          onClick={() => onOpenArtifactTab('bay_visualizer')}
+          onClick={() => onOpenArtifactTab('site_plan')}
+          className={`gemini-nav-item ${isOpen ? 'item-expanded' : 'item-collapsed'}`}
+          title={!isOpen ? 'Warehouse Site Plan' : undefined}
+        >
+          <Compass size={18} className="gemini-item-icon" />
+          {isOpen && <span className="gemini-item-label">Warehouse Site Plan</span>}
+        </button>
+
+        <button
+          onClick={() => onOpenArtifactTab('floor_map')}
           className={`gemini-nav-item ${isOpen ? 'item-expanded' : 'item-collapsed'}`}
           title={!isOpen ? 'Floor & Bay Map' : undefined}
         >
