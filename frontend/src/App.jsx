@@ -57,6 +57,8 @@ const newTwinSessionId = () => {
 
 // Only managers and admins may read the security audit stream (decided by the server-issued role)
 const canViewAuditLog = (role) => role === 'manager' || role === 'admin'
+// Plans that include the Warehouse map (Digital Twin); mirrors PLAN_ENTITLEMENTS 'twin' in security/subscription.py
+const MAP_PLANS = new Set(['professional', 'enterprise'])
 
 // Width of the centre stage -> layout mode for the floating topbar items
 const stageModeFor = (width) => (width < 560 ? 'is-narrow is-compact' : width < 1180 ? 'is-narrow' : '')
@@ -242,11 +244,20 @@ export default function App() {
   }, [chat.activeKey, chat.loadedKey, currentUser, token])
 
   // The map follows the URL (?view=map), so browser Back closes it and refresh keeps it open
+  // The Warehouse map is a Professional / Enterprise feature (the /twin API enforces the same rule)
+  const canUseMap = MAP_PLANS.has(currentUser?.plan)
+
   useEffect(() => {
-    setTwinActive(route.view === 'map')
-  }, [route.view])
+    // A Starter account that lands on ?view=map (link, back button) stays in the chat
+    if (route.view === 'map' && currentUser && !canUseMap) {
+      threadNavigator.replace({ threadId: threadNavigator.current().threadId, view: null })
+      return
+    }
+    setTwinActive(route.view === 'map' && canUseMap)
+  }, [route.view, canUseMap, currentUser])
 
   const openMap = () => {
+    if (!canUseMap) return
     setTwinActive(true)
     const current = threadNavigator.current()
     if (current.view !== 'map') threadNavigator.push({ threadId: current.threadId, view: 'map' }, { mapPushed: true })
@@ -453,7 +464,7 @@ export default function App() {
     }
 
     const uiCommand = assistantMsg.uiCommand
-    if (uiCommand) {
+    if (uiCommand && canUseMap) {
       setTwinCommand(uiCommand)
       openMap()
     } else {
@@ -637,23 +648,25 @@ export default function App() {
           {/* Ambient Lighting & Micro-Grid Atmosphere */}
           <div className="ambient-canvas-glow" />
 
-          {/* Warehouse Digital Twin — interactive map workspace for inventory answers */}
-          <WarehouseTwin
-            onScopeChange={handleInventoryScope}
-            token={token}
-            sessionId={twinSessionId}
-            command={twinCommand}
-            visible={twinActive}
-            onActivate={(clickEvent) => {
-              // The launcher button passes its click event; live map commands (SSE) pass nothing and
-              // only open the map while the conversation that asked for them is still on screen.
-              if (clickEvent || lastAskKeyRef.current === chatRef.current.activeKey) openMap()
-            }}
-            onClose={() => closeMap({ userAction: true })}
-            onAsk={(text) => handleSendMessage({ text, attachments: [], targetAgent: selectedAgent })}
-            agentReply={[...messages].reverse().find((m) => m.role === 'assistant')?.content}
-            agentBusy={isLoading}
-          />
+          {/* Warehouse Digital Twin — interactive map workspace for inventory answers (Professional / Enterprise) */}
+          {canUseMap && (
+            <WarehouseTwin
+              onScopeChange={handleInventoryScope}
+              token={token}
+              sessionId={twinSessionId}
+              command={twinCommand}
+              visible={twinActive}
+              onActivate={(clickEvent) => {
+                // The launcher button passes its click event; live map commands (SSE) pass nothing and
+                // only open the map while the conversation that asked for them is still on screen.
+                if (clickEvent || lastAskKeyRef.current === chatRef.current.activeKey) openMap()
+              }}
+              onClose={() => closeMap({ userAction: true })}
+              onAsk={(text) => handleSendMessage({ text, attachments: [], targetAgent: selectedAgent })}
+              agentReply={[...messages].reverse().find((m) => m.role === 'assistant')?.content}
+              agentBusy={isLoading}
+            />
+          )}
 
           {/* Spline 3D Scene: only on the empty / hero screen. Behind the chat or the map it is
               covered, and a hidden WebGL scene keeps rendering into an empty framebuffer. */}
@@ -686,11 +699,11 @@ export default function App() {
                     onInspectOrder={() => {
                       openFulfillmentDashboard(msg)
                     }}
-                    onShowOnMap={(m) => {
+                    onShowOnMap={canUseMap ? (m) => {
                       // Replay the stored command (new id so the twin plays it again)
                       setTwinCommand({ ...m.uiCommand, id: `replay-${Date.now()}` })
                       openMap()
-                    }}
+                    } : undefined}
                     onOpenPricingModal={() => setIsPricingModalOpen(true)}
                     onSwitchSpecialist={(agent) => setSelectedAgent(agent)}
                   />

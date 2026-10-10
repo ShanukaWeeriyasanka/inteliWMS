@@ -223,8 +223,10 @@ def test_mcp_chat_context_and_failures(inventory_pg):
         with pytest.raises(TwinUnavailable): tools.get_product_stock(None,'SKU-4521')
 
 
-def test_api_snapshot_write_authorization_and_conflicts(inventory_pg):
+def test_api_snapshot_write_authorization_and_conflicts(inventory_pg, monkeypatch):
     from backend.main import app
+    # The map API is Professional / Enterprise; this test is about roles and conflicts
+    monkeypatch.setattr('backend.twin.routes.get_user_plan', lambda *a, **k: 'professional')
     from inventory_testkit import auth, token_for
     client=TestClient(app)
     assert client.get('/twin/inventory-snapshot').status_code==401

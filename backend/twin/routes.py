@@ -24,7 +24,9 @@ from backend.twin.sessions import twin_sessions
 from config.settings import settings
 from database.twin import repository as twin_repo
 from database.twin.connection import TwinUnavailable, is_enabled
+from backend.middleware.error_handler import AppError
 from security.jwt_handler import jwt_handler
+from security.subscription import get_user_plan, is_dashboard_allowed
 from utils.logger import StructuredLogger
 
 logger = StructuredLogger(__name__)
@@ -41,9 +43,18 @@ def require_twin_user(
     if not token:
         raise HTTPException(status_code=401, detail="Authentication required")
     try:
-        return jwt_handler.decode_token(token)
+        claims = jwt_handler.decode_token(token)
     except ValueError as exc:
         raise HTTPException(status_code=401, detail=str(exc))
+    # The Warehouse map is a Professional / Enterprise dashboard; the plan comes from the database, not the token
+    user_id = claims.get("user_id") or claims.get("sub")
+    username = claims.get("username")
+    plan = get_user_plan(str(user_id or ""), username=str(username) if username else None)
+    if not is_dashboard_allowed(plan, "twin"):
+        raise AppError(403, "PLAN_RESTRICTED",
+                       "The Warehouse map is not available in your Starter plan. "
+                       "Upgrade to Professional to use the Floor & Bay Map.")
+    return claims
 
 
 def _call(fn, *args, **kwargs):

@@ -61,7 +61,8 @@ PLAN_ENTITLEMENTS: Dict[str, Dict[str, Any]] = {
         "allow_cross_agent": False,
         "requires_manual_agent_selection": True,
         "allow_specialist_dashboards": True,
-        "allowed_dashboards": {"inventory", "fulfillment", "knowledge", "bay_visualizer", "order_timeline", "rbac_claims", "soc_audit"},
+        # "twin" is the Warehouse map (Floor & Bay Map), a Professional specialist dashboard
+        "allowed_dashboards": {"inventory", "fulfillment", "knowledge", "bay_visualizer", "order_timeline", "rbac_claims", "soc_audit", "twin"},
     },
     PLAN_ENTERPRISE: {
         "name": "Enterprise",
