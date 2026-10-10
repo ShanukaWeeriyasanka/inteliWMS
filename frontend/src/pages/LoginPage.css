@@ -316,7 +316,7 @@
   width: 100%;
 }
 
-/* RIGHT COLUMN: AUTHENTICATION TERMINAL MATCHING SYSTEM UI */
+/* RIGHT COLUMN: AUTHENTICATION TERMINAL */
 .logistics-auth-column {
   display: flex;
   justify-content: flex-end;
@@ -325,57 +325,282 @@
   justify-self: end;
 }
 
-/* Claude Auth Box on right side */
-.claude-auth-box {
+/* =========================================================================
+   WHITE THEME WITH BLACK — HIGH-CONTRAST LUXURY AUTH CARD
+   ========================================================================= */
+.logistics-frame .claude-auth-box {
   width: 100%;
-  max-width: 430px;
+  max-width: 440px;
   margin-left: auto;
-  box-shadow: 0 28px 72px rgba(0, 0, 0, 0.8), inset 0 0.5px 0.5px rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(48px) saturate(200%);
+  -webkit-backdrop-filter: blur(48px) saturate(200%);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  border-radius: 26px;
+  padding: 26px 28px;
+  box-shadow: 0 32px 80px rgba(0, 0, 0, 0.75), 0 4px 16px rgba(0, 0, 0, 0.15), inset 0 1px 1px rgba(255, 255, 255, 1);
+  color: #0a0b0c;
   animation: riseIn 0.85s cubic-bezier(0.16, 1, 0.3, 1) 0.55s both;
+  box-sizing: border-box;
 }
 
-/* Auth Card Header matching system UI */
-.auth-card-header {
+/* Brand Header */
+.logistics-frame .auth-card-header {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 16px;
+  gap: 13px;
+  margin-bottom: 18px;
 }
 
-.auth-card-emblem {
-  width: 42px;
-  height: 42px;
+.logistics-frame .auth-card-emblem {
+  width: 44px;
+  height: 44px;
   object-fit: contain;
   border-radius: 12px;
-  border: 0.5px solid rgba(255, 255, 255, 0.16);
-  background: rgba(255, 255, 255, 0.06);
-  padding: 3px;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  background: #0a0b0c;
+  padding: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
-.auth-card-titles {
+.logistics-frame .auth-brand-name {
+  font-family: var(--font-serif, var(--font-sans));
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #0a0b0c;
+  line-height: 1.15;
+  margin: 0;
+}
+
+.logistics-frame .auth-brand-subtitle {
+  font-family: var(--font-sans);
+  font-size: 11.5px;
+  color: #52525b;
+  font-weight: 500;
+  line-height: 1.35;
+  margin: 2px 0 0 0;
+  letter-spacing: -0.01em;
+}
+
+/* Quick Access Section in White Theme */
+.logistics-frame .quick-access-section {
+  background: rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(0, 0, 0, 0.07);
+  border-radius: 16px;
+  padding: 12px;
+  margin-bottom: 14px;
+}
+
+.logistics-frame .section-label {
+  display: block;
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #71717a;
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+.logistics-frame .quick-oauth-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.logistics-frame .oauth-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 8px;
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 12px;
+  color: #0a0b0c;
+  font-size: 11.5px;
+  font-family: var(--font-sans);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  white-space: nowrap;
+}
+
+.logistics-frame .oauth-btn:hover {
+  background: #0a0b0c;
+  border-color: #0a0b0c;
+  color: #ffffff;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+}
+
+.logistics-frame .oauth-btn:active {
+  transform: scale(0.96);
+}
+
+/* Or Separator */
+.logistics-frame .or-separator {
+  display: flex;
+  align-items: center;
+  margin: 14px 0 12px 0;
+}
+
+.logistics-frame .or-line {
+  flex: 1;
+  height: 1px;
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.logistics-frame .or-label {
+  padding: 0 10px;
+  font-family: var(--font-sans);
+  font-size: 10px;
+  color: #71717a;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+/* Mode Switch Tabs */
+.logistics-frame .auth-tab-row {
+  display: flex;
+  background: rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 9999px;
+  padding: 3px;
+  margin-bottom: 14px;
+}
+
+.logistics-frame .tab-link {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: #52525b;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: 9999px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.logistics-frame .tab-link.active {
+  background: #0a0b0c;
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+
+/* Form Controls in White Theme */
+.logistics-frame .credential-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.logistics-frame .input-group {
   display: flex;
   flex-direction: column;
 }
 
-.auth-brand-name {
-  font-family: var(--font-serif, var(--font-sans));
-  font-size: 21px;
-  font-weight: 500;
-  letter-spacing: -0.02em;
-  color: #f5f5f4;
-  line-height: 1.2;
-  margin: 0;
-}
-
-.auth-brand-subtitle {
+.logistics-frame .field-label {
+  display: block;
   font-family: var(--font-sans);
   font-size: 11.5px;
-  color: var(--text-secondary);
-  font-weight: 300;
-  line-height: 1.35;
-  margin: 2px 0 0 0;
+  font-weight: 600;
+  color: #18181b;
+  margin-bottom: 5px;
   letter-spacing: -0.01em;
+  text-transform: none;
+}
+
+.logistics-frame .input-group input,
+.logistics-frame .input-group select {
+  width: 100%;
+  padding: 10px 14px;
+  background: #ffffff;
+  border: 1.5px solid rgba(0, 0, 0, 0.14);
+  border-radius: 12px;
+  color: #0a0b0c;
+  font-size: 13.5px;
+  font-family: var(--font-sans);
+  font-weight: 500;
+  outline: none;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-sizing: border-box;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.logistics-frame .input-group input:hover,
+.logistics-frame .input-group select:hover {
+  border-color: rgba(0, 0, 0, 0.35);
+}
+
+.logistics-frame .input-group input:focus,
+.logistics-frame .input-group select:focus {
+  border-color: #0a0b0c;
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.12);
+}
+
+.logistics-frame .input-group select option {
+  background: #ffffff;
+  color: #0a0b0c;
+}
+
+.logistics-frame .field-hint {
+  display: block;
+  margin-top: 5px;
+  font-size: 11px;
+  color: #71717a;
+  letter-spacing: -0.01em;
+}
+
+.logistics-frame .error-banner {
+  background: rgba(220, 38, 38, 0.08);
+  border: 1px solid rgba(220, 38, 38, 0.25);
+  color: #dc2626;
+  padding: 8px 14px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* Primary Submit Button: Black Pill with Crisp White Typography */
+.logistics-frame .primary-white-btn {
+  width: 100%;
+  padding: 12px 18px;
+  background: #0a0b0c;
+  color: #ffffff;
+  border: 1px solid #0a0b0c;
+  border-radius: 9999px;
+  font-size: 13.5px;
+  font-family: var(--font-sans);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  margin-top: 6px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+}
+
+.logistics-frame .primary-white-btn:hover:not(:disabled) {
+  background: #27272a;
+  border-color: #27272a;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
+.logistics-frame .primary-white-btn:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.logistics-frame .primary-white-btn:disabled {
+  background: #a1a1aa;
+  border-color: #a1a1aa;
+  cursor: not-allowed;
+  transform: none;
 }
 
 /* RESPONSIVE MEDIA QUERIES */
@@ -442,7 +667,7 @@
     justify-self: center;
   }
 
-  .claude-auth-box {
+  .logistics-frame .claude-auth-box {
     margin: 0 auto;
   }
 }
@@ -463,16 +688,16 @@
     gap: 14px;
   }
 
-  .claude-auth-box {
-    padding: 18px 16px;
-    border-radius: 18px;
+  .logistics-frame .claude-auth-box {
+    padding: 20px 18px;
+    border-radius: 20px;
   }
 
-  .quick-oauth-row {
+  .logistics-frame .quick-oauth-row {
     grid-template-columns: 1fr;
   }
 
-  .oauth-btn {
+  .logistics-frame .oauth-btn {
     padding: 9px 12px;
   }
 }
