@@ -52,6 +52,7 @@ export default function LoginPage({ onLogin, onRegister, authLoading, authError,
             <span>WHY US · AGENTIC FULFILLMENT</span>
           </p>
 
+          {/* HEADLINE MATCHING EXACT FONT IN IMAGE 2 */}
           <h1 className="logistics-headline">
             <span className="hl-line hl1">LOGISTICS</span>
             <span className="hl-line hl2">THAT WORKS</span>
@@ -143,15 +144,15 @@ export default function LoginPage({ onLogin, onRegister, authLoading, authError,
               </svg>
               <h2 className="logistics-feature-title">Full supply chain visibility</h2>
               <p className="logistics-feature-desc">
-                Track your freight in real time and get proactive updates before issues become delays.
+                Track your inventory in real time and get proactive multi-agent predictions before issues become delays.
               </p>
             </article>
           </div>
         </section>
 
-        {/* RIGHT COLUMN: AUTHENTICATION TERMINAL */}
+        {/* RIGHT COLUMN: AUTHENTICATION TERMINAL MATCHING CURRENT SYSTEM UI */}
         <section className="logistics-auth-column">
-          <div className="logistics-auth-card">
+          <div className="claude-auth-box">
             {/* Brand Header */}
             <div className="auth-card-header">
               <img
@@ -160,59 +161,59 @@ export default function LoginPage({ onLogin, onRegister, authLoading, authError,
                 className="auth-card-emblem"
               />
               <div className="auth-card-titles">
-                <span className="auth-brand-name">InteliWMS</span>
-                <span className="auth-brand-subtitle">Operations Access Terminal</span>
+                <h2 className="auth-brand-name">InteliWMS</h2>
+                <p className="auth-brand-subtitle">Operations Access Terminal</p>
               </div>
             </div>
 
             {/* Quick 1-Click Demo Profiles */}
-            <div className="quick-access-box">
-              <span className="quick-access-label">Quick 1-Click Demo Profiles</span>
-              <div className="quick-demo-row">
+            <div className="quick-access-section">
+              <span className="section-label">Quick 1-Click Demo Profiles</span>
+              <div className="quick-oauth-row">
                 <button
                   type="button"
-                  className="quick-demo-btn"
+                  className="oauth-btn"
                   onClick={() => handleQuickLogin('john_staff', 'pass123', 'staff')}
                   title="Login as Warehouse Staff"
                 >
-                  <span className="quick-demo-icon">👷</span>
-                  <span>Staff (John)</span>
+                  <span className="oauth-icon">👷</span>
+                  <span className="oauth-text">Staff (John)</span>
                 </button>
 
                 <button
                   type="button"
-                  className="quick-demo-btn"
+                  className="oauth-btn"
                   onClick={() => handleQuickLogin('sarah_manager', 'pass456', 'manager')}
                   title="Login as Shift Supervisor"
                 >
-                  <span className="quick-demo-icon">👩‍💼</span>
-                  <span>Manager (Sarah)</span>
+                  <span className="oauth-icon">👩‍💼</span>
+                  <span className="oauth-text">Manager (Sarah)</span>
                 </button>
 
                 <button
                   type="button"
-                  className="quick-demo-btn"
+                  className="oauth-btn"
                   onClick={() => handleQuickLogin('admin_user', 'admin123', 'admin')}
                   title="Login as System Admin"
                 >
-                  <span className="quick-demo-icon">⚙️</span>
-                  <span>Admin (Alex)</span>
+                  <span className="oauth-icon">⚙️</span>
+                  <span className="oauth-text">Admin (Alex)</span>
                 </button>
               </div>
             </div>
 
-            {/* OR Separator */}
-            <div className="logistics-divider">
-              <span className="logistics-divider-line" />
-              <span className="logistics-divider-text">OR WITH CREDENTIALS</span>
-              <span className="logistics-divider-line" />
+            {/* OR Divider */}
+            <div className="or-separator">
+              <span className="or-line" />
+              <span className="or-label">OR WITH CREDENTIALS</span>
+              <span className="or-line" />
             </div>
 
             {/* Mode Switch Tabs */}
-            <div className="auth-segmented-tabs">
+            <div className="auth-tab-row">
               <button
                 type="button"
-                className={`auth-tab ${!isRegisterMode ? 'active' : ''}`}
+                className={`tab-link ${!isRegisterMode ? 'active' : ''}`}
                 onClick={() => {
                   setIsRegisterMode(false)
                   setAuthError('')
@@ -222,7 +223,7 @@ export default function LoginPage({ onLogin, onRegister, authLoading, authError,
               </button>
               <button
                 type="button"
-                className={`auth-tab ${isRegisterMode ? 'active' : ''}`}
+                className={`tab-link ${isRegisterMode ? 'active' : ''}`}
                 onClick={() => {
                   setIsRegisterMode(true)
                   setRole('staff')
@@ -234,10 +235,10 @@ export default function LoginPage({ onLogin, onRegister, authLoading, authError,
             </div>
 
             {/* Form */}
-            <form onSubmit={handleSubmit} className="auth-form">
+            <form onSubmit={handleSubmit} className="credential-form">
               {isRegisterMode && (
-                <div className="form-field">
-                  <label className="form-label" htmlFor="fullName">Full Name</label>
+                <div className="input-group">
+                  <label className="field-label" htmlFor="fullName">Full Name</label>
                   <input
                     id="fullName"
                     type="text"
@@ -249,8 +250,8 @@ export default function LoginPage({ onLogin, onRegister, authLoading, authError,
                 </div>
               )}
 
-              <div className="form-field">
-                <label className="form-label" htmlFor="username">Username or Warehouse ID</label>
+              <div className="input-group">
+                <label className="field-label" htmlFor="username">Username or Warehouse ID</label>
                 <input
                   id="username"
                   type="text"
@@ -261,8 +262,8 @@ export default function LoginPage({ onLogin, onRegister, authLoading, authError,
                 />
               </div>
 
-              <div className="form-field">
-                <label className="form-label" htmlFor="password">Password</label>
+              <div className="input-group">
+                <label className="field-label" htmlFor="password">Password</label>
                 <input
                   id="password"
                   type="password"
@@ -273,13 +274,13 @@ export default function LoginPage({ onLogin, onRegister, authLoading, authError,
                 />
               </div>
 
-              <div className="form-field">
-                <label className="form-label" htmlFor="role">Warehouse Operational Role</label>
+              <div className="input-group">
+                <label className="field-label" htmlFor="role">Warehouse Operational Role</label>
                 <select
                   id="role"
                   value={isRegisterMode ? 'staff' : role}
                   onChange={(e) => setRole(e.target.value)}
-                  aria-describedby={isRegisterMode ? 'role-register-hint' : undefined}
+                  aria-describedby={isRegisterMode ? 'role-register-note' : undefined}
                 >
                   <option value="staff">Staff — Floor Operations & Picking</option>
                   <option value="manager" disabled={isRegisterMode}>
@@ -290,17 +291,17 @@ export default function LoginPage({ onLogin, onRegister, authLoading, authError,
                   </option>
                 </select>
                 {isRegisterMode && (
-                  <span id="role-register-hint" className="field-hint-text">
+                  <span id="role-register-note" className="field-hint">
                     Manager and admin accounts are created by an administrator.
                   </span>
                 )}
               </div>
 
-              {authError && <div className="auth-error-box">{authError}</div>}
+              {authError && <div className="error-banner">{authError}</div>}
 
               <button
                 type="submit"
-                className="auth-submit-btn"
+                className="primary-white-btn"
                 disabled={authLoading}
               >
                 {authLoading

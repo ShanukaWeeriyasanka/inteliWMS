@@ -1,36 +1,12 @@
-@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700&family=Oswald:wght@400;600;700;800&display=swap');
-
-/* Font Definitions with Local & Web Fallbacks */
+/* Font Definitions matching the Logistics showcase hero headline in Image 2 */
 @font-face {
   font-family: 'Display';
   font-weight: 800;
   font-style: normal;
   font-display: block;
-  src: local('Oswald ExtraBold'), local('Oswald-ExtraBold'), local('Bebas Neue'), local('Impact'), local('Arial Black');
+  src: local('Impact'), local('Oswald ExtraBold'), local('Oswald-ExtraBold'), local('Bebas Neue'), local('Arial Black');
   ascent-override: 99.9%;
   descent-override: 20.1%;
-  line-gap-override: 0%;
-}
-
-@font-face {
-  font-family: 'UI';
-  font-weight: 700;
-  font-style: normal;
-  font-display: block;
-  src: local('Oswald Bold'), local('Oswald-Bold'), local('Barlow Condensed Bold'), local('Impact'), local('Arial Bold');
-  ascent-override: 95%;
-  descent-override: 22.5%;
-  line-gap-override: 0%;
-}
-
-@font-face {
-  font-family: 'UI';
-  font-weight: 400;
-  font-style: normal;
-  font-display: block;
-  src: local('Oswald Regular'), local('Oswald'), local('Barlow Condensed'), local('Arial Narrow'), local('sans-serif');
-  ascent-override: 95%;
-  descent-override: 22.5%;
   line-gap-override: 0%;
 }
 
@@ -39,7 +15,6 @@
   --logistics-white: #F9F9F9;
   --logistics-ink: rgba(255, 255, 255, 0.88);
   --logistics-accent: #D6523A;
-  --logistics-accent-hover: #E35E46;
   --logistics-bg: #0a0b0c;
 }
 
@@ -107,17 +82,6 @@
   }
 }
 
-@keyframes pulseGlow {
-  0%, 100% {
-    opacity: 0.6;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.95;
-    transform: scale(1.04);
-  }
-}
-
 /* Frame & Background Video */
 .logistics-frame {
   position: fixed;
@@ -128,12 +92,14 @@
   overflow-x: hidden;
   overflow-y: auto;
   background: var(--logistics-bg);
-  color: var(--logistics-cream);
-  font-family: 'UI', 'Barlow Condensed', 'Oswald', sans-serif;
+  color: var(--text-primary, #ffffff);
+  font-family: var(--font-sans, 'Geist', 'Inter', -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif);
   z-index: 1000;
   display: flex;
   align-items: center;
   justify-content: center;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 .logistics-bg-video {
@@ -179,15 +145,15 @@
   position: relative;
   z-index: 10;
   width: 100%;
-  max-width: 1440px;
+  max-width: 1400px;
   min-height: 100vh;
   min-height: 100dvh;
   margin: 0 auto;
-  padding: 40px clamp(20px, 4vw, 60px);
+  padding: 40px clamp(20px, 4vw, 56px);
   display: grid;
   grid-template-columns: 1.15fr 0.85fr;
   align-items: center;
-  gap: clamp(32px, 5vw, 72px);
+  gap: clamp(32px, 5vw, 64px);
   box-sizing: border-box;
 }
 
@@ -196,18 +162,17 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 28px;
+  gap: 24px;
   position: relative;
 }
 
 .logistics-eyebrow {
   margin: 0;
-  font-family: 'UI', 'Barlow Condensed', 'Oswald', sans-serif;
-  font-weight: 700;
-  font-size: clamp(10px, 1vw, 13px);
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: 11px;
   line-height: 1.2;
-  letter-spacing: 0.32em;
-  text-indent: 0.32em;
+  letter-spacing: 0.22em;
   text-transform: uppercase;
   color: var(--logistics-cream);
   text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
@@ -222,17 +187,19 @@
   background: rgba(214, 82, 58, 0.2);
   border: 1px solid rgba(214, 82, 58, 0.5);
   color: #ff8470;
-  padding: 3px 8px;
-  border-radius: 4px;
+  padding: 2.5px 7px;
+  border-radius: 6px;
   font-size: 10px;
-  letter-spacing: 0.2em;
+  letter-spacing: 0.15em;
+  font-weight: 700;
 }
 
+/* HERO HEADLINE: EXACT IMPACT / DISPLAY FONT AS IN IMAGE 2 */
 .logistics-headline {
   margin: 0;
-  font-family: 'Display', 'Oswald', 'Bebas Neue', Impact, sans-serif;
+  font-family: 'Impact', 'Display', 'Oswald ExtraBold', 'Bebas Neue', sans-serif;
   font-weight: 800;
-  font-size: clamp(48px, 6vw, 86px);
+  font-size: clamp(48px, 6.2vw, 84px);
   line-height: 0.88;
   letter-spacing: -0.02em;
   text-transform: uppercase;
@@ -273,12 +240,12 @@
   display: flex;
   align-items: center;
   gap: 18px;
-  margin-top: 6px;
+  margin-top: 4px;
 }
 
 .logistics-mark-svg {
-  width: 50px;
-  height: 50px;
+  width: 48px;
+  height: 48px;
   flex-shrink: 0;
   animation: markIn 0.7s cubic-bezier(0.2, 0.9, 0.25, 1) 0.72s both;
 }
@@ -294,13 +261,13 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 24px;
-  margin-top: 8px;
+  margin-top: 6px;
 }
 
 .logistics-feature-card {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
 .logistics-feature-card.f-left {
@@ -312,87 +279,59 @@
 }
 
 .logistics-feature-icon {
-  width: 36px;
-  height: 36px;
-  margin-bottom: 4px;
+  width: 34px;
+  height: 34px;
+  margin-bottom: 2px;
   filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.5));
 }
 
 .logistics-feature-title {
   margin: 0;
-  font-family: 'UI', 'Barlow Condensed', 'Oswald', sans-serif;
+  font-family: var(--font-sans);
   font-weight: 700;
-  font-size: clamp(16px, 1.4vw, 20px);
-  line-height: 1.1;
+  font-size: clamp(14px, 1.25vw, 17px);
+  line-height: 1.2;
   text-transform: uppercase;
   color: var(--logistics-white);
-  letter-spacing: -0.01em;
+  letter-spacing: 0.02em;
   text-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
 }
 
 .logistics-feature-desc {
   margin: 0;
-  font-family: 'UI', 'Barlow Condensed', 'Oswald', sans-serif;
+  font-family: var(--font-sans);
   font-weight: 400;
-  font-size: clamp(12.5px, 0.95vw, 14px);
-  line-height: 1.4;
+  font-size: clamp(12px, 0.9vw, 13px);
+  line-height: 1.45;
   color: var(--logistics-ink);
   letter-spacing: -0.01em;
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
 }
 
-/* Right Column: Terminal Authentication Card */
+/* RIGHT COLUMN: AUTHENTICATION TERMINAL MATCHING SYSTEM UI */
 .logistics-auth-column {
   display: flex;
   justify-content: center;
   align-items: center;
 }
 
-.logistics-auth-card {
-  width: 100%;
-  max-width: 440px;
-  background: rgba(14, 16, 19, 0.82);
-  backdrop-filter: blur(36px) saturate(190%);
-  -webkit-backdrop-filter: blur(36px) saturate(190%);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: 24px;
-  padding: 30px 28px;
-  box-shadow: 0 32px 72px rgba(0, 0, 0, 0.8),
-              inset 0 1px 0 rgba(255, 255, 255, 0.22),
-              0 0 0 1px rgba(0, 0, 0, 0.5);
-  box-sizing: border-box;
-  animation: riseIn 0.85s cubic-bezier(0.16, 1, 0.3, 1) 0.6s both;
-  position: relative;
-  overflow: hidden;
-}
-
-.logistics-auth-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, transparent 0%, var(--logistics-accent) 50%, transparent 100%);
-}
-
-/* Header inside Card */
+/* Auth Card Header matching system UI */
 .auth-card-header {
   display: flex;
   align-items: center;
-  gap: 14px;
-  margin-bottom: 20px;
+  gap: 12px;
+  margin-bottom: 16px;
 }
 
 .auth-card-emblem {
-  width: 44px;
-  height: 44px;
+  width: 42px;
+  height: 42px;
   object-fit: contain;
-  border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  border: 0.5px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.06);
   padding: 3px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
 }
 
 .auth-card-titles {
@@ -401,242 +340,23 @@
 }
 
 .auth-brand-name {
-  font-family: 'Display', 'Oswald', sans-serif;
+  font-family: var(--font-serif, var(--font-sans));
   font-size: 21px;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  color: var(--logistics-white);
-  line-height: 1.1;
-  text-transform: uppercase;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  color: #f5f5f4;
+  line-height: 1.2;
+  margin: 0;
 }
 
 .auth-brand-subtitle {
-  font-size: 11px;
-  color: #a3a3a3;
-  font-weight: 400;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
-}
-
-/* 1-Click Demo Profiles */
-.quick-access-box {
-  margin-bottom: 16px;
-  background: rgba(0, 0, 0, 0.32);
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  border-radius: 14px;
-  padding: 12px;
-}
-
-.quick-access-label {
-  display: block;
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: #a3a3a3;
-  margin-bottom: 8px;
-  text-align: center;
-}
-
-.quick-demo-row {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-}
-
-.quick-demo-btn {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  padding: 8px 6px;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 10px;
-  color: var(--logistics-cream);
-  font-size: 11px;
-  font-family: 'UI', 'Barlow Condensed', sans-serif;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  white-space: nowrap;
-}
-
-.quick-demo-btn:hover {
-  background: rgba(214, 82, 58, 0.22);
-  border-color: rgba(214, 82, 58, 0.6);
-  color: #ffffff;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 14px rgba(214, 82, 58, 0.3);
-}
-
-.quick-demo-btn:active {
-  transform: scale(0.97);
-}
-
-.quick-demo-icon {
-  font-size: 15px;
-}
-
-/* Or Separator */
-.logistics-divider {
-  display: flex;
-  align-items: center;
-  margin: 16px 0;
-}
-
-.logistics-divider-line {
-  flex: 1;
-  height: 1px;
-  background: rgba(255, 255, 255, 0.1);
-}
-
-.logistics-divider-text {
-  padding: 0 10px;
-  font-size: 9.5px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: #737373;
-}
-
-/* Tabs */
-.auth-segmented-tabs {
-  display: flex;
-  background: rgba(0, 0, 0, 0.45);
-  border: 1px solid rgba(255, 255, 255, 0.09);
-  border-radius: 10px;
-  padding: 3px;
-  margin-bottom: 16px;
-}
-
-.auth-tab {
-  flex: 1;
-  background: transparent;
-  border: none;
-  color: #a3a3a3;
-  font-size: 12px;
-  font-weight: 600;
-  padding: 7px 12px;
-  border-radius: 7px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  font-family: 'UI', 'Barlow Condensed', sans-serif;
-  letter-spacing: 0.02em;
-}
-
-.auth-tab.active {
-  background: rgba(255, 255, 255, 0.14);
-  color: #ffffff;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-}
-
-/* Form Controls */
-.auth-form {
-  display: flex;
-  flex-direction: column;
-  gap: 13px;
-}
-
-.form-field {
-  display: flex;
-  flex-direction: column;
-}
-
-.form-label {
-  display: block;
-  font-size: 11px;
-  font-weight: 600;
-  color: #d4d4d4;
-  margin-bottom: 5px;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
-}
-
-.form-field input,
-.form-field select {
-  width: 100%;
-  padding: 10px 12px;
-  background: rgba(0, 0, 0, 0.42);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: 10px;
-  color: #ffffff;
-  font-size: 13.5px;
-  font-family: 'Inter', system-ui, sans-serif;
-  outline: none;
-  transition: all 0.2s ease;
-  box-sizing: border-box;
-}
-
-.form-field input:hover,
-.form-field select:hover {
-  border-color: rgba(255, 255, 255, 0.26);
-  background: rgba(0, 0, 0, 0.55);
-}
-
-.form-field input:focus,
-.form-field select:focus {
-  border-color: var(--logistics-accent);
-  background: rgba(0, 0, 0, 0.65);
-  box-shadow: 0 0 0 3px rgba(214, 82, 58, 0.25);
-}
-
-.form-field select option {
-  background: #15181c;
-  color: #ffffff;
-}
-
-.field-hint-text {
-  display: block;
-  margin-top: 5px;
-  font-size: 10.5px;
-  color: #8e8e8e;
+  font-family: var(--font-sans);
+  font-size: 11.5px;
+  color: var(--text-secondary);
+  font-weight: 300;
   line-height: 1.35;
-}
-
-.auth-error-box {
-  background: rgba(214, 82, 58, 0.18);
-  border: 1px solid rgba(214, 82, 58, 0.45);
-  color: #ff9b8c;
-  padding: 9px 12px;
-  border-radius: 9px;
-  font-size: 12px;
-  line-height: 1.3;
-}
-
-/* Primary Submit Button */
-.auth-submit-btn {
-  width: 100%;
-  padding: 12px 18px;
-  background: linear-gradient(135deg, #D6523A 0%, #b83e29 100%);
-  color: #ffffff;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 10px;
-  font-size: 13px;
-  font-weight: 700;
-  font-family: 'UI', 'Barlow Condensed', sans-serif;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  margin-top: 4px;
-  box-shadow: 0 6px 18px rgba(214, 82, 58, 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.3);
-}
-
-.auth-submit-btn:hover:not(:disabled) {
-  background: linear-gradient(135deg, #E35E46 0%, #c4432c 100%);
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(214, 82, 58, 0.55);
-}
-
-.auth-submit-btn:active:not(:disabled) {
-  transform: scale(0.98);
-}
-
-.auth-submit-btn:disabled {
-  opacity: 0.65;
-  cursor: not-allowed;
+  margin: 2px 0 0 0;
+  letter-spacing: -0.01em;
 }
 
 /* RESPONSIVE MEDIA QUERIES */
@@ -677,8 +397,9 @@
     width: 100%;
   }
 
-  .logistics-auth-card {
-    max-width: 480px;
+  .claude-auth-box {
+    max-width: 440px;
+    margin: 0 auto;
   }
 }
 
@@ -698,18 +419,16 @@
     gap: 16px;
   }
 
-  .logistics-auth-card {
-    padding: 22px 18px;
+  .claude-auth-box {
+    padding: 18px 16px;
     border-radius: 18px;
   }
 
-  .quick-demo-row {
+  .quick-oauth-row {
     grid-template-columns: 1fr;
   }
 
-  .quick-demo-btn {
-    flex-direction: row;
-    justify-content: flex-start;
+  .oauth-btn {
     padding: 9px 12px;
   }
 }
