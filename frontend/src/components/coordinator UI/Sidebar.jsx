@@ -27,6 +27,7 @@ export default function Sidebar({
   onLogout,
   onOpenMap,
   onOpenFulfillment,
+  onOpenArtifactTab,
   onSwitchRoleQuick,
   onSwitchPlanQuick,
   onOpenCommercializationModal,
