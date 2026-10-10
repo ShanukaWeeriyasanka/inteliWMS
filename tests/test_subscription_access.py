@@ -193,7 +193,36 @@ def test_pro_wrong_agent_mismatch_detected(pro_user):
     assert "Knowledge Agent" in data["response"]
 
 
-def test_pro_fulfillment_cross_agent_investigation_blocked(pro_user):
+@pytest.fixture
+def delayed_order_db(tmp_path):
+    """Requests read orders from a throwaway database holding ORD-1004: delayed, no recorded reason."""
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import sessionmaker
+    from database.connection import Base, get_db
+    from database.models import Order, OrderItem
+
+    engine = create_engine(f"sqlite:///{tmp_path / 'orders.db'}", connect_args={"check_same_thread": False})
+    Base.metadata.create_all(engine, tables=[Order.__table__, OrderItem.__table__])
+    factory = sessionmaker(bind=engine, autocommit=False, autoflush=False)
+    with factory() as s:
+        s.add(Order(order_id="ORD-1004", customer_name="Test Customer", status="delayed"))
+        s.add(OrderItem(order_id="ORD-1004", sku="SKU-4521", product_name="Test item", quantity=2))
+        s.commit()
+
+    def _db():
+        session = factory()
+        try:
+            yield session
+        finally:
+            session.close()
+
+    app.dependency_overrides[get_db] = _db
+    yield
+    app.dependency_overrides.pop(get_db, None)
+    engine.dispose()
+
+
+def test_pro_fulfillment_cross_agent_investigation_blocked(pro_user, delayed_order_db):
     """
     When Fulfillment handles a delayed order requiring inventory investigation,
     cross-agent dispatch is blocked. Confirmed order facts are returned with truthful explanation.

@@ -385,10 +385,9 @@ export default function App() {
         setSelectedAgent('inventory_agent')
       }
     } else if (plan === 'enterprise') {
-      // Enterprise default to auto coordinator routing
-      if (!selectedAgent) {
-        setSelectedAgent('auto')
-      }
+      // Enterprise: the user only writes the prompt; the Coordinator picks the agent
+      // (a specialist left over from Professional must not stick)
+      setSelectedAgent('auto')
     }
   }, [currentUser?.plan])
 

@@ -49,6 +49,7 @@ from security.subscription import (
     PLAN_STARTER,
     PLAN_PROFESSIONAL,
     PLAN_ENTERPRISE,
+    PLAN_ENTITLEMENTS,
     AGENT_DISPLAY_NAMES
 )
 
@@ -283,21 +284,27 @@ async def handle_coordinator_query(payload: QueryRequest, request: Request, db: 
             # PROFESSIONAL: User chooses specialist. Mismatched queries do not silently switch.
             elif user_plan == PLAN_PROFESSIONAL:
                 selected_agent = payload.selected_agent
-                if selected_agent == "coordinator":
+                # The user must pick one of the three specialists; the Coordinator never routes for this plan
+                if selected_agent not in PLAN_ENTITLEMENTS[PLAN_PROFESSIONAL]["allowed_customer_agents"]:
                     routing_decision["decisions"] = collected()
-                    coord_denied_msg = "Coordinator automatic routing is an Enterprise feature. As a Professional plan subscriber, please select Inventory, Fulfillment, or Knowledge Agent from the dropdown."
+                    if selected_agent == "coordinator":
+                        coord_denied_msg = "Coordinator automatic routing is an Enterprise feature. As a Professional plan subscriber, please select Inventory, Fulfillment, or Knowledge Agent from the dropdown."
+                        error_code, rule_id = "PLAN_RESTRICTED", "subscription.coordinator_restricted"
+                    else:
+                        coord_denied_msg = "As a Professional plan subscriber, please choose the Inventory, Fulfillment, or Knowledge Agent from the specialist dropdown before asking."
+                        error_code, rule_id = "SPECIALIST_REQUIRED", "subscription.specialist_required"
                     body = {
                         "status": "restricted",
-                        "error_code": "PLAN_RESTRICTED",
+                        "error_code": error_code,
                         "plan_restricted": True,
                         "agent_used": "coordinator",
                         "response": coord_denied_msg,
                         "message": coord_denied_msg,
                         "plan": "professional",
-                        "required_plan": "enterprise",
+                        **({"required_plan": "enterprise"} if error_code == "PLAN_RESTRICTED" else {}),
                         "routing": {
                             **routing_decision,
-                            "rule_id": "subscription.coordinator_restricted",
+                            "rule_id": rule_id,
                             "decided_by": "subscription_policy",
                         },
                         "audit": {

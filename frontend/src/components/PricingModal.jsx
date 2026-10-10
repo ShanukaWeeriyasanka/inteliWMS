@@ -176,8 +176,8 @@ export default function PricingModal({
     {
       featureName: 'Specialist Dashboards',
       featureNote: 'Interactive warehouse visualizers and logs',
-      starter: { type: 'text', val: 'Floor & Bay visualizer only' },
-      pro: { type: 'check', text: '✔️ Full fulfillment & bay dashboards' },
+      starter: { type: 'cross', text: '❌ Inventory chat only (no floor map)' },
+      pro: { type: 'check', text: '✔️ Warehouse map, fulfillment & audit dashboards' },
       enterprise: { type: 'check', text: '✔️ Complete WMS operational suite' }
     },
     {

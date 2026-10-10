@@ -6,18 +6,19 @@ Enforces:
    - Customer-facing agent: Inventory Agent ONLY.
    - Cross-agent communication: NOT allowed.
    - Coordinator intelligent auto-routing: Internal only.
-   - Dashboards: Inventory & Bay visualizer only.
+   - Dashboards: none (no Warehouse map / floor plan, no Fulfillment dashboard).
 
 2. PROFESSIONAL:
    - Customer-facing agents: Inventory Agent, Fulfillment Agent, Knowledge Agent.
-   - User explicitly selects the active specialist from the dropdown.
+   - The user MUST select the specialist (Inventory / Fulfillment / Knowledge) from the dropdown;
+     a request without a selection is refused (SPECIALIST_REQUIRED). The Coordinator never routes.
    - Cross-agent communication: NOT allowed (agents operate independently).
    - Coordinator: NOT customer-selectable.
-   - Dashboards: Specialist dashboards (Floor & Bay Map, Fulfillment Dashboard).
+   - Dashboards: all (Warehouse map / Floor & Bay Map, Fulfillment Dashboard, SOC audit).
 
 3. ENTERPRISE:
    - Customer-facing agents: Inventory, Fulfillment, Knowledge, Coordinator.
-   - Full Coordinator autonomous routing enabled.
+   - The user only writes the prompt: the Coordinator picks the agent (any agent selection is ignored).
    - Full cross-agent collaboration enabled (e.g. Fulfillment-to-Inventory investigation).
    - Dashboards: Complete operational suite.
 
@@ -53,7 +54,8 @@ PLAN_ENTITLEMENTS: Dict[str, Dict[str, Any]] = {
         "allow_cross_agent": False,
         "requires_manual_agent_selection": False,
         "allow_specialist_dashboards": False,
-        "allowed_dashboards": {"inventory", "bay_visualizer", "rbac_claims"},
+        # Inventory chat only: no Warehouse map / floor plan or other dashboards
+        "allowed_dashboards": {"inventory", "rbac_claims"},
     },
     PLAN_PROFESSIONAL: {
         "name": "Professional",

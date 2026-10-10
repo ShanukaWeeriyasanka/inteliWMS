@@ -88,9 +88,7 @@ export default function PromptCapsule({
   const textareaRef = useRef(null)
   const suggestListId = `inv-suggest-${useId().replace(/:/g, '')}`
   // Inventory suggestions only while the message can reach the Inventory Agent under the user's plan
-  const reachesInventory = plan === 'starter'
-    || (plan === 'professional' ? activeSpecialist === 'inventory_agent'
-      : ['auto', 'inventory_agent'].includes(selectedAgent || 'auto'))
+  const reachesInventory = plan !== 'professional' || activeSpecialist === 'inventory_agent'
   const suggest = useInventorySuggestions(inputVal, authToken, {
     enabled: reachesInventory && !isLoading && !isRecording && attachments.length === 0
   })
@@ -127,11 +125,12 @@ export default function PromptCapsule({
     const { omitted } = composeQuery(text.trim(), attachments)
     setFileNotices(omitted.map((name) => omittedFileNotice(name)))
 
+    // Starter: Inventory only. Professional: the chosen specialist. Enterprise: the Coordinator decides.
     const effectiveAgent = plan === 'starter'
       ? 'inventory_agent'
       : plan === 'professional'
         ? activeSpecialist
-        : (selectedAgent || 'auto')
+        : 'auto'
 
     onSend({
       text: text.trim(),
