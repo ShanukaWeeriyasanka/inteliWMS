@@ -10,7 +10,6 @@ import {
   ExternalLink,
   ShieldAlert,
   ShieldCheck,
-  Layers,
   ThumbsUp,
   ThumbsDown,
   Paperclip,
@@ -26,7 +25,9 @@ export default function ChatMessage({
   message,
   onInspectOrder,
   onShowOnMap,
-  onOpenFulfillmentDashboard
+  onOpenFulfillmentDashboard,
+  onOpenPricingModal,
+  onSwitchSpecialist
 }) {
   const [copied, setCopied] = useState(false)
   const isUser = message.role === 'user'
@@ -42,7 +43,10 @@ export default function ChatMessage({
   const routing = message.routing || meta.routing || {}
   const agentTarget = routing.target_agent || meta.target_agent || 'coordinator'
   const isBlocked = message.status === 'blocked' || routing.status === 'blocked'
-  const isFulfillment = isFulfillmentMessage(message)
+  const isRestricted = message.status === 'restricted' || routing.status === 'restricted' || meta.error_code === 'PLAN_RESTRICTED' || message.error_code === 'PLAN_RESTRICTED'
+  const isMismatch = message.status === 'mismatch' || routing.status === 'mismatch' || meta.error_code === 'SPECIALIST_MISMATCH' || message.error_code === 'SPECIALIST_MISMATCH'
+  const suggestedAgent = message.suggested_agent || meta.suggested_agent || routing.classified_agent
+  const isFulfillment = !isBlocked && !isRestricted && !isMismatch && message.status !== 'error' && isFulfillmentMessage(message)
   const fulfillment = isFulfillment
     ? parseFulfillmentContent(message.content, message.fulfillment_details || meta.fulfillment_details, routing) : null
 
@@ -70,13 +74,13 @@ export default function ChatMessage({
               <Warehouse size={13} className="text-amber" />
               <span className="assistant-name">IntelliWMS Coordinator</span>
             </div>
-            {agentTarget && agentTarget !== 'coordinator' && (
+            {!isRestricted && !isBlocked && !isMismatch && agentTarget && agentTarget !== 'coordinator' && (
               <span className="agent-route-tag">
                 <Bot size={11} />
                 <span>via {agentLabel(agentTarget)} AGENT</span>
               </span>
             )}
-            {routing.confidence && (
+            {!isRestricted && !isBlocked && !isMismatch && routing.confidence && (
               <span className="confidence-tag">
                 {(routing.confidence * 100).toFixed(0)}% match
               </span>
@@ -87,7 +91,7 @@ export default function ChatMessage({
           </div>
         )}
 
-        <div className={`message-bubble ${isUser ? 'user-bubble' : 'assistant-bubble'} ${isBlocked ? 'blocked-bubble' : ''}`}>
+        <div className={`message-bubble ${isUser ? 'user-bubble' : 'assistant-bubble'} ${isBlocked ? 'blocked-bubble' : ''} ${isRestricted ? 'restricted-bubble' : ''}`}>
           {/* If security blocked */}
           {isBlocked && (
             <div className="security-block-notice">
@@ -106,13 +110,79 @@ export default function ChatMessage({
             </div>
           )}
 
-          {/* Normal Assistant / User Content (agent replies use light Markdown) */}
-          {!isBlocked && !isUser && (
-            <MarkdownText className="message-text-content" text={message.content} />
+          {/* If Subscription Restricted (Starter Plan) */}
+          {isRestricted && (
+            <div className="plan-restriction-notice">
+              <div className="restriction-title-row">
+                <ShieldCheck size={16} className="text-amber" />
+                <strong>Subscription Plan Restriction</strong>
+              </div>
+              <p className="restriction-text">
+                {message.content || message.message}
+              </p>
+              {onOpenPricingModal && (
+                <div className="restriction-cta-row">
+                  <button
+                    type="button"
+                    className="btn-view-plans-cta"
+                    onClick={onOpenPricingModal}
+                  >
+                    <span>View Subscription Plans</span>
+                    <ExternalLink size={13} />
+                  </button>
+                </div>
+              )}
+            </div>
           )}
-          {!isBlocked && isUser && message.content && (
+
+          {/* If Specialist Mismatch (Professional Plan) */}
+          {isMismatch && (
+            <div className="specialist-mismatch-notice">
+              <div className="mismatch-title-row">
+                <Bot size={16} className="text-blue" />
+                <strong>Specialist Agent Selection Required</strong>
+              </div>
+              <p className="mismatch-text">
+                {message.content || message.message}
+              </p>
+              {suggestedAgent && onSwitchSpecialist && (
+                <div className="mismatch-cta-row">
+                  <button
+                    type="button"
+                    className="btn-switch-specialist-cta"
+                    onClick={() => onSwitchSpecialist(suggestedAgent)}
+                  >
+                    <span>Switch to {agentLabel(suggestedAgent)}</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Normal Assistant / User Content (agent replies use light Markdown) */}
+          {!isBlocked && !isRestricted && !isMismatch && !isUser && (
+            <MarkdownText className="message-text-content" text={message.content} allowTables={agentTarget === 'inventory_agent'} />
+          )}
+          {!isBlocked && !isRestricted && !isMismatch && isUser && message.content && (
             <div className="message-text-content">
               {message.content}
+            </div>
+          )}
+
+          {/* Fulfillment SOP Citations Chip (if any) */}
+          {isFulfillment && fulfillment?.citations?.length > 0 && (
+            <div className="fulfillment-citations-chat-list">
+              {fulfillment.citations.map((c, i) => (
+                <div key={i} className="fulfillment-citation-tag" title={c.disclaimer || 'Demonstration Warehouse SOP'}>
+                  <span className="citation-prefix">Source:</span>
+                  <span className="citation-sop-id">{c.sop_id}</span>
+                  <span className="citation-separator">—</span>
+                  <span className="citation-title">{c.title}{c.heading ? ` (${c.heading})` : ''}</span>
+                  {c.status === 'demonstration' && (
+                    <span className="citation-demo-badge">DEMO SOP</span>
+                  )}
+                </div>
+              ))}
             </div>
           )}
 
@@ -120,10 +190,11 @@ export default function ChatMessage({
             <div className="fulfillment-chat-action-container">
               <button type="button" className="btn-view-fulfillment-dashboard"
                 onClick={() => onOpenFulfillmentDashboard(message)}
-                aria-label={`Open Fulfillment Dashboard${fulfillment.orderId ? ` for ${fulfillment.orderId}` : ''}`}>
+                aria-label={`Open Fulfillment Dashboard${fulfillment.orderId ? ` for ${fulfillment.orderId}` : (fulfillment.isProcedural ? ' (SOP Guidance)' : '')}`}>
                 <span className="btn-icon-wrapper"><Truck size={15} /></span>
-                <span className="btn-text">View Fulfillment Dashboard</span>
+                <span className="btn-text">{fulfillment.orderId ? 'View Fulfillment Dashboard' : 'View Fulfillment SOP Dashboard'}</span>
                 {fulfillment.orderId && <span className="btn-order-badge">{fulfillment.orderId}</span>}
+                {!fulfillment.orderId && fulfillment.isProcedural && <span className="btn-order-badge sop-badge">SOP GUIDANCE</span>}
                 <ExternalLink size={13} />
               </button>
             </div>
@@ -142,7 +213,7 @@ export default function ChatMessage({
           )}
 
           {/* Structured Specialization Cards for Coordinator */}
-          {!isUser && !isBlocked && (
+          {!isUser && !isBlocked && !isRestricted && !isMismatch && (
             <div className="specialist-embedded-cards">
               {/* SKU Location Callout */}
               {message.skuData && (
@@ -174,13 +245,6 @@ export default function ChatMessage({
                         </div>
                       </div>
                     </div>
-                    <button
-                      onClick={() => onInspectLocation(message.skuData)}
-                      className="btn-inspect-artifact"
-                    >
-                      <Warehouse size={13} className="text-amber" />
-                      <span>Inspect Warehouse Floor & 3D Bay Map</span>
-                    </button>
                   </div>
                 </div>
               )}

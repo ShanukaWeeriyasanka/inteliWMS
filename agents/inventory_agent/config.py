@@ -29,6 +29,8 @@ class InventoryConfig:
     LOW_STOCK_RATIO_ALERT: float = float(os.getenv("INVENTORY_LOW_STOCK_RATIO", "0.25"))
     MAX_QUERY_RESULTS: int = int(os.getenv("INVENTORY_MAX_RESULTS", "10"))
     REQUEST_TIMEOUT_SECONDS: int = int(os.getenv("INVENTORY_TIMEOUT_SEC", "15"))
+    # Zero disables age-based staleness classification; timestamps are always shown.
+    STOCK_MAX_AGE_SECONDS: int = int(os.getenv('INVENTORY_STOCK_MAX_AGE_SECONDS', '0'))
 
     # Warehouse Digital Twin — choosing between resolve_product / resolve_location candidates
     TWIN_ENABLED: bool = os.getenv("INVENTORY_TWIN_ENABLED", "true").lower() == "true"

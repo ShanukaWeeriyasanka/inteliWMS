@@ -64,11 +64,12 @@ Supported intents:
 - ORDER_DETAILS: User asks for general factual order information already stored in the system. (e.g., "Show me details for ORD-1003.")
 - SHIPPING_STATUS: User asks whether the order has shipped. (e.g., "Has ORD-1003 shipped?")
 - FULFILLMENT_PROGRESS: User asks about the stage/progress of fulfillment. (e.g., "How far along is ORD-1001?")
+- FULFILLMENT_PROCEDURE: User asks about fulfillment Standard Operating Procedures, instructions, or policies (e.g., "What is the packing procedure?", "How should warehouse staff pick and pack an order?", "What should I do when an order is delayed?", "What are the dispatch verification steps?"). Does NOT require an order ID.
 - UNKNOWN_FULFILLMENT: Request belongs to fulfillment but cannot confidently be classified into one of the supported specific intents.
 
 Respond in strict JSON format:
 {
-  "intent": "ORDER_STATUS" | "ORDER_DELAY" | "ORDER_DETAILS" | "SHIPPING_STATUS" | "FULFILLMENT_PROGRESS" | "UNKNOWN_FULFILLMENT",
+  "intent": "ORDER_STATUS" | "ORDER_DELAY" | "ORDER_DETAILS" | "SHIPPING_STATUS" | "FULFILLMENT_PROGRESS" | "FULFILLMENT_PROCEDURE" | "UNKNOWN_FULFILLMENT",
   "confidence": 0.95
 }
 """

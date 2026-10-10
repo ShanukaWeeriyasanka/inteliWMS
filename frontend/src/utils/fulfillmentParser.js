@@ -75,6 +75,8 @@ export function parseFulfillmentContent(content = '', fulfillmentDetails = {}, r
     revisedDate = dateMatch[1].trim()
   }
 
+  const isOverdue = checkIsOverdue(revisedDate, status)
+
   // 6. Cross-Agent Inventory Investigation Detection (Strictly when genuine evidence exists)
   let crossAgent = null
   const skuMatch = text.match(/\b(SKU-\d+)\b/i)
@@ -117,20 +119,79 @@ export function parseFulfillmentContent(content = '', fulfillmentDetails = {}, r
     }
   }
 
+  // 8. Procedural Guidance & SOP Citations (Phase 2 & 3 RAG integration)
+  const proceduralGuidance = details?.procedural_guidance || null
+  const citations = Array.isArray(details?.citations) ? details.citations : []
+  const informationReliability = details?.information_reliability || (proceduralGuidance ? 'procedural_guidance' : 'confirmed_facts')
+
+  // Detect whether this is a pure procedural query (e.g. no order ID, but procedural guidance/intent exists)
+  const isProcedural = intent === 'FULFILLMENT_PROCEDURE' || Boolean(proceduralGuidance || citations.length > 0)
+
   return {
     orderId,
     intent,
     status,
     isNotFound,
-    isMissingId,
+    isMissingId: isMissingId && !isProcedural, // Procedural questions without order ID are NOT missing ID errors
     isUnknownIntent,
+    isProcedural,
+    proceduralGuidance,
+    citations,
+    informationReliability,
     delayReason,
     carrierName,
     revisedDate,
+    isOverdue,
     crossAgent,
     orderDetails,
     rawContent: text
   }
+}
+
+/**
+ * Safely checks whether a revised delivery date has passed relative to the local calendar day.
+ * - Compares calendar day parts safely (YYYY-MM-DD), avoiding timezone false positives.
+ * - Does not mark today's date as overdue.
+ * - Does not mark delivered or shipped orders as overdue.
+ * - Returns false for missing or invalid date strings.
+ *
+ * @param {string} dateStr - Revised delivery date string (e.g., "2026-10-01")
+ * @param {string} status - Current order status (e.g., "DELAYED", "SHIPPED")
+ * @param {Date} [referenceDate] - Optional reference date for testing (defaults to current date)
+ * @returns {boolean} True if strictly overdue
+ */
+export function checkIsOverdue(dateStr, status, referenceDate = null) {
+  if (!dateStr || !status) return false
+  const normStatus = String(status).toUpperCase()
+  if (normStatus === 'DELIVERED' || normStatus === 'SHIPPED') return false
+
+  const match = String(dateStr).match(/^(\d{4})-(\d{1,2})-(\d{1,2})/)
+  if (!match) return false
+
+  const revYear = parseInt(match[1], 10)
+  const revMonth = parseInt(match[2], 10) - 1
+  const revDay = parseInt(match[3], 10)
+
+  // Validate calendar date bounds
+  const revDateObj = new Date(revYear, revMonth, revDay)
+  if (
+    revDateObj.getFullYear() !== revYear ||
+    revDateObj.getMonth() !== revMonth ||
+    revDateObj.getDate() !== revDay
+  ) {
+    return false
+  }
+
+  const now = referenceDate instanceof Date ? referenceDate : new Date()
+  const nowYear = now.getFullYear()
+  const nowMonth = now.getMonth()
+  const nowDay = now.getDate()
+
+  if (revYear < nowYear) return true
+  if (revYear > nowYear) return false
+  if (revMonth < nowMonth) return true
+  if (revMonth > nowMonth) return false
+  return revDay < nowDay
 }
 
 /**
@@ -140,6 +201,15 @@ export function parseFulfillmentContent(content = '', fulfillmentDetails = {}, r
  */
 export function getFulfillmentFollowUps(parsed) {
   if (!parsed) return []
+
+  if (parsed.isProcedural && !parsed.orderId) {
+    return [
+      { label: 'Packing Procedure', query: 'What is the packing procedure?' },
+      { label: 'Dispatch Checklist', query: 'What checks are required before dispatch?' },
+      { label: 'Order Delay Guidance', query: 'What should I do when an order is delayed?' },
+      { label: 'Check Status of ORD-1001', query: 'What is the status of ORD-1001?' }
+    ]
+  }
 
   if (!parsed.orderId || parsed.isNotFound || parsed.isMissingId) {
     return [

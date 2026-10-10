@@ -16,14 +16,16 @@ from security.sanitizer import sanitize_input, sanitizer
 from security.jwt_handler import jwt_handler
 from security.rbac import rbac_manager, PERMISSION_MATRIX
 from security.auth import auth_service, ROLE_RANK, SELF_REGISTER_ROLES, SELF_REGISTER_DENIED
+from security.subscription import parse_plan_strict, authorize_plan_change, get_user_plan, is_dashboard_allowed
 from security.audit_logger import audit_logger
 from backend.routes.query import router as query_router
 from backend.routes.metrics import router as metrics_router
 from backend.threads.routes import router as threads_router
-from backend.middleware.error_handler import register_error_handlers
+from backend.middleware.error_handler import AppError, register_error_handlers
 from backend.middleware.request_context import RequestContextMiddleware
 from mcp_servers.mcp_tool_client import inventory_tool_gateway
 from backend.twin.routes import router as twin_router
+from backend.routes.inventory_suggestions import router as inventory_suggestions_router
 from backend.twin.realtime import twin_broker
 from database.twin import ensure_twin_schema, is_enabled as twin_is_enabled
 
@@ -179,19 +181,93 @@ def get_profile(authorization: Optional[str] = Header(None)):
     if not user:
         raise HTTPException(status_code=401, detail="Invalid or missing authentication token")
 
-    # The role the token was issued for (a user may sign in with a lower role than their own)
-    role = user.get("role", "staff")
-    profile = auth_service.get_user_profile(str(user.get("user_id") or "")) or {}
+    token_user_id = str(user.get("user_id") or user.get("db_id") or "")
+    token_username = user.get("username")
+    profile = auth_service.get_user_profile(token_user_id, username=token_username)
+    if not profile:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    role = user.get("role") or profile.get("role", "staff")
+    plan = profile.get("plan", "starter")
     return {
-        "user_id": user.get("user_id"),
+        "user_id": profile.get("user_id", token_user_id),
         "db_id": profile.get("db_id"),
         "username": profile.get("username"),
         "name": profile.get("name"),
         "email": profile.get("email"),
         "role": role,
+        "plan": plan,
+        "subscription_plan": plan,
         "permissions": rbac_manager.get_permissions(role),
         "exp": user.get("exp"),
         "iat": user.get("iat")
+    }
+
+@app.post("/auth/set-plan")
+@app.post("/auth/subscription")
+def update_subscription_endpoint(payload: dict, authorization: Optional[str] = Header(None)):
+    """
+    Safely assign/update subscription plan entitlement for development and testing.
+    Stored and verified directly in database.
+    """
+    auth_header = authorization or (f"Bearer {payload.get('token')}" if payload.get("token") else None)
+    claims = require_user(auth_header)
+
+    # Never trust user IDs provided in frontend payload!
+    # Identity is extracted strictly from authenticated, verified JWT claims.
+    token_user_id = str(claims.get("user_id") or claims.get("db_id") or "")
+    token_username = claims.get("username")
+    session_role = claims.get("role", "staff")
+
+    raw_plan = payload.get("plan") or payload.get("subscription_plan")
+    target_plan = parse_plan_strict(raw_plan)
+    if not target_plan:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid subscription plan '{raw_plan}'. Must be one of: starter, professional, enterprise."
+        )
+
+    # Get verified database profile — reject missing/forged users without silent creation
+    profile = auth_service.get_user_profile(token_user_id, username=token_username)
+    if not profile:
+        raise HTTPException(status_code=404, detail=f"User '{token_user_id}' not found")
+
+    current_plan = profile.get("plan", "starter")
+    account_username = profile.get("username")
+    account_role = profile.get("role", session_role)
+
+    allowed, err_code, err_msg = authorize_plan_change(
+        current_plan=current_plan,
+        target_plan=target_plan,
+        username=account_username,
+        account_role=account_role
+    )
+    if not allowed:
+        raise HTTPException(status_code=403, detail=err_msg or "Plan switch unauthorized")
+
+    success, message, updated_profile = auth_service.update_user_plan(
+        token_user_id,
+        target_plan,
+        username=token_username
+    )
+    if not success or not updated_profile:
+        raise HTTPException(status_code=400, detail=message or "Failed to update subscription plan")
+
+    logger.log_event("SUBSCRIPTION_PLAN_UPDATED", {
+        "user_id": updated_profile["user_id"],
+        "db_id": updated_profile["db_id"],
+        "username": account_username,
+        "role": account_role,
+        "previous_plan": current_plan,
+        "new_plan": target_plan,
+    })
+
+    return {
+        "status": "success",
+        "message": message,
+        "plan": updated_profile.get("plan", target_plan),
+        "subscription_plan": updated_profile.get("plan", target_plan),
+        "user": updated_profile
     }
 
 @app.post("/security/execute-action")
@@ -262,6 +338,11 @@ def get_audit_logs(limit: int = Query(50, ge=1, le=500), event_type: Optional[st
         rbac_manager.require_permission(user.get("role", "staff"), "view_audit_logs", user_id=user.get("user_id"))
     except PermissionError:
         raise HTTPException(status_code=403, detail="The security audit log is available to managers and admins.")
+    # The SOC audit stream is a Professional / Enterprise dashboard (plan read from the database)
+    plan = get_user_plan(str(user.get("user_id") or ""), username=user.get("username"))
+    if not is_dashboard_allowed(plan, "soc_audit"):
+        raise AppError(403, "PLAN_RESTRICTED",
+                       "The security audit stream is not available in your Starter plan. Upgrade to Professional.")
     return {
         "status": "success",
         "stats": audit_logger.get_summary_stats(),
@@ -280,6 +361,10 @@ app.include_router(metrics_router)
 # ==================== Warehouse Digital Twin (map, routes, live updates) ====================
 
 app.include_router(twin_router)
+
+# ==================== Inventory question autocomplete (read-only) ====================
+
+app.include_router(inventory_suggestions_router)
 
 if __name__ == "__main__":
     import uvicorn

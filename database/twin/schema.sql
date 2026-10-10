@@ -355,7 +355,7 @@ language sql stable as $$
                  word_similarity(i.cleaned, lower(p.name)),
                  word_similarity(lower(p.name), i.cleaned))
       else 0 end                                                as name_sim
-    from products p, input i
+    from products p, input i where p.is_active
   )
   select s.id, s.product_no, s.sku, s.name,
          case when s.hit_sku or s.hit_id then 'sku'

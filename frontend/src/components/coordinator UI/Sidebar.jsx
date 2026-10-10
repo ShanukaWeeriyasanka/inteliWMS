@@ -25,15 +25,18 @@ export default function Sidebar({
   onClearHistory,
   currentUser,
   onLogout,
-  onOpenArtifactTab,
+  onOpenMap,
+  onOpenFulfillment,
   onSwitchRoleQuick,
+  onSwitchPlanQuick,
   onOpenCommercializationModal,
   onOpenPricingModal
 }) {
   const [userDropdownOpen, setUserDropdownOpen] = useState(false)
-  const [activeMode, setActiveMode] = useState('chat') // 'chat' | 'ops'
   const [isSearching, setIsSearching] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
+
+  const plan = currentUser?.plan || 'starter'
 
   const filteredHistory = searchQuery.trim()
     ? chatHistory.filter((item) =>
@@ -99,30 +102,7 @@ export default function Sidebar({
         )}
       </div>
 
-      {/* 2. MODE SWITCHER PILL (Expanded Only, matching Gemini's Chat | Spark) */}
-      {isOpen && (
-        <div className="gemini-pill-tabs-wrapper">
-          <div className="gemini-pill-tabs">
-            <button
-              className={`gemini-pill-tab ${activeMode === 'chat' ? 'active' : ''}`}
-              onClick={() => setActiveMode('chat')}
-            >
-              Chat
-            </button>
-            <button
-              className={`gemini-pill-tab ${activeMode === 'ops' ? 'active' : ''}`}
-              onClick={() => {
-                setActiveMode('ops')
-                onOpenArtifactTab('bay_visualizer')
-              }}
-            >
-              Hub <span className="gemini-tab-badge">LIVE</span>
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* 3. SCROLLABLE ACTIONS & MODULES */}
+      {/* 2. SCROLLABLE ACTIONS & MODULES */}
       <div className="gemini-sidebar-body">
         {/* Action: New Query */}
         <button
@@ -174,35 +154,55 @@ export default function Sidebar({
           </div>
         )}
 
-        {/* Operational Modules (Site Plan, Floor Map, Fleet, RBAC, SOC) */}
-        <button
-          onClick={() => onOpenArtifactTab('site_plan')}
-          className={`gemini-nav-item ${isOpen ? 'item-expanded' : 'item-collapsed'}`}
-          title={!isOpen ? 'Warehouse Site Plan' : undefined}
-        >
-          <Compass size={18} className="gemini-item-icon" />
-          {isOpen && <span className="gemini-item-label">Warehouse Site Plan</span>}
-        </button>
+        {/* Warehouse Digital Twin Map: Available for Professional and Enterprise */}
+        {plan !== 'starter' && (
+          <>
+            {onOpenArtifactTab ? (
+              <>
+                <button
+                  onClick={() => onOpenArtifactTab('site_plan')}
+                  className={`gemini-nav-item ${isOpen ? 'item-expanded' : 'item-collapsed'}`}
+                  title={!isOpen ? 'Warehouse Site Plan' : undefined}
+                >
+                  <Compass size={18} className="gemini-item-icon" />
+                  {isOpen && <span className="gemini-item-label">Warehouse Site Plan</span>}
+                </button>
 
-        <button
-          onClick={() => onOpenArtifactTab('floor_map')}
-          className={`gemini-nav-item ${isOpen ? 'item-expanded' : 'item-collapsed'}`}
-          title={!isOpen ? 'Floor & Bay Map' : undefined}
-        >
-          <Warehouse size={18} className="gemini-item-icon" />
-          {isOpen && <span className="gemini-item-label">Floor & Bay Map</span>}
-        </button>
+                <button
+                  onClick={() => onOpenArtifactTab('floor_map')}
+                  className={`gemini-nav-item ${isOpen ? 'item-expanded' : 'item-collapsed'}`}
+                  title={!isOpen ? 'Floor & Bay Map' : undefined}
+                >
+                  <Warehouse size={18} className="gemini-item-icon" />
+                  {isOpen && <span className="gemini-item-label">Floor & Bay Map</span>}
+                </button>
+              </>
+            ) : onOpenMap ? (
+              <button
+                onClick={onOpenMap}
+                className={`gemini-nav-item ${isOpen ? 'item-expanded' : 'item-collapsed'}`}
+                title={!isOpen ? 'Warehouse Map' : undefined}
+              >
+                <Warehouse size={18} className="gemini-item-icon" />
+                {isOpen && <span className="gemini-item-label">Warehouse Map</span>}
+              </button>
+            ) : null}
+          </>
+        )}
 
-        <button
-          onClick={() => onOpenArtifactTab('order_timeline')}
-          className={`gemini-nav-item ${isOpen ? 'item-expanded' : 'item-collapsed'}`}
-          title={!isOpen ? 'Order Fulfillment' : undefined}
-        >
-          <Truck size={18} className="gemini-item-icon" />
-          {isOpen && <span className="gemini-item-label">Order Fulfillment</span>}
-        </button>
+        {/* Order Fulfillment Dashboard: Available for Professional and Enterprise */}
+        {plan !== 'starter' && onOpenFulfillment && (
+          <button
+            onClick={onOpenFulfillment}
+            className={`gemini-nav-item ${isOpen ? 'item-expanded' : 'item-collapsed'}`}
+            title={!isOpen ? 'Order Fulfillment' : undefined}
+          >
+            <Truck size={18} className="gemini-item-icon" />
+            {isOpen && <span className="gemini-item-label">Order Fulfillment</span>}
+          </button>
+        )}
 
-        {/* 4. RECENT SECTION (Expanded Only, exactly like Gemini Image 2) */}
+        {/* 4. RECENT SECTION */}
         {isOpen && (
           <div className="gemini-recent-section">
             <div className="gemini-recent-header">
@@ -257,8 +257,12 @@ export default function Sidebar({
               </div>
               <div className="upgrade-text-wrap">
                 <div className="upgrade-title-row">
-                  <span className="upgrade-title">Upgrade WMS</span>
-                  <span className="upgrade-pill-badge">PRO</span>
+                  <span className="upgrade-title">
+                    {plan === 'enterprise' ? 'Enterprise Plan' : plan === 'professional' ? 'Professional' : 'Upgrade Plan'}
+                  </span>
+                  <span className={`upgrade-pill-badge ${plan === 'enterprise' ? 'badge-ent' : 'badge-pro'}`}>
+                    {plan.toUpperCase()}
+                  </span>
                 </div>
                 <span className="upgrade-subtitle">Pricing & Plans</span>
               </div>
@@ -293,7 +297,7 @@ export default function Sidebar({
                   {displayName}
                 </span>
                 <span className="gemini-user-role">
-                  {currentUser?.role ? currentUser.role.charAt(0).toUpperCase() + currentUser.role.slice(1) : 'Staff'}
+                  {currentUser?.role ? currentUser.role.charAt(0).toUpperCase() + currentUser.role.slice(1) : 'Staff'} • {plan.toUpperCase()}
                 </span>
               </div>
             </div>
@@ -328,9 +332,44 @@ export default function Sidebar({
           </div>
         )}
 
-        {/* User Role Switch / Sign Out Dropdown Menu */}
+        {/* User Role & Plan Switch / Sign Out Dropdown Menu */}
         {userDropdownOpen && (
           <div className="gemini-user-dropdown-menu">
+            <div className="gemini-dropdown-header">
+              <span>Subscription Plan (Dev/Demo)</span>
+            </div>
+            <div className="gemini-role-list">
+              <button
+                className={`gemini-dropdown-item ${plan === 'starter' ? 'active' : ''}`}
+                onClick={() => {
+                  onSwitchPlanQuick && onSwitchPlanQuick('starter')
+                  setUserDropdownOpen(false)
+                }}
+              >
+                <span>Starter (Inventory Only)</span>
+              </button>
+              <button
+                className={`gemini-dropdown-item ${plan === 'professional' ? 'active' : ''}`}
+                onClick={() => {
+                  onSwitchPlanQuick && onSwitchPlanQuick('professional')
+                  setUserDropdownOpen(false)
+                }}
+              >
+                <span>Professional (3 Specialists)</span>
+              </button>
+              <button
+                className={`gemini-dropdown-item ${plan === 'enterprise' ? 'active' : ''}`}
+                onClick={() => {
+                  onSwitchPlanQuick && onSwitchPlanQuick('enterprise')
+                  setUserDropdownOpen(false)
+                }}
+              >
+                <span>Enterprise (All Agents + Auto)</span>
+              </button>
+            </div>
+
+            <div className="gemini-dropdown-divider" />
+
             <div className="gemini-dropdown-header">
               <span>Switch Simulated Role</span>
             </div>

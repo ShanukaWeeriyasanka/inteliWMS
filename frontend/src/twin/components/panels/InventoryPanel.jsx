@@ -28,10 +28,11 @@ function ProductCard({ product, rows, selected, onClick }) {
         <span className="twin-value" title={product.name}>{product.name}</span>
         <span className="twin-value">
           <LevelBars value={stockGauge(product)} status={status} />
-          {best ? shortBinLabel(best.bin_id, best.rack_name) : 'Not stored'}
+          {best ? `${best.warehouse_id} · ${shortBinLabel(best.bin_id, best.rack_name)}` : 'Location unassigned'}
         </span>
       </div>
       <div className="twin-card-chips">
+        <span className="twin-chip">{product.data_source || 'unverified'} · updated {timeAgo(product.updated_at)}</span>
         <span className="twin-chip">{product.category || 'General'}</span>
         <span className="twin-chip">{product.bin_count} bin{product.bin_count === 1 ? '' : 's'}{floors > 1 ? ` · ${floors} floors` : ''}</span>
         <span className="twin-chip is-gauge">
@@ -64,15 +65,20 @@ function RackCard({ rack, zone, fill, selected, onClick }) {
   )
 }
 
-function AlertCard({ alert, onClick }) {
+function AlertCard({ alert, product, onClick }) {
   return (
     <button className={`twin-card is-compact is-alert-${alert.level}`} onClick={onClick}>
       <div className="twin-card-top">
         <span className="twin-alert-icon" aria-hidden="true">!</span>
         <strong className="twin-card-id">{alert.product_name || alert.bin_id}</strong>
-        <span className="twin-muted">{timeAgo(alert.created_at)}</span>
+        <span className="twin-muted" title={`Alert opened ${alert.created_at}`}>{timeAgo(alert.created_at)}</span>
       </div>
       <p className="twin-card-text">{alert.message}</p>
+      {product && <div className="twin-card-chips">
+        <span className="twin-chip">{product.data_source || 'unverified'} · stock updated {timeAgo(product.updated_at)}</span>
+        <span className="twin-chip">{product.available_quantity ?? product.total_quantity} available · {product.reserved_quantity ?? 0} reserved</span>
+        {product.unplaced_quantity > 0 && <span className="twin-chip">{product.unplaced_quantity} {product.unit} awaiting bin assignment</span>}
+      </div>}
     </button>
   )
 }
@@ -81,7 +87,7 @@ export default function InventoryPanel({
   data, floorId, tab, onTab, query, onQuery, selection, onSelectProduct, onSelectRack, onSelectAlert, onClose,
 }) {
   const { layout, products, locationsByProduct, fillByRack, alerts } = data
-  const warehouse = layout.raw.warehouses[0]
+  const warehouse = layout.raw.warehouses.find((w) => w.id === layout.floorsById.get(floorId)?.warehouse_id)
   const floorRacks = layout.racksByFloor.get(floorId) || []
   const shown = useMemo(() => products.filter((p) => matchesProduct(p, query)), [products, query])
   const counts = { products: products.length, racks: floorRacks.length, alerts: alerts.length }
@@ -113,6 +119,8 @@ export default function InventoryPanel({
         ))}
       </div>
 
+      {tab !== 'racks' && <p className="twin-inventory-scope twin-muted">All warehouses · includes stock awaiting bin assignment</p>}
+
       {tab === 'products' && (
         <label className="twin-search">
           <Search size={14} />
@@ -133,7 +141,8 @@ export default function InventoryPanel({
             selected={selRack === r.id} onClick={() => onSelectRack(r.id)} />
         ))}
 
-        {tab === 'alerts' && alerts.map((a) => <AlertCard key={a.id} alert={a} onClick={() => onSelectAlert(a)} />)}
+        {tab === 'alerts' && alerts.map((a) => <AlertCard key={a.id} alert={a}
+          product={products.find((p) => p.product_id === a.product_id)} onClick={() => onSelectAlert(a)} />)}
         {tab === 'alerts' && !alerts.length && <p className="twin-empty">No open alerts. Stock is healthy.</p>}
       </div>
     </aside>

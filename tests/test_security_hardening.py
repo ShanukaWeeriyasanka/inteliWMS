@@ -130,7 +130,13 @@ def test_empty_query_is_a_client_error_not_a_security_block(inventory_server, th
     assert client.post("/query", json={"query": None}, headers=auth("ivy")).json()["error_code"] == "EMPTY_QUERY"
 
 
-def test_a_map_session_belongs_to_its_first_user(inventory_server):
+@pytest.fixture
+def map_plan(monkeypatch):
+    """The Warehouse map API is Professional / Enterprise; these tests check other rules on it."""
+    monkeypatch.setattr("backend.twin.routes.get_user_plan", lambda *a, **k: "professional")
+
+
+def test_a_map_session_belongs_to_its_first_user(inventory_server, map_plan):
     session = "qa-session-owned-by-alice"
     ok = client.post("/query", json={"message": "where is SKU-1001?", "session_id": session}, headers=auth("alice"))
     assert ok.status_code == 200
@@ -151,7 +157,7 @@ def test_session_registry_rules():
 
 # ── Validation errors (INV-10) ───────────────────────────────────────────────
 
-def test_a_model_validator_error_is_422_not_500():
+def test_a_model_validator_error_is_422_not_500(map_plan):
     body = {"session_id": "qa-validator", "query_text": "hi",
             "payload": {"version": "1.1", "action": "clarify", "answer_text": "?",
                         "candidates": [{"label": "a", "product_id": "PRD-00001"}]}}

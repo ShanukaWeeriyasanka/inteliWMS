@@ -14,6 +14,9 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request
 from fastapi.responses import StreamingResponse
 from sqlalchemy.exc import DBAPIError
+from pydantic import BaseModel, Field
+from datetime import datetime
+from database.inventory_writes import InventoryConflict, update_placement
 
 from agents.inventory_agent.schemas import UiCommandCreate
 from backend.twin.realtime import twin_broker
@@ -21,7 +24,9 @@ from backend.twin.sessions import twin_sessions
 from config.settings import settings
 from database.twin import repository as twin_repo
 from database.twin.connection import TwinUnavailable, is_enabled
+from backend.middleware.error_handler import AppError
 from security.jwt_handler import jwt_handler
+from security.subscription import get_user_plan, is_dashboard_allowed
 from utils.logger import StructuredLogger
 
 logger = StructuredLogger(__name__)
@@ -38,9 +43,18 @@ def require_twin_user(
     if not token:
         raise HTTPException(status_code=401, detail="Authentication required")
     try:
-        return jwt_handler.decode_token(token)
+        claims = jwt_handler.decode_token(token)
     except ValueError as exc:
         raise HTTPException(status_code=401, detail=str(exc))
+    # The Warehouse map is a Professional / Enterprise dashboard; the plan comes from the database, not the token
+    user_id = claims.get("user_id") or claims.get("sub")
+    username = claims.get("username")
+    plan = get_user_plan(str(user_id or ""), username=str(username) if username else None)
+    if not is_dashboard_allowed(plan, "twin"):
+        raise AppError(403, "PLAN_RESTRICTED",
+                       "The Warehouse map is not available in your Starter plan. "
+                       "Upgrade to Professional to use the Floor & Bay Map.")
+    return claims
 
 
 def _call(fn, *args, **kwargs):
@@ -51,6 +65,8 @@ def _call(fn, *args, **kwargs):
         return fn(*args, **kwargs)
     except TwinUnavailable as exc:
         raise HTTPException(status_code=503, detail=str(exc))
+    except InventoryConflict as exc:
+        raise HTTPException(status_code=409, detail=str(exc))
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
     except DBAPIError as exc:
@@ -87,6 +103,34 @@ def twin_nav_edges():
 @router.get("/products", dependencies=[Depends(require_twin_user)])
 def twin_products():
     return _call(twin_repo.get_product_totals)
+
+
+@router.get('/inventory-snapshot', dependencies=[Depends(require_twin_user)])
+def twin_inventory_snapshot():
+    return _call(twin_repo.get_inventory_snapshot)
+
+
+class PlacementUpdate(BaseModel):
+    product_id: str = Field(pattern=r'^PRD-\d{5}$')
+    bin_id: str = Field(pattern=r'^WH\d+-F\d+-Z\d{2}-R\d{2}-S\d{2}-B\d{2}$')
+    lot_code: str = Field(default='', max_length=100)
+    quantity: int = Field(ge=0)
+    reserved_quantity: Optional[int] = Field(default=None, ge=0)
+    quarantined_quantity: Optional[int] = Field(default=None, ge=0)
+    expected_updated_at: Optional[datetime] = None
+    allocate_unplaced: bool = False
+
+
+@router.get('/stock-placement', dependencies=[Depends(require_twin_user)])
+def twin_stock_placements(product_id: str = Query(pattern=r'^PRD-\d{5}$')):
+    return _call(twin_repo.get_stock_placements, product_id)
+
+
+@router.patch('/stock-placement')
+def twin_update_placement(payload: PlacementUpdate, user=Depends(require_twin_user)):
+    if user.get('role') not in ('manager','admin'):
+        raise HTTPException(status_code=403, detail='Manager or admin role required')
+    return _call(update_placement, **payload.model_dump(), actor=str(user.get('user_id')))
 
 
 @router.get("/product-locations", dependencies=[Depends(require_twin_user)])

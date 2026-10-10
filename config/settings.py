@@ -1,14 +1,13 @@
+from pathlib import Path
 import os
 from dotenv import load_dotenv
-
-# Load variables from .env file
-load_dotenv()
-
-from pathlib import Path
 
 # Base workspace directories
 BASE_DIR = Path(__file__).resolve().parent.parent
 DATA_DIR = BASE_DIR / "data"
+
+# Load variables from .env file
+load_dotenv(dotenv_path=BASE_DIR / ".env")
 
 class Settings:
     """Centralized configuration loaded from environment variables."""
@@ -45,6 +44,17 @@ class Settings:
 
     # Security / JWT
     JWT_SECRET: str = os.getenv("JWT_SECRET", "dev-secret-minimum-32-characters-long")
+
+    # Subscription plan switching without a payment gateway (university demo only).
+    # Upgrades through POST /auth/set-plan are refused unless APP_ENV=development AND
+    # DEMO_PLAN_SWITCH_ENABLED=true, and then only for the listed accounts / roles.
+    # Downgrades (to a lower or equal tier) never grant anything and are always allowed.
+    APP_ENV: str = os.getenv("APP_ENV", "production").strip().lower()
+    DEMO_PLAN_SWITCH_ENABLED: bool = os.getenv("DEMO_PLAN_SWITCH_ENABLED", "false").strip().lower() == "true"
+    DEMO_PLAN_SWITCH_USERS: frozenset = frozenset(
+        u.strip().lower() for u in os.getenv("DEMO_PLAN_SWITCH_USERS", "").split(",") if u.strip())
+    DEMO_PLAN_SWITCH_ROLES: frozenset = frozenset(
+        r.strip().lower() for r in os.getenv("DEMO_PLAN_SWITCH_ROLES", "admin").split(",") if r.strip())
 
     # Logging
     LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO")

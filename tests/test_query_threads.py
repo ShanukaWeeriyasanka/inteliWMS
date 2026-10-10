@@ -54,6 +54,28 @@ def test_follow_ups_reuse_the_thread_and_keep_its_context(inventory_server, thre
         assert s.query(ChatThread).count() == 1 and s.get(ChatThread, tid).message_count == 4
 
 
+def test_repeated_collection_question_and_typo_keep_handler(inventory_server, thread_db):
+    questions=['products that have equal number of units', 'products that have equal number of units',
+               'products that have eqal number of units', 'items with the same stock quantity']
+    tid=None
+    for question in questions:
+        result=ask('alice',question,thread_id=tid).json()
+        assert result['agent_used']=='inventory_agent'
+        assert result['routing']['rule_id']=='inventory.strong'
+        assert result['inventory_details']['sub_intent']=='inventory_report'
+        assert result['inventory_details']['outcome']=='empty'
+        assert 'SKU question' not in result['response'] and 'Which product do you mean' not in result['response']
+        assert tid is None or tid==result['thread_id']
+        tid=result['thread_id']
+
+
+def test_selected_inventory_scope_survives_thread_handoff(inventory_server, thread_db):
+    first=ask('alice','products with equal units',inventory_scope='WH9').json()
+    assert first['inventory_details']['outcome']=='empty'
+    second=ask('alice','products with equal units',thread_id=first['thread_id']).json()
+    assert 'WH9' in second['response']
+
+
 def test_answers_match_the_tool_data(inventory_server):
     data = ask("alice", "is SKU-1003 in stock?").json()
     item = data["inventory_details"]["items"][0]
@@ -139,6 +161,16 @@ def test_deleting_threads(inventory_server):
 
 
 def test_unrelated_questions_still_reach_their_agents_and_are_saved(inventory_server):
+    from database.connection import SessionLocal
+    from database.models import User
+    with SessionLocal() as db:
+        dave_user = db.query(User).filter_by(username="dave").first()
+        if not dave_user:
+            db.add(User(username="dave", name="Dave", email="dave@test.local", hashed_password="x", role="staff", plan="enterprise"))
+            db.commit()
+        else:
+            dave_user.plan = "enterprise"
+            db.commit()
     tid = ask("dave", "hello").json()["thread_id"]
     sop = ask("dave", "where is the returns SOP documentation?", thread_id=tid).json()
     assert sop["agent_used"] == "knowledge_agent" and sop["thread_id"] == tid

@@ -12,7 +12,12 @@ import {
   FileText,
   Boxes,
   HelpCircle,
-  Info
+  Info,
+  Lock,
+  Sparkles,
+  BookOpen,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react'
 import WarehouseScene from '../components/fulfillment/WarehouseScene'
 import { parseFulfillmentContent } from '../utils/fulfillmentParser'
@@ -21,9 +26,61 @@ import './FulfillmentDashboard.css'
 export default function FulfillmentDashboard({
   selectedMessage,
   currentUser,
-  onBackToChat
+  onBackToChat,
+  onOpenPricingModal
 }) {
   const [copied, setCopied] = useState(false)
+  const [guidanceExpanded, setGuidanceExpanded] = useState(false)
+
+  if (currentUser?.plan === 'starter') {
+    return (
+      <div className="fulfillment-control-center-theme restricted-fc-container">
+        <header className="fc-top-navbar">
+          <div className="fc-nav-left">
+            <button
+              type="button"
+              onClick={onBackToChat}
+              className="fc-btn-back"
+              title="Return to Chat"
+            >
+              <ArrowLeft size={16} />
+              <span>Back to Chat</span>
+            </button>
+          </div>
+        </header>
+        <div className="fc-restricted-content">
+          <div className="fc-restricted-card">
+            <div className="fc-restricted-icon-wrap">
+              <Lock size={32} />
+            </div>
+            <h2>Fulfillment Dashboard Restricted</h2>
+            <p>
+              Your <strong>Starter</strong> subscription includes the Inventory Agent only.
+              Real-time fulfillment tracking, warehouse 3D zone visualization, and order dispatch analytics
+              require the <strong>Professional</strong> or <strong>Enterprise</strong> plan.
+            </p>
+            <div className="fc-restricted-actions">
+              <button
+                type="button"
+                className="fc-btn-upgrade"
+                onClick={onOpenPricingModal}
+              >
+                <Sparkles size={16} />
+                <span>View Subscription Plans</span>
+              </button>
+              <button
+                type="button"
+                className="fc-btn-return"
+                onClick={onBackToChat}
+              >
+                <span>Return to Chat</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   // Extract structured data safely
   const content = selectedMessage?.content || ''
@@ -44,6 +101,7 @@ export default function FulfillmentDashboard({
     if (parsed.intent === 'SHIPPING_STATUS' || parsed.status === 'SHIPPED') return 'loading_docks'
     if (parsed.intent === 'ORDER_DETAILS') return 'packing_area'
     if (parsed.intent === 'ORDER_DELAY' || parsed.status === 'DELAYED') return 'loading_docks'
+    if (parsed.isProcedural) return 'packing_area'
     return 'storage_racks'
   }
 
@@ -70,43 +128,146 @@ export default function FulfillmentDashboard({
 
   // Format Semantic Status Badge
   const renderStatusBadge = () => {
-    if (!parsed.status) return null
-
-    switch (parsed.status) {
-      case 'DELAYED':
-        return (
-          <span className="fc-status-pill status-delayed">
-            <AlertTriangle size={12} />
-            <span>DELAYED</span>
-          </span>
-        )
-      case 'SHIPPED':
-        return (
-          <span className="fc-status-pill status-shipped">
-            <CheckCircle2 size={12} />
-            <span>SHIPPED</span>
-          </span>
-        )
-      case 'PENDING':
-        return (
-          <span className="fc-status-pill status-pending">
-            <Clock size={12} />
-            <span>PENDING</span>
-          </span>
-        )
-      case 'CANCELLED':
-        return (
-          <span className="fc-status-pill status-cancelled">
-            <span>CANCELLED</span>
-          </span>
-        )
-      default:
-        return (
-          <span className="fc-status-pill status-pending">
-            <span>{parsed.status}</span>
-          </span>
-        )
+    if (parsed.status) {
+      switch (parsed.status) {
+        case 'DELAYED':
+          return (
+            <span className="fc-status-pill status-delayed">
+              <AlertTriangle size={12} />
+              <span>DELAYED</span>
+            </span>
+          )
+        case 'SHIPPED':
+          return (
+            <span className="fc-status-pill status-shipped">
+              <CheckCircle2 size={12} />
+              <span>SHIPPED</span>
+            </span>
+          )
+        case 'PENDING':
+          return (
+            <span className="fc-status-pill status-pending">
+              <Clock size={12} />
+              <span>PENDING</span>
+            </span>
+          )
+        case 'CANCELLED':
+          return (
+            <span className="fc-status-pill status-cancelled">
+              <span>CANCELLED</span>
+            </span>
+          )
+        default:
+          return (
+            <span className="fc-status-pill status-pending">
+              <span>{parsed.status}</span>
+            </span>
+          )
+      }
     }
+
+    if (parsed.isProcedural) {
+      return (
+        <span className="fc-status-pill status-sop">
+          <BookOpen size={12} />
+          <span>SOP GUIDANCE</span>
+        </span>
+      )
+    }
+
+    return null
+  }
+
+  // Helper to render Recommended SOP Guidance Card
+  const renderSOPGuidanceCard = () => {
+    if (!parsed.proceduralGuidance && (!parsed.citations || parsed.citations.length === 0)) {
+      return null
+    }
+
+    const citations = Array.isArray(parsed.citations) ? parsed.citations : []
+    const primaryCitation = citations[0] || {}
+    const isLongText = parsed.proceduralGuidance && parsed.proceduralGuidance.length > 280
+    const displayedText = isLongText && !guidanceExpanded
+      ? `${parsed.proceduralGuidance.slice(0, 280)}...`
+      : parsed.proceduralGuidance
+
+    const disclaimerText = primaryCitation.disclaimer ||
+      'Demonstration SOP — Illustrative procedural guidance requiring warehouse manager approval before operational use.'
+
+    return (
+      <div className="fc-sop-guidance-card">
+        <div className="fc-sop-header">
+          <div className="fc-sop-title-wrap">
+            <div className="fc-sop-icon-badge">
+              <BookOpen size={16} />
+            </div>
+            <div>
+              <h4 className="fc-sop-title">Recommended SOP Guidance</h4>
+              <span className="fc-sop-subtitle">
+                {citations.length > 0
+                  ? citations.some(c => (c.status || '').toLowerCase() === 'demonstration' || !c.status)
+                    ? `${citations.length} Referenced Demonstration ${citations.length === 1 ? 'SOP' : 'SOPs'}`
+                    : `${citations.length} Referenced Standard Operating ${citations.length === 1 ? 'Procedure' : 'Procedures'}`
+                  : 'Warehouse Standard Operating Procedure'}
+              </span>
+            </div>
+          </div>
+          {(primaryCitation.status === 'demonstration' || citations.some(c => c.status === 'demonstration')) && (
+            <span className="fc-sop-demo-tag">DEMO SOP</span>
+          )}
+        </div>
+
+        {/* Citations List */}
+        {citations.length > 0 && (
+          <div className="fc-sop-citations-list">
+            {citations.map((c, idx) => {
+              return (
+                <div key={idx} className="fc-sop-citation-item">
+                  <div className="fc-sop-cit-top">
+                    <span className="fc-sop-cit-id">{c.sop_id || 'SOP-FLF'}</span>
+                    <span className="fc-sop-cit-title">{c.title || 'Standard Operating Procedure'}</span>
+                    {c.version && <span className="fc-sop-cit-version">v{c.version}</span>}
+                  </div>
+                  {c.heading && (
+                    <div className="fc-sop-cit-heading">
+                      <span className="fc-sop-cit-heading-label">Section:</span>
+                      <span className="fc-sop-cit-heading-val">{c.heading}</span>
+                    </div>
+                  )}
+                  <div className="fc-sop-cit-meta">
+                    <span>Source: Fulfillment SOP Repository</span>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
+
+        {/* Procedural Text Content */}
+        {parsed.proceduralGuidance && (
+          <div className="fc-sop-text-container">
+            <span className="fc-sop-guidance-label">Procedural Guidance</span>
+            <p className="fc-sop-guidance-text">{displayedText}</p>
+            {isLongText && (
+              <button
+                type="button"
+                className="fc-btn-toggle-sop"
+                onClick={() => setGuidanceExpanded(!guidanceExpanded)}
+              >
+                <span>{guidanceExpanded ? 'Show less' : 'Read full procedure'}</span>
+                {guidanceExpanded ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Visible Demonstration Disclaimer */}
+        <div className="fc-sop-disclaimer-callout">
+          <AlertTriangle size={14} className="fc-sop-disclaimer-icon" />
+          <span className="fc-sop-disclaimer-text">{disclaimerText}</span>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -149,6 +310,13 @@ export default function FulfillmentDashboard({
               >
                 {copied ? <Check size={12} style={{ color: '#059669' }} /> : <Copy size={12} />}
               </button>
+            </div>
+          )}
+
+          {!parsed.orderId && parsed.isProcedural && (
+            <div className="fc-sop-chip" title="Standard Operating Procedure">
+              <BookOpen size={14} />
+              <span>SOP Reference</span>
             </div>
           )}
 
@@ -233,7 +401,8 @@ export default function FulfillmentDashboard({
                     {parsed.intent === 'ORDER_DETAILS' && <FileText size={18} />}
                     {parsed.intent === 'SHIPPING_STATUS' && <Truck size={18} />}
                     {parsed.intent === 'FULFILLMENT_PROGRESS' && <Boxes size={18} />}
-                    {parsed.intent === 'UNKNOWN_FULFILLMENT' && <HelpCircle size={18} />}
+                    {(parsed.intent === 'FULFILLMENT_PROCEDURE' || (!parsed.orderId && parsed.isProcedural)) && <BookOpen size={18} />}
+                    {parsed.intent === 'UNKNOWN_FULFILLMENT' && !parsed.isProcedural && <HelpCircle size={18} />}
                   </div>
                   <div>
                     <h3 className="fc-panel-title">
@@ -242,16 +411,24 @@ export default function FulfillmentDashboard({
                       {parsed.intent === 'ORDER_DETAILS' && 'Order Manifest Details'}
                       {parsed.intent === 'SHIPPING_STATUS' && 'Shipping & Carrier Dispatch'}
                       {parsed.intent === 'FULFILLMENT_PROGRESS' && 'Fulfillment Progress'}
-                      {parsed.intent === 'UNKNOWN_FULFILLMENT' && 'Fulfillment Clarification'}
+                      {(parsed.intent === 'FULFILLMENT_PROCEDURE' || (!parsed.orderId && parsed.isProcedural)) && 'Standard Operating Procedure (SOP)'}
+                      {parsed.intent === 'UNKNOWN_FULFILLMENT' && !parsed.isProcedural && 'Fulfillment Clarification'}
                     </h3>
                     <span className="fc-panel-subtitle">
-                      {parsed.orderId ? `Operational summary for ${parsed.orderId}` : 'Warehouse fulfillment query'}
+                      {parsed.orderId ? `Operational summary for ${parsed.orderId}` : (parsed.isProcedural ? 'Standard operating procedural guidance & warehouse compliance' : 'Warehouse fulfillment query')}
                     </span>
                   </div>
                 </div>
               </div>
 
               <div className="fc-panel-body">
+                {/* 0. FULFILLMENT_PROCEDURE / PROCEDURAL-ONLY */}
+                {(parsed.intent === 'FULFILLMENT_PROCEDURE' || (!parsed.orderId && parsed.isProcedural)) && (
+                  <div className="fc-panel-content">
+                    {renderSOPGuidanceCard()}
+                  </div>
+                )}
+
                 {/* 1. ORDER_STATUS INTENT */}
                 {parsed.intent === 'ORDER_STATUS' && (
                   <div className="fc-panel-content">
@@ -276,6 +453,8 @@ export default function FulfillmentDashboard({
                         {!['DELAYED', 'SHIPPED', 'PENDING', 'CANCELLED'].includes(parsed.status) && (parsed.status ? `Order ${parsed.orderId || ''} is currently ${parsed.status.toLowerCase()}.` : `Order record ${parsed.orderId || ''} is active.`)}
                       </p>
                     </div>
+
+                    {renderSOPGuidanceCard()}
                   </div>
                 )}
 
@@ -300,7 +479,19 @@ export default function FulfillmentDashboard({
                       {parsed.revisedDate && (
                         <div className="fc-data-field">
                           <span className="fc-field-label">Revised Delivery Date</span>
-                          <span className="fc-field-value text-coral">{parsed.revisedDate}</span>
+                          <span className="fc-field-value text-coral">
+                            {parsed.revisedDate}
+                            {parsed.isOverdue && (
+                              <span className="fc-overdue-pill" style={{ marginLeft: '8px' }}>
+                                OVERDUE
+                              </span>
+                            )}
+                          </span>
+                          {parsed.isOverdue && (
+                            <span className="fc-overdue-note">
+                              Revised delivery date has passed. Confirmation of an updated carrier delivery estimate is recommended.
+                            </span>
+                          )}
                         </div>
                       )}
                       {parsed.crossAgent?.involved && parsed.crossAgent.sku && (
@@ -346,6 +537,8 @@ export default function FulfillmentDashboard({
                         </p>
                       </div>
                     )}
+
+                    {renderSOPGuidanceCard()}
                   </div>
                 )}
 
@@ -386,6 +579,8 @@ export default function FulfillmentDashboard({
                         </div>
                       )}
                     </div>
+
+                    {renderSOPGuidanceCard()}
                   </div>
                 )}
 
@@ -417,6 +612,8 @@ export default function FulfillmentDashboard({
                           : `Consignment ${parsed.orderId || ''} is currently ${parsed.status ? parsed.status.toLowerCase() : 'in progress'} and has not yet been dispatched.`}
                       </p>
                     </div>
+
+                    {renderSOPGuidanceCard()}
                   </div>
                 )}
 
@@ -444,11 +641,13 @@ export default function FulfillmentDashboard({
                           : `Order ${parsed.orderId || ''} is currently in ${parsed.status ? parsed.status.toLowerCase() : 'processing'} status in the warehouse fulfillment workflow.`}
                       </p>
                     </div>
+
+                    {renderSOPGuidanceCard()}
                   </div>
                 )}
 
                 {/* 6. UNKNOWN_FULFILLMENT / FALLBACK */}
-                {(parsed.intent === 'UNKNOWN_FULFILLMENT' || (!['ORDER_STATUS', 'ORDER_DELAY', 'ORDER_DETAILS', 'SHIPPING_STATUS', 'FULFILLMENT_PROGRESS'].includes(parsed.intent))) && (
+                {(parsed.intent === 'UNKNOWN_FULFILLMENT' || (!['ORDER_STATUS', 'ORDER_DELAY', 'ORDER_DETAILS', 'SHIPPING_STATUS', 'FULFILLMENT_PROGRESS', 'FULFILLMENT_PROCEDURE'].includes(parsed.intent) && parsed.orderId)) && (
                   <div className="fc-panel-content">
                     <div className="fc-data-grid">
                       {parsed.orderId && (
@@ -471,6 +670,8 @@ export default function FulfillmentDashboard({
                         Please specify what operational detail you need for {parsed.orderId || 'this order'} (e.g., status inquiry, delay root cause, carrier shipping, or manifest details).
                       </p>
                     </div>
+
+                    {renderSOPGuidanceCard()}
                   </div>
                 )}
               </div>

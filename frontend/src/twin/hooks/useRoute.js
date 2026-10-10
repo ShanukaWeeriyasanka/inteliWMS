@@ -12,7 +12,7 @@ export function useRoute(api, request, version) {
       return undefined
     }
     let cancelled = false
-    setState((s) => ({ ...s, loading: true, error: null }))
+    setState({ loading: true, error: null, data: null })
     api.route(request.toId, request.fromId, request.prefer || 'lift')
       .then((data) => { if (!cancelled) setState({ loading: false, error: null, data }) })
       .catch((e) => { if (!cancelled) setState({ loading: false, error: e.message, data: null }) })

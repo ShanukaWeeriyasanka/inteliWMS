@@ -109,6 +109,8 @@ class TwinChangeBroker:
                             event = json.loads(note.payload)
                         except ValueError:
                             continue
+                        if event.get('schema') and event['schema'] != settings.TWIN_DB_SCHEMA:
+                            continue
                         event["type"] = "change"
                         self._broadcast(event)
             except Exception as exc:

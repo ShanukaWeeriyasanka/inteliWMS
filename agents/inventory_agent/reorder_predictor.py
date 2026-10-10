@@ -14,7 +14,7 @@ from typing import List, Optional
 from sqlalchemy.orm import Session
 
 from agents.inventory_agent.schemas import DepletionPrediction
-from database.connection import SessionLocal
+from database.inventory_source import inventory_session as SessionLocal
 from database.models import Product
 from utils.logger import StructuredLogger
 
@@ -39,6 +39,7 @@ class ReorderPredictor:
         current_stock: int,
         item_name: str,
         db: Optional[Session] = None,
+        product=None,
     ) -> DepletionPrediction:
         """
         Predict stock depletion for a SKU.
@@ -53,7 +54,7 @@ class ReorderPredictor:
         is_hazardous = False
 
         try:
-            prod = db.query(Product).filter(Product.sku.ilike(sku.strip())).first()
+            prod = product if product is not None else db.query(Product).filter(Product.sku.ilike(sku.strip())).first()
             if prod:
                 if prod.daily_burn_rate is not None:
                     burn_rate = float(prod.daily_burn_rate)

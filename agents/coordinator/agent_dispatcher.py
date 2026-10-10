@@ -39,7 +39,9 @@ async def _dispatch_inventory(context_payload: Dict[str, Any]) -> Dict[str, Any]
                 sku=context_payload.get("extracted_sku"),
                 user_role=context_payload.get("user_role") or "staff",
                 session_id=context_payload.get("session_id"),
+                thread_id=context_payload.get('thread_id'),
                 conversation=context_payload.get("conversation"),
+                inventory_scope=context_payload.get('inventory_scope'),
             )
     except Exception as e:  # TimeoutError, ExceptionGroup from MCP task groups, anything else (not cancellation)
         code = "INVENTORY_TIMEOUT" if isinstance(e, TimeoutError) else "INVENTORY_AGENT_ERROR"
@@ -91,11 +93,37 @@ async def dispatch_to_agent(target_agent: str, context_payload: Dict[str, Any], 
     """
     Dispatches to specialist agents.
 
+    Enforces cross-agent collaboration policy at the dispatch boundary:
+      - Starter / Professional: Agent-to-agent calls blocked (e.g. Fulfillment -> Inventory).
+      - Enterprise: Supported cross-agent collaboration permitted.
+
     Routing:
-      - inventory_agent  → Real InventoryAgent (DB-backed, alias-aware)
+      - inventory_agent   → Real InventoryAgent (DB-backed, alias-aware)
       - fulfillment_agent → Real async FulfillmentAgent (DB-backed)
-      - knowledge_agent  → Real KnowledgeAgent via MCP client
+      - knowledge_agent   → Real KnowledgeAgent via MCP client
     """
+    caller_agent = context_payload.get("caller_agent")
+    if caller_agent:
+        from security.subscription import get_user_plan, is_collaboration_allowed
+        user_id = context_payload.get("user_id", "")
+        user_plan = context_payload.get("user_plan")
+        if not user_plan and user_id:
+            user_plan = get_user_plan(user_id, db=db)
+        if user_plan and not is_collaboration_allowed(user_plan, caller_agent, target_agent):
+            logger.log_event("CROSS_AGENT_COLLABORATION_BLOCKED", {
+                "caller_agent": caller_agent,
+                "target_agent": target_agent,
+                "user_plan": user_plan,
+                "user_id": user_id
+            }, level="INFO")
+            return {
+                "status": "blocked",
+                "collaboration_blocked": True,
+                "error_code": "COLLABORATION_REQUIRES_ENTERPRISE",
+                "response": "Cross-agent collaboration requires an Enterprise subscription.",
+                "message": "Cross-agent collaboration requires an Enterprise subscription."
+            }
+
     if target_agent == "inventory_agent":
         return await _dispatch_inventory(context_payload)
 
@@ -105,7 +133,8 @@ async def dispatch_to_agent(target_agent: str, context_payload: Dict[str, Any], 
                 query=context_payload.get("query", ""),
                 user_id=context_payload.get("user_id"),
                 role=context_payload.get("user_role"),
-                order_id=context_payload.get("extracted_order_id")
+                order_id=context_payload.get("extracted_order_id"),
+                user_plan=context_payload.get("user_plan")
             )
             f_resp = await fulfillment_agent.handle(f_req, db)
             
@@ -116,7 +145,10 @@ async def dispatch_to_agent(target_agent: str, context_payload: Dict[str, Any], 
                 "fulfillment_details": {
                     "success": f_resp.success,
                     "intent": f_resp.intent.value if f_resp.intent else None,
-                    "order_id": f_resp.order_id
+                    "order_id": f_resp.order_id,
+                    "procedural_guidance": f_resp.procedural_guidance,
+                    "citations": [c.model_dump() for c in f_resp.citations] if f_resp.citations else [],
+                    "information_reliability": f_resp.information_reliability
                 }
             }
         except Exception as e:

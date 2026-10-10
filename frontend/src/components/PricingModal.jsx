@@ -9,12 +9,25 @@ import './PricingModal.css'
 export default function PricingModal({
   isOpen,
   onClose,
-  initialPlan = 'professional',
+  initialPlan = 'starter',
+  currentPlan,
   onSelectPlan
 }) {
-  const [selectedPlan, setSelectedPlan] = useState(initialPlan)
+  const activePlan = currentPlan || initialPlan || 'starter'
+  const [selectedPlan, setSelectedPlan] = useState(activePlan)
   const [hasChosenPlan, setHasChosenPlan] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [errorMessage, setErrorMessage] = useState(null)
   const dialogRef = useRef(null)
+
+  // Synchronize state when modal opens or activePlan changes
+  useEffect(() => {
+    if (isOpen) {
+      setSelectedPlan(activePlan)
+      setErrorMessage(null)
+      setIsSubmitting(false)
+    }
+  }, [isOpen, activePlan])
 
   // Close on Escape key
   useEffect(() => {
@@ -51,11 +64,21 @@ export default function PricingModal({
 
   if (!isOpen) return null
 
-  const handleChoosePlan = (planKey) => {
+  const handleChoosePlan = async (planKey) => {
     setSelectedPlan(planKey)
-    setHasChosenPlan(true)
+    setErrorMessage(null)
     if (onSelectPlan) {
-      onSelectPlan(planKey)
+      setIsSubmitting(true)
+      try {
+        await onSelectPlan(planKey)
+        setHasChosenPlan(true)
+        onClose?.()
+      } catch (err) {
+        const detail = err.response?.data?.detail || err.response?.data?.message || err.message || 'Failed to switch subscription plan.'
+        setErrorMessage(typeof detail === 'string' ? detail : JSON.stringify(detail))
+      } finally {
+        setIsSubmitting(false)
+      }
     }
   }
 
@@ -72,8 +95,8 @@ export default function PricingModal({
       bullets: [
         '100 GB storage processing limits',
         'Basic warehouse inventory & SKU tracking',
-        'Core multi-agent query routing',
-        'Limited AI tools & analytics',
+        'Inventory Agent only (Single specialist access)',
+        'Internal Coordinator query triage',
         'Standard email & community support'
       ],
       ctaClass: 'card-cta-starter',
@@ -90,9 +113,9 @@ export default function PricingModal({
       badge: 'MOST POPULAR',
       bullets: [
         '600 GB high-throughput storage limits',
-        'Multi-tenant warehouse keying',
-        'Full advanced AI tools & analytics',
-        'Real-time carrier webhook & dispatch ETA',
+        '3 Independent Specialists (Inventory, Fulfillment, Knowledge)',
+        'Manual specialist selection & full dashboards',
+        'Independent operation (No cross-agent communication)',
         '24/7 priority support & fast escalation'
       ],
       ctaClass: 'card-cta-pro',
@@ -109,10 +132,10 @@ export default function PricingModal({
       badge: 'ENTERPRISE',
       bullets: [
         '1 TB dedicated high-velocity storage',
-        'Custom agent orchestration & SLAs',
-        'Multi-tenant warehouse keying',
-        'Dedicated 99.9% uptime SLA backing',
-        'Tenant-isolated private vector RAG & key vault'
+        'All 4 AI Agents (Inventory, Fulfillment, Knowledge, Coordinator)',
+        'Autonomous Coordinator routing & multi-agent collaboration',
+        'Cross-agent root-cause delay investigations',
+        'Tenant-isolated private vector RAG & 99.9% uptime SLA'
       ],
       ctaClass: 'card-cta-ent',
       checkClass: 'bullet-check-ent',
@@ -120,7 +143,7 @@ export default function PricingModal({
     }
   ]
 
-  // A plan for every operation. rows
+  // A plan for every operation comparison rows
   const comparisonRows = [
     {
       featureName: 'Price',
@@ -130,11 +153,32 @@ export default function PricingModal({
       enterprise: { type: 'text', val: '$180/mo', highlight: true }
     },
     {
-      featureName: 'Basic features',
-      featureNote: 'Inventory lookup, order tracking & coordinator triage',
-      starter: { type: 'check', text: '✔️ Included' },
-      pro: { type: 'check', text: '✔️ Included' },
-      enterprise: { type: 'check', text: '✔️ Included' }
+      featureName: 'Customer-Facing AI Agents',
+      featureNote: 'Accessible agents for natural language operations',
+      starter: { type: 'text', val: 'Inventory Agent only' },
+      pro: { type: 'text', val: '3 Specialists (Inventory, Fulfillment, Knowledge)' },
+      enterprise: { type: 'text', val: 'All 4 Agents + Coordinator', highlight: true }
+    },
+    {
+      featureName: 'Agent Selection & Routing',
+      featureNote: 'Coordinator operates internally in lower tiers',
+      starter: { type: 'text', val: 'Inventory locked (Internal routing)' },
+      pro: { type: 'text', val: 'Manual Specialist Selector' },
+      enterprise: { type: 'text', val: 'Autonomous Coordinator Routing', highlight: true }
+    },
+    {
+      featureName: 'Cross-Agent Collaboration',
+      featureNote: 'Specialist-to-specialist dispatch (e.g. Fulfillment → Inventory)',
+      starter: { type: 'cross', text: '❌ Blocked' },
+      pro: { type: 'cross', text: '❌ Independent only' },
+      enterprise: { type: 'check', text: '✔️ Full Multi-Agent Dispatch' }
+    },
+    {
+      featureName: 'Specialist Dashboards',
+      featureNote: 'Interactive warehouse visualizers and logs',
+      starter: { type: 'cross', text: '❌ Inventory chat only (no floor map)' },
+      pro: { type: 'check', text: '✔️ Warehouse map, fulfillment & audit dashboards' },
+      enterprise: { type: 'check', text: '✔️ Complete WMS operational suite' }
     },
     {
       featureName: 'Storage processing limits',
@@ -144,13 +188,6 @@ export default function PricingModal({
       enterprise: { type: 'storage', val: '1 TB', highlight: true }
     },
     {
-      featureName: 'Advanced AI tools & analytics',
-      featureNote: 'Predictive bottleneck detection & neural insights',
-      starter: { type: 'ai', val: 'Limited' },
-      pro: { type: 'ai', val: 'Full' },
-      enterprise: { type: 'ai', val: 'Full' }
-    },
-    {
       featureName: 'Multi-tenant warehouse keying',
       featureNote: 'Partitioned warehouse_id isolation for multi-site hubs',
       starter: { type: 'cross', text: '❌' },
@@ -158,8 +195,8 @@ export default function PricingModal({
       enterprise: { type: 'check', text: '✔️' }
     },
     {
-      featureName: 'Custom agent orchestration & SLAs',
-      featureNote: 'Custom specialist hooks and 99.9% uptime SLA guarantees',
+      featureName: 'Dedicated 99.9% uptime SLA',
+      featureNote: 'Enterprise SLA guarantees and key vault isolation',
       starter: { type: 'cross', text: '❌' },
       pro: { type: 'cross', text: '❌' },
       enterprise: { type: 'check', text: '✔️' }
@@ -228,9 +265,32 @@ export default function PricingModal({
           {/* 1. TOP SECTION — 3 PRICING TIERS */}
           <section className="pricing-tiers-section" id="pricing-plans">
             <h2 className="pricing-display-title">Pricing</h2>
+            {errorMessage && (
+              <div
+                className="pricing-error-banner"
+                role="alert"
+                style={{
+                  background: 'rgba(239, 68, 68, 0.12)',
+                  border: '1px solid rgba(239, 68, 68, 0.45)',
+                  color: '#fca5a5',
+                  padding: '10px 16px',
+                  borderRadius: '8px',
+                  marginBottom: '18px',
+                  fontSize: '0.875rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  maxWidth: '780px',
+                  margin: '0 auto 20px auto'
+                }}
+              >
+                <span>⚠️ {errorMessage}</span>
+              </div>
+            )}
             <div className="pricing-tiers-grid">
               {tiers.map((tier) => {
                 const isSelected = selectedPlan === tier.key
+                const isCurrent = activePlan === tier.key
                 return (
                   <div
                     key={tier.key}
@@ -271,12 +331,19 @@ export default function PricingModal({
                     <button
                       type="button"
                       className={`card-cta-btn ${tier.ctaClass}`}
+                      disabled={isSubmitting}
                       onClick={(e) => {
                         e.stopPropagation()
                         handleChoosePlan(tier.key)
                       }}
                     >
-                      <span>{hasChosenPlan && isSelected ? 'Selected' : 'Get Started'}</span>
+                      <span>
+                        {isSubmitting && selectedPlan === tier.key
+                          ? 'Updating...'
+                          : isCurrent
+                          ? 'Current Plan'
+                          : 'Get Started'}
+                      </span>
                       <ArrowRight size={15} className="btn-arrow-icon" />
                     </button>
                   </div>

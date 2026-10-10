@@ -46,5 +46,11 @@
     "title": "MHE Fleet Depot Fast-Charging & Preventive Maintenance Protocols (Building 6)",
     "category": "Fleet Maintenance",
     "content": "1. Fast-Charging Procedure: Electric forklifts (FL-01, RT-01, RT-02) must be connected to the 480V 3-Phase rapid charging stations in Building 6 when battery State of Charge falls below 25%.\n\n2. Ventilation Requirements: The depot forced-air ventilation system must operate continuously to prevent hydrogen accumulation during rapid charging cycles.\n\n3. Shift Inspection: Daily pre-shift inspections must check hydraulic fluid levels, mast chains, tire integrity, horn, and emergency cutoff switches before releasing vehicles to active floor duties."
+  },
+  {
+    "doc_id": "GUIDE-INV-001",
+    "title": "Inventory quantities and stock question guide",
+    "category": "Inventory Help",
+    "content": "Stock quantity definitions: On-hand is the recorded total quantity. Reserved is committed stock. Quarantined stock is unavailable for picking. Available stock excludes reserved and quarantined balances. Unassigned stock has a recorded balance but lacks a verified bin assignment. Use current inventory database results for quantities; this guide does not contain current product balances.\n\nInventory question examples: Which products have equal number of units? Which products have the same available quantity? Which product has the highest stock? List products with more than 100 units. Show products with exactly 0 units. Show products with at least 10 available units. Inventory comparisons read the current authoritative PostgreSQL snapshot and include a data timestamp. Equal quantity comparisons group products with the same stored unit of measure and include zero quantities. A result with no matches is a valid answer.\n\nProduct lookup examples: Search by SKU, stable product ID, name or alias. Ask where a product is stored to retrieve all recorded bins, warehouses and floors. Warehouse-scoped questions use assigned bin balances only; unassigned stock is not assigned to a guessed warehouse. Missing placements or history must be reported as missing. Company procedures require actual approved documents; general guidance is not a substitute for those documents."
   }
 ]

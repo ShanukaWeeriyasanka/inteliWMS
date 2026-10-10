@@ -69,6 +69,22 @@ describe('parseMarkdown', () => {
 })
 
 describe('MarkdownText', () => {
+  it('renders inventory tables only when explicitly enabled and escapes cell HTML', () => {
+    const md='**Equal group: 5 units each**\n| Product ID | Name | Quantity | Unit | Location |\n| --- | --- | ---: | --- | --- |\n| PRD-00001 | <img src=x> A\\|B | 5 | units | WH1 / F1 |'
+    expect(parseMarkdown(md).every((block) => block.type !== 'table')).toBe(true)
+    const html=renderToStaticMarkup(React.createElement(MarkdownText,{text:md,allowTables:true}))
+    expect(html).toContain('<table aria-label="Inventory comparison">')
+    expect(html).toContain('<th scope="col">Product ID</th>')
+    expect(html).toContain('<td>&lt;img src=x&gt; A|B</td>')
+    expect(html).not.toContain('<img')
+  })
+
+  it('keeps multiple inventory groups as separate tables', () => {
+    const table='| ID | Quantity |\n| --- | --- |\n| A | 0 |\n| B | 0 |'
+    const blocks=parseMarkdown(table+'\n**Another group**\n'+table,{allowTables:true})
+    expect(blocks.filter((block) => block.type==='table')).toHaveLength(2)
+  })
+
   it('renders elements, not raw markdown', () => {
     const html = render('**330** units of `SKU-4521`\n\n• one\n• two\n\n1. first')
     expect(html).toContain('<strong>330</strong>')

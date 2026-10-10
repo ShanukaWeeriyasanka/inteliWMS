@@ -14,12 +14,23 @@ export function agentLabel(target) {
 }
 
 export function isFulfillmentMessage(message) {
-  if (!message || message.role !== 'assistant' || message.status === 'blocked' || message.routing?.status === 'blocked') return false
+  if (!message || message.role !== 'assistant') return false
+  if (message.status === 'blocked' || message.status === 'restricted' || message.status === 'mismatch' || message.status === 'error') return false
+  if (message.error_code === 'PLAN_RESTRICTED' || message.error_code === 'SPECIALIST_MISMATCH') return false
   const meta = message.metadata || {}
   const routing = message.routing || meta.routing || {}
+  if (routing.status === 'blocked' || routing.status === 'restricted' || routing.status === 'mismatch' || routing.status === 'error') return false
+  if (routing.error_code === 'PLAN_RESTRICTED' || routing.error_code === 'SPECIALIST_MISMATCH') return false
+
   const target = routing.target_agent || message.agent_used || meta.agent_used
-  return target === 'fulfillment_agent' || !!message.fulfillment_details || !!meta.fulfillment_details
-    || (routing.domain === 'FULFILLMENT' && !['inventory_agent', 'knowledge_agent'].includes(target))
+  const fulfillmentDetails = message.fulfillment_details || meta.fulfillment_details
+  if (target === 'fulfillment_agent' || !!fulfillmentDetails) {
+    if (fulfillmentDetails && fulfillmentDetails.success === false) {
+      return false
+    }
+    return true
+  }
+  return false
 }
 
 export function skuDataFromItem(item) {
@@ -67,6 +78,64 @@ export function toAssistantMessage(res, { text = '', id = nextId('a'), timestamp
     }
   }
 
+  // Subscription Plan Restrictions (Starter / Coordinator restriction)
+  if (res.status === 'restricted' || res.error_code === 'PLAN_RESTRICTED' || res.plan_restricted) {
+    const reason = res.response || res.message || 'This feature is not available in your current subscription plan.'
+    return {
+      id,
+      role: 'assistant',
+      status: 'restricted',
+      error_code: 'PLAN_RESTRICTED',
+      content: reason,
+      routing: {
+        ...(res.routing || {}),
+        status: 'restricted',
+        target_agent: 'coordinator',
+        classified_agent: res.routing?.classified_agent || res.routing?.target_agent,
+      },
+      plan: res.plan || 'starter',
+      required_plan: res.required_plan || 'professional',
+      timestamp,
+      origin,
+      metadata: {
+        agent_used: 'coordinator',
+        audit: res.audit,
+        error_code: 'PLAN_RESTRICTED',
+        status: 'restricted',
+        routing: res.routing,
+      },
+    }
+  }
+
+  // Specialist Selection Domain Mismatch (Professional Plan)
+  if (res.status === 'mismatch' || res.error_code === 'SPECIALIST_MISMATCH' || res.specialist_mismatch) {
+    const reason = res.response || res.message
+    return {
+      id,
+      role: 'assistant',
+      status: 'mismatch',
+      error_code: 'SPECIALIST_MISMATCH',
+      content: reason,
+      suggested_agent: res.suggested_agent,
+      routing: {
+        ...(res.routing || {}),
+        status: 'mismatch',
+        target_agent: res.agent_used,
+        classified_agent: res.suggested_agent,
+      },
+      timestamp,
+      origin,
+      metadata: {
+        agent_used: res.agent_used,
+        audit: res.audit,
+        error_code: 'SPECIALIST_MISMATCH',
+        status: 'mismatch',
+        suggested_agent: res.suggested_agent,
+        routing: res.routing,
+      },
+    }
+  }
+
   const invDetails = res.inventory_details || null
   // Digital Twin: only inventory answers drive the map behind the chat
   const uiCommand = res.agent_used === 'inventory_agent' && res.ui_command?.payload
@@ -78,6 +147,7 @@ export function toAssistantMessage(res, { text = '', id = nextId('a'), timestamp
   return {
     id,
     role: 'assistant',
+    status: res.status || 'success',
     content: res.response || (res.status === 'error' && res.message)
       || 'Warehouse query coordinated and dispatched to specialist agent.',
     routing: res.routing || { target_agent: res.agent_used || 'coordinator' },

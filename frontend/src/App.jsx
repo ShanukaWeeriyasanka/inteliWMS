@@ -57,6 +57,8 @@ const newTwinSessionId = () => {
 
 // Only managers and admins may read the security audit stream (decided by the server-issued role)
 const canViewAuditLog = (role) => role === 'manager' || role === 'admin'
+// Plans that include the Warehouse map (Digital Twin); mirrors PLAN_ENTITLEMENTS 'twin' in security/subscription.py
+const MAP_PLANS = new Set(['professional', 'enterprise'])
 
 // Width of the centre stage -> layout mode for the floating topbar items
 const stageModeFor = (width) => (width < 560 ? 'is-narrow is-compact' : width < 1180 ? 'is-narrow' : '')
@@ -108,6 +110,8 @@ export default function App() {
   const [selectedAgent, setSelectedAgent] = useState('auto')
   const sessionEpochRef = useRef(0) // bumps on logout: late answers from the old session are dropped
   const lastAskKeyRef = useRef(null) // conversation of the most recent question (map commands follow it)
+  const inventoryScopeRef = useRef(null)
+  const handleInventoryScope = useCallback((scope) => { inventoryScopeRef.current = scope }, [])
 
   // Warehouse Digital Twin: shown behind the chat when the inventory agent answers
   const [twinSessionId, setTwinSessionId] = useState(getTwinSessionId)
@@ -241,11 +245,20 @@ export default function App() {
   }, [chat.activeKey, chat.loadedKey, currentUser, token])
 
   // The map follows the URL (?view=map), so browser Back closes it and refresh keeps it open
+  // The Warehouse map is a Professional / Enterprise feature (the /twin API enforces the same rule)
+  const canUseMap = MAP_PLANS.has(currentUser?.plan)
+
   useEffect(() => {
-    setTwinActive(route.view === 'map')
-  }, [route.view])
+    // A Starter account that lands on ?view=map (link, back button) stays in the chat
+    if (route.view === 'map' && currentUser && !canUseMap) {
+      threadNavigator.replace({ threadId: threadNavigator.current().threadId, view: null })
+      return
+    }
+    setTwinActive(route.view === 'map' && canUseMap)
+  }, [route.view, canUseMap, currentUser])
 
   const openMap = (mode = null) => {
+    if (!canUseMap) return
     if (mode) setTwinMode(mode)
     setTwinActive(true)
     const current = threadNavigator.current()
@@ -339,6 +352,47 @@ export default function App() {
     })
   }
 
+  const handleSwitchPlan = async (newPlan) => {
+    try {
+      const updated = await api.updateSubscription(newPlan, token)
+      if (updated && updated.plan) {
+        setCurrentUser((prev) => ({
+          ...prev,
+          plan: updated.plan,
+          subscription_plan: updated.plan,
+          ...(updated.user || {})
+        }))
+        return updated
+      }
+    } catch (err) {
+      console.error('Failed to update subscription:', err)
+      // Preserve verified server-side entitlement on error
+      try {
+        const verified = await api.fetchMe(token)
+        if (verified) setCurrentUser(verified)
+      } catch (e) {
+        console.warn('Failed to verify profile entitlement:', e)
+      }
+      throw err
+    }
+  }
+
+  // Synchronize default specialist when user plan changes
+  useEffect(() => {
+    const plan = currentUser?.plan || 'starter'
+    if (plan === 'starter') {
+      setSelectedAgent('inventory_agent')
+    } else if (plan === 'professional') {
+      if (selectedAgent === 'auto' || !selectedAgent) {
+        setSelectedAgent('inventory_agent')
+      }
+    } else if (plan === 'enterprise') {
+      // Enterprise: the user only writes the prompt; the Coordinator picks the agent
+      // (a specialist left over from Professional must not stick)
+      setSelectedAgent('auto')
+    }
+  }, [currentUser?.plan])
+
   // Handle Query Submission through Coordinator API Gateway
   const handleSendMessage = async ({ text = '', attachments = [], mode, targetAgent }) => {
     const typed = (text || '').trim()
@@ -361,9 +415,13 @@ export default function App() {
 
     let res = null
     let assistantMsg
+    const agentToSend = targetAgent || selectedAgent || 'auto'
     try {
       // Execute query through real backend Coordinator API Gateway (same thread_id for the whole conversation)
-      res = await api.sendQuery(query, token, twinSessionId, threadId)
+      res = await api.sendQuery(query, token, twinSessionId, threadId, {
+        selectedAgent: agentToSend,
+        inventoryScope: inventoryScopeRef.current
+      })
       assistantMsg = toAssistantMessage(res, { text: query })
     } catch (err) {
       if (err.response?.status === 401 && epoch === sessionEpochRef.current) {
@@ -407,8 +465,11 @@ export default function App() {
     }
 
     const uiCommand = assistantMsg.uiCommand
-    if (uiCommand) {
+    if (uiCommand && canUseMap) {
       setTwinCommand(uiCommand)
+      openMap()
+    } else {
+      closeMap()
     }
 
     fetchAuditData()
@@ -498,6 +559,10 @@ export default function App() {
   }
 
   const openFulfillmentDashboard = (message) => {
+    if (currentUser?.plan === 'starter') {
+      setIsPricingModalOpen(true)
+      return
+    }
     const current = threadNavigator.current()
     const index = message ? messages.findIndex((m) => m.id === message.id) : -1
     threadNavigator.push({ threadId: current.threadId, view: 'fulfillment', messageIndex: index >= 0 ? index : null },
@@ -533,6 +598,7 @@ export default function App() {
             ? messages[route.messageIndex] : [...messages].reverse().find(isFulfillmentMessage)}
           currentUser={currentUser}
           onBackToChat={closeFulfillmentDashboard}
+          onOpenPricingModal={() => setIsPricingModalOpen(true)}
         />
       )}
       {/* Collapsible Left Sidebar */}
@@ -551,8 +617,11 @@ export default function App() {
         onClearHistory={handleClearHistory}
         currentUser={currentUser}
         onLogout={handleLogout}
+        onOpenMap={openMap}
+        onOpenFulfillment={() => openFulfillmentDashboard()}
         onOpenArtifactTab={handleOpenNavModule}
         onSwitchRoleQuick={handleSwitchRoleQuick}
+        onSwitchPlanQuick={handleSwitchPlan}
         onOpenPricingModal={() => setIsPricingModalOpen(true)}
         onOpenCommercializationModal={() => setIsPricingModalOpen(true)}
       />
@@ -572,17 +641,16 @@ export default function App() {
           </div>
 
           <div className="topbar-right">
-            {/* Enterprise Trial Active Pill */}
-            {isEnterpriseTrial && (
-              <div
-                className="topbar-trial-pill"
-                onClick={() => setIsPricingModalOpen(true)}
-                title="SaaS Pricing & Plans • Feature Comparison"
-              >
-                <Crown size={12} className="trial-crown-icon" />
-                <span>ENTERPRISE TRIAL</span>
-              </div>
-            )}
+            {/* Enterprise Trial / Plan Pill */}
+            <div
+              className={`topbar-trial-pill plan-pill-${currentUser.plan || 'starter'}`}
+              onClick={() => setIsPricingModalOpen(true)}
+              title="SaaS Pricing & Plans • Feature Comparison"
+              style={{ cursor: 'pointer' }}
+            >
+              <Crown size={12} className="trial-crown-icon" />
+              <span>{(currentUser.plan || 'starter').toUpperCase()} PLAN</span>
+            </div>
 
             {/* Who Logged In */}
             <div className="topbar-logged-user-pill">
@@ -605,24 +673,27 @@ export default function App() {
           {/* Ambient Lighting & Micro-Grid Atmosphere */}
           <div className="ambient-canvas-glow" />
 
-          {/* Warehouse Digital Twin — interactive map workspace for inventory answers */}
-          <WarehouseTwin
-            token={token}
-            sessionId={twinSessionId}
-            command={twinCommand}
-            visible={twinActive}
-            mode={twinMode}
-            onModeChange={setTwinMode}
-            onActivate={(clickEvent) => {
-              // The launcher button passes its click event; live map commands (SSE) pass nothing and
-              // only open the map while the conversation that asked for them is still on screen.
-              if (clickEvent || lastAskKeyRef.current === chatRef.current.activeKey) openMap()
-            }}
-            onClose={() => closeMap({ userAction: true })}
-            onAsk={(text) => handleSendMessage({ text, attachments: [], targetAgent: selectedAgent })}
-            agentReply={[...messages].reverse().find((m) => m.role === 'assistant')?.content}
-            agentBusy={isLoading}
-          />
+          {/* Warehouse Digital Twin — interactive map workspace for inventory answers (Professional / Enterprise) */}
+          {canUseMap && (
+            <WarehouseTwin
+              onScopeChange={handleInventoryScope}
+              token={token}
+              sessionId={twinSessionId}
+              command={twinCommand}
+              visible={twinActive}
+              mode={twinMode}
+              onModeChange={setTwinMode}
+              onActivate={(clickEvent) => {
+                // The launcher button passes its click event; live map commands (SSE) pass nothing and
+                // only open the map while the conversation that asked for them is still on screen.
+                if (clickEvent || lastAskKeyRef.current === chatRef.current.activeKey) openMap()
+              }}
+              onClose={() => closeMap({ userAction: true })}
+              onAsk={(text) => handleSendMessage({ text, attachments: [], targetAgent: selectedAgent })}
+              agentReply={[...messages].reverse().find((m) => m.role === 'assistant')?.content}
+              agentBusy={isLoading}
+            />
+          )}
 
           {/* Spline 3D Scene: only on the empty / hero screen. Behind the chat or the map it is
               covered, and a hidden WebGL scene keeps rendering into an empty framebuffer. */}
@@ -639,6 +710,7 @@ export default function App() {
                   selectedAgent={selectedAgent}
                   setSelectedAgent={setSelectedAgent}
                   onOpenOperationalModal={(type) => setOperationalModal(type)}
+                  authToken={token}
                 />
               </div>
             </div>
@@ -654,12 +726,14 @@ export default function App() {
                     onInspectOrder={() => {
                       openFulfillmentDashboard(msg)
                     }}
-                    onShowOnMap={(m) => {
+                    onShowOnMap={canUseMap ? (m) => {
                       // Replay the stored command (new id so the twin plays it again)
                       setTwinCommand({ ...m.uiCommand, id: `replay-${Date.now()}` })
                       const isLoc = m.routing?.target_agent === 'knowledge' || m.knowledge_details || /building|facility|where|location/i.test(m.content || '')
                       openMap(isLoc ? 'campus' : 'inventory')
-                    }}
+                    } : undefined}
+                    onOpenPricingModal={() => setIsPricingModalOpen(true)}
+                    onSwitchSpecialist={(agent) => setSelectedAgent(agent)}
                   />
                 ))}
 
@@ -687,6 +761,7 @@ export default function App() {
                   selectedAgent={selectedAgent}
                   setSelectedAgent={setSelectedAgent}
                   onOpenOperationalModal={(type) => setOperationalModal(type)}
+                  authToken={token}
                 />
               </div>
             </div>
@@ -708,6 +783,8 @@ export default function App() {
       {/* SaaS Pricing & Feature Comparison Modal */}
       <PricingModal
         isOpen={isPricingModalOpen || isCommercializationOpen}
+        currentPlan={currentUser?.plan || 'starter'}
+        onSelectPlan={handleSwitchPlan}
         onClose={() => {
           setIsPricingModalOpen(false)
           setIsCommercializationOpen(false)

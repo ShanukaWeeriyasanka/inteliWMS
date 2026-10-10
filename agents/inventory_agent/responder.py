@@ -102,6 +102,17 @@ def stock_card(item: StockItemInfo, thresholds_defaulted: bool = False) -> str:
         f"📦 **Stock**: {_qty(item.quantity_on_hand, item.unit)} on hand "
         f"({item.available_quantity} available, {item.reserved_quantity} reserved)"
     )
+    if item.product_id:
+        text += f'\nProduct ID: `{item.product_id}`. Source: **{item.data_source}**.'
+        if item.updated_at:
+            text += f' Data updated: {item.updated_at}.'
+        text += f' Quarantined: {item.quarantined_quantity}.'
+        if item.unplaced_quantity:
+            text += f'\n{item.unplaced_quantity} {item.unit} have no verified box assignment.'
+        for row in item.placements:
+            text += (f"\n• `{row['bin_id']}` — {row['location_label']}: {row['quantity']} {item.unit} "
+                     f"({row['available_quantity']} available, {row['reserved_quantity']} reserved, "
+                     f"{row['quarantined_quantity']} quarantined).")
     extras = []
     if item.occupancy_pct is not None:
         extras.append(f"{item.occupancy_pct:g}% full")
@@ -227,6 +238,7 @@ def transfer(result: TransferResult, item: Optional[StockItemInfo] = None) -> st
     if result.quantity_source != "requested":
         text += (f"\nℹ️ No quantity was given, so the item's reorder quantity "
                  f"({result.recommendation.required_quantity}) was used.")
+    text += '\nSibling warehouse figures come from a local snapshot; no external live warehouse feed is connected.'
     return text
 
 

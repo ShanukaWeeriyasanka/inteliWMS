@@ -1,5 +1,7 @@
 import hashlib
-from typing import Dict, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple
+from sqlalchemy.orm import Session
+from sqlalchemy import func
 from database.connection import SessionLocal, engine, Base, init_db
 from database.models import User
 from security.jwt_handler import jwt_handler
@@ -23,10 +25,67 @@ def user_id_for(role: str, db_id: int) -> str:
     return f"usr_{role}_{db_id:03d}"
 
 
-def db_id_from_user_id(user_id: str) -> Optional[int]:
-    """'usr_staff_017' → 17 (None for ids not issued by this service)."""
-    tail = (user_id or "").rsplit("_", 1)[-1]
-    return int(tail) if user_id.startswith("usr_") and tail.isdigit() else None
+def db_id_from_user_id(user_id: Any) -> Optional[int]:
+    """'usr_staff_017' → 17, '17' → 17, 17 → 17, 'usr_17' → 17 (None for invalid IDs)."""
+    if user_id is None:
+        return None
+    if isinstance(user_id, int):
+        return user_id
+    if not isinstance(user_id, str):
+        return None
+    cleaned = user_id.strip()
+    if not cleaned:
+        return None
+    if cleaned.isdigit():
+        return int(cleaned)
+    if cleaned.startswith("usr_") or cleaned.startswith("user_"):
+        tail = cleaned.rsplit("_", 1)[-1]
+        if tail.isdigit():
+            return int(tail)
+    return None
+
+
+def resolve_db_user(db: Session, identifier: Any, username: Optional[str] = None) -> Optional[User]:
+    """
+    Consistently and safely resolves an existing real database User record.
+    Never creates missing users.
+    Lookup precedence:
+    1. Direct numeric primary key (or extracted integer tail from 'usr_staff_032', 'user_32', etc.)
+       If an explicit username was also provided, verifies it matches to ensure identity consistency.
+    2. Explicit username claim from authenticated token.
+    3. Identifier matching username or email.
+    """
+    if db is None:
+        return None
+
+    # 1. Try numeric primary key
+    db_id = db_id_from_user_id(identifier)
+    if db_id is not None:
+        user = db.get(User, db_id)
+        if user is not None:
+            if username and str(username).strip():
+                if user.username.lower() == str(username).strip().lower():
+                    return user
+            else:
+                return user
+
+    # 2. Try explicit username
+    if username and str(username).strip():
+        clean_user = str(username).strip().lower()
+        user = db.query(User).filter(func.lower(User.username) == clean_user).first()
+        if user is not None:
+            return user
+
+    # 3. Try identifier as username or email
+    if isinstance(identifier, str) and identifier.strip():
+        clean_id = identifier.strip().lower()
+        user = db.query(User).filter(
+            (func.lower(User.username) == clean_id) | (func.lower(User.email) == clean_id)
+        ).first()
+        if user is not None:
+            return user
+
+    return None
 
 
 class AuthService:
@@ -52,6 +111,7 @@ class AuthService:
                     "name": "John Davis",
                     "email": "john.davis@intelliwms.local",
                     "role": "staff",
+                    "plan": "starter",
                     "password": "pass123"
                 },
                 {
@@ -59,6 +119,7 @@ class AuthService:
                     "name": "Sarah Miller",
                     "email": "sarah.miller@intelliwms.local",
                     "role": "manager",
+                    "plan": "professional",
                     "password": "pass456"
                 },
                 {
@@ -66,6 +127,7 @@ class AuthService:
                     "name": "Alex Vance (Admin)",
                     "email": "admin@intelliwms.local",
                     "role": "admin",
+                    "plan": "enterprise",
                     "password": "admin123"
                 }
             ]
@@ -78,13 +140,16 @@ class AuthService:
                         name=acc["name"],
                         email=acc["email"],
                         hashed_password=self._hash_password(acc["password"]),
-                        role=acc["role"]
+                        role=acc["role"],
+                        plan=acc.get("plan", "starter")
                     )
                     db.add(new_user)
                 else:
-                    # Update password and role to ensure valid seed state
+                    # Update password, role, and plan to ensure valid seed state
                     existing.hashed_password = self._hash_password(acc["password"])
                     existing.role = acc["role"]
+                    if not existing.plan:
+                        existing.plan = acc.get("plan", "starter")
                     if not existing.name:
                         existing.name = acc["name"]
             db.commit()
@@ -143,9 +208,16 @@ class AuthService:
                 )
                 return False, None, None, f"User '{clean_user}' is not authorized for role '{effective_role}'"
 
-            # Generate signed JWT token
+            # Generate signed JWT token with stable server-side identity
             user_id_str = user_id_for(user.role, user.id)
-            token = jwt_handler.create_token(user_id=user_id_str, role=effective_role)
+            plan = getattr(user, "plan", "starter") or "starter"
+            token = jwt_handler.create_token(
+                user_id=user_id_str,
+                role=effective_role,
+                username=user.username,
+                db_id=user.id,
+                plan=plan
+            )
             permissions = rbac_manager.get_permissions(effective_role)
 
             user_info = {
@@ -154,6 +226,8 @@ class AuthService:
                 "username": user.username,
                 "name": user.name or user.username,
                 "role": effective_role,
+                "plan": plan,
+                "subscription_plan": plan,
                 "email": user.email,
                 "permissions": permissions
             }
@@ -163,7 +237,7 @@ class AuthService:
                 severity="INFO",
                 user_id=user_id_str,
                 role=effective_role,
-                details={"username": user.username, "db_id": user.id}
+                details={"username": user.username, "db_id": user.id, "plan": plan}
             )
 
             return True, token, user_info, "Authentication successful"
@@ -179,6 +253,7 @@ class AuthService:
     ) -> Tuple[bool, Optional[str], Optional[Dict], str]:
         """
         Register a new user into the database and issue an active JWT token.
+        Default plan is 'starter'.
         """
         clean_user = username.strip().lower() if username else ""
         if not clean_user or not password:
@@ -207,14 +282,21 @@ class AuthService:
                 name=display_name,
                 email=f"{clean_user}@intelliwms.local",
                 hashed_password=self._hash_password(password),
-                role=role
+                role=role,
+                plan="starter"
             )
             db.add(new_user)
             db.commit()
             db.refresh(new_user)
 
             user_id_str = user_id_for(role, new_user.id)
-            token = jwt_handler.create_token(user_id=user_id_str, role=role)
+            token = jwt_handler.create_token(
+                user_id=user_id_str,
+                role=role,
+                username=clean_user,
+                db_id=new_user.id,
+                plan="starter"
+            )
             permissions = rbac_manager.get_permissions(role)
 
             user_info = {
@@ -223,6 +305,8 @@ class AuthService:
                 "username": new_user.username,
                 "name": new_user.name,
                 "role": role,
+                "plan": "starter",
+                "subscription_plan": "starter",
                 "email": new_user.email,
                 "permissions": permissions
             }
@@ -232,7 +316,7 @@ class AuthService:
                 severity="INFO",
                 user_id=user_id_str,
                 role=role,
-                details={"username": clean_user, "action": "registered_in_db"}
+                details={"username": clean_user, "action": "registered_in_db", "plan": "starter"}
             )
 
             return True, token, user_info, "Registration successful"
@@ -242,29 +326,72 @@ class AuthService:
         finally:
             db.close()
 
-    def get_user_profile(self, user_id_or_username: str) -> Optional[Dict]:
-        """Fetch a user profile by token user_id ('usr_staff_017') or by username."""
+    def get_user_profile(self, user_id_or_username: str, username: Optional[str] = None) -> Optional[Dict]:
+        """Fetch a verified user profile by user_id ('usr_staff_017'), numeric id, or username."""
         db = SessionLocal()
         try:
-            db_id = db_id_from_user_id(user_id_or_username)
-            if db_id is not None:
-                user = db.get(User, db_id)
-                if user and user_id_for(user.role, user.id) != user_id_or_username:
-                    user = None  # the id belongs to an account whose role has changed since
-            else:
-                user = db.query(User).filter(User.username == user_id_or_username).first()
+            user = resolve_db_user(db, user_id_or_username, username=username)
             if not user:
                 return None
 
+            plan = getattr(user, "plan", "starter") or "starter"
             return {
                 "user_id": user_id_for(user.role, user.id),
                 "db_id": user.id,
                 "username": user.username,
-                "name": user.name,
+                "name": user.name or user.username,
                 "role": user.role,
+                "plan": plan,
+                "subscription_plan": plan,
                 "email": user.email,
                 "permissions": rbac_manager.get_permissions(user.role)
             }
+        finally:
+            db.close()
+
+    def update_user_plan(
+        self,
+        user_id_or_username: str,
+        new_plan: str,
+        username: Optional[str] = None
+    ) -> Tuple[bool, str, Optional[Dict]]:
+        """Safely update a user's subscription plan entitlement."""
+        from security.subscription import normalize_plan
+        plan = normalize_plan(new_plan)
+        db = SessionLocal()
+        try:
+            user = resolve_db_user(db, user_id_or_username, username=username)
+            if not user:
+                return False, f"User '{user_id_or_username}' not found", None
+
+            user.plan = plan
+            db.commit()
+            db.refresh(user)
+
+            profile = {
+                "user_id": user_id_for(user.role, user.id),
+                "db_id": user.id,
+                "username": user.username,
+                "name": user.name or user.username,
+                "role": user.role,
+                "plan": plan,
+                "subscription_plan": plan,
+                "email": user.email,
+                "permissions": rbac_manager.get_permissions(user.role)
+            }
+
+            audit_logger.log_event(
+                event_type="SUBSCRIPTION_CHANGED",
+                severity="INFO",
+                user_id=profile["user_id"],
+                role=user.role,
+                details={"new_plan": plan, "username": user.username}
+            )
+
+            return True, f"Subscription updated to {plan}", profile
+        except Exception as e:
+            db.rollback()
+            return False, f"Error updating subscription: {e}", None
         finally:
             db.close()
 

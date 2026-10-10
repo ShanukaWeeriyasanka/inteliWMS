@@ -19,6 +19,7 @@ class ToolKind(str, Enum):
 
 # Every tool the gateway knows about, by MCP tool name
 TOOL_REGISTRY: Dict[str, ToolKind] = {
+    inv.QUERY_INVENTORY: ToolKind.READ,
     inv.GET_PRODUCT_STOCK: ToolKind.READ,
     inv.SEARCH_PRODUCTS: ToolKind.READ,
     inv.LIST_LOW_STOCK: ToolKind.READ,

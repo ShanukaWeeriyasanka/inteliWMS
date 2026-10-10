@@ -1,0 +1,117 @@
+[
+  {
+    "sop_id": "SOP-FLF-001",
+    "title": "Order Picking and Packing Procedure",
+    "category": "Picking & Packing",
+    "version": "1.0-DEMO",
+    "status": "demonstration",
+    "disclaimer": "Demonstration SOP. Illustrative procedural guidance only. Requires warehouse manager approval before operational use.",
+    "sections": [
+      {
+        "section_id": "SEC-1.1",
+        "heading": "Order Verification and System Reconciliation",
+        "content": "Before beginning physical item retrieval, the warehouse picker must verify the active pick task against the digital Warehouse Management System (WMS). Confirm that the order number matches the digital pick queue and check for any customer-specific handling instructions or special packaging flags."
+      },
+      {
+        "section_id": "SEC-1.2",
+        "heading": "SKU and Quantity Verification",
+        "content": "When approaching the designated storage location, scan the location barcode to ensure the picker is at the correct aisle, bay, and shelf. Scan the item SKU barcode and verify the requested quantity against the pick ticket. Never substitute alternate SKUs or adjust quantities without supervisor authorization."
+      },
+      {
+        "section_id": "SEC-1.3",
+        "heading": "Picking Procedures and Handling",
+        "content": "Retrieve the items following first-expiry-first-out (FEFO) or first-in-first-out (FIFO) sequencing as directed by the terminal. Place picked items gently into the assigned picking tote. Use proper lifting techniques for heavy cartons (bend knees, keep back straight), and request team assistance for items weighing over 25 kg."
+      },
+      {
+        "section_id": "SEC-1.4",
+        "heading": "Product Condition and Quality Inspection",
+        "content": "Inspect each picked unit for visible signs of damage, compromised factory seals, crushed packaging, or moisture before moving to the packing station. If an item appears defective or damaged, quarantine the unit, flag the discrepancy in the system as damaged inventory, and retrieve a replacement from backup stock."
+      },
+      {
+        "section_id": "SEC-1.5",
+        "heading": "Packing and Labeling Guidelines",
+        "content": "Select the appropriately sized shipping carton to minimize empty space while ensuring adequate cushioning. Insert bubble wrap, kraft paper, or air pillows to prevent shifting during transit. Seal carton flaps with reinforced packaging tape using the standard H-taping method across all seams. Affix the shipping label flat on the largest carton surface, ensuring barcodes and QR codes are unobstructed and smooth."
+      },
+      {
+        "section_id": "SEC-1.6",
+        "heading": "Picking and Packing Exception Handling",
+        "content": "If an item is missing from its designated bin location, record a bin discrepancy exception in the RF scanner and conduct an immediate secondary bin search. If stock remains unlocated, mark the line item as short-picked to notify the inventory team for cycle count investigation. Never mark an unpicked item as complete."
+      }
+    ]
+  },
+  {
+    "sop_id": "SOP-FLF-002",
+    "title": "Order Delay Investigation and Escalation Protocol",
+    "category": "Order Delays",
+    "version": "1.0-DEMO",
+    "status": "demonstration",
+    "disclaimer": "Demonstration SOP. Illustrative procedural guidance only. Requires warehouse manager approval before operational use.",
+    "sections": [
+      {
+        "section_id": "SEC-2.1",
+        "heading": "Order Delay Status Verification",
+        "content": "When investigating an order flagged as delayed, first examine the current order lifecycle state in the order database. Review the original order creation timestamp, promised delivery date, and current progress stage (Pending, Processing, Picked, Packed, or In Transit) to identify the stage at which the fulfillment bottleneck occurred."
+      },
+      {
+        "section_id": "SEC-2.2",
+        "heading": "Investigating Recorded Delay Reasons",
+        "content": "Check the recorded delay reason notes in the order management system. Determine whether the primary delay is attributed to warehouse internal processing bottlenecks, supplier inventory stockouts, carrier pickup delays, or weather-related transit interruptions. Review timestamped event logs to establish the initial occurrence time of the delay."
+      },
+      {
+        "section_id": "SEC-2.3",
+        "heading": "Distinguishing Confirmed Causes from Contributing Factors",
+        "content": "Investigate root causes by differentiating confirmed system facts from potential contributing factors. Confirmed facts include documented carrier exception scans, logged zero-stock bin counts, or mechanical conveyor downtime. Contributing factors include high seasonal order volume surges or regional weather forecasts that have not yet resulted in recorded carrier delays."
+      },
+      {
+        "section_id": "SEC-2.4",
+        "heading": "Handling Stock-Related Delays",
+        "content": "If the delay stems from an inventory shortage or unfulfilled SKU, verify physical warehouse stock levels across all secondary reserves, quarantine bins, and incoming receiving docks. If replacement units are located in staging, request high-priority putaway. If completely out of stock, flag the order for backorder processing and notify the purchasing department."
+      },
+      {
+        "section_id": "SEC-2.5",
+        "heading": "Carrier-Related Transit and Pickup Delays",
+        "content": "If the delay is due to carrier missed pickups or transit exceptions, check the carrier tracking portal for the latest milestone scan. Confirm whether the carrier has acknowledged custody of the package. For missed end-of-day dock sweeps, stage the packages in the secure dispatch holding zone and reschedule dispatch for the earliest morning carrier sweep."
+      },
+      {
+        "section_id": "SEC-2.6",
+        "heading": "Escalation Procedures and Customer Communication",
+        "content": "For orders exceeding acceptable delay thresholds without an automated resolution, escalate the order record to the Fulfillment Shift Supervisor. Log an escalation ticket with order ID, root cause classification, and revised estimated delivery date. Transmit revised delivery expectations to customer service so proactive customer notification can occur."
+      }
+    ]
+  },
+  {
+    "sop_id": "SOP-FLF-003",
+    "title": "Shipping and Dispatch Verification Checklist",
+    "category": "Dispatch & Shipping",
+    "version": "1.0-DEMO",
+    "status": "demonstration",
+    "disclaimer": "Demonstration SOP. Illustrative procedural guidance only. Requires warehouse manager approval before operational use.",
+    "sections": [
+      {
+        "section_id": "SEC-3.1",
+        "heading": "Order Readiness and Packaging Checks",
+        "content": "Prior to staging any carton for dispatch, conduct a final physical integrity inspection. Verify that carton integrity is sound, tapes are securely adhered with no bulging or puncture marks, and hazardous materials or fragile warning stickers are clearly affixed where applicable. Ensure carton weight matches the weight registered during packing scale verification."
+      },
+      {
+        "section_id": "SEC-3.2",
+        "heading": "Shipping Documentation and Label Verification",
+        "content": "Verify that every package possesses an intact, machine-readable shipping label containing a valid carrier tracking number, recipient destination address, and return address. Generate and review the shipping manifest document, ensuring all staged order numbers are accounted for on the printed bill of lading or electronic manifest."
+      },
+      {
+        "section_id": "SEC-3.3",
+        "heading": "Carrier Information and Vehicle Verification",
+        "content": "Before loading shipments, verify carrier identity and assign packages to the correct designated loading dock bay. Confirm that the arriving carrier matches the assigned service level (e.g., FedEx Ground, UPS Express, DHL Freight, or Regional Courier). Inspect carrier trailer cleanliness, floor integrity, and dry condition before authorizing loading."
+      },
+      {
+        "section_id": "SEC-3.4",
+        "heading": "Dispatch Confirmation and System Handoff",
+        "content": "Perform an outbound dock scan for each carton as it is loaded onto the carrier vehicle. Once loading is complete, obtain the driver's signature on the physical or digital Bill of Lading (BOL). Finalize the dispatch batch in the WMS to update order statuses from Packed to Dispatched, trigger tracking updates, and archive the completed manifest."
+      },
+      {
+        "section_id": "SEC-3.5",
+        "heading": "Shipment Exception and Misroute Protocol",
+        "content": "If a package fails the outbound scan due to an unreadable barcode, incorrect carrier assignment, or cancellation hold, immediately remove it from the loading conveyer. Transfer the carton to the Dispatch Exception Staging Area. Do not permit non-scanned or mismatched packages onto the carrier vehicle under any circumstances."
+      }
+    ]
+  }
+]

@@ -18,6 +18,7 @@ import re
 from typing import Any, List, Optional, Tuple
 
 from agents.coordinator.llm_calls import OK, UNAVAILABLE, call_llm
+from agents.inventory_agent.report_queries import report_spec
 from config.llm_config import llm_config
 from config.prompts import COORDINATOR_SYSTEM_PROMPT
 from utils.logger import StructuredLogger
@@ -145,9 +146,25 @@ ACK_PATTERN = re.compile(
     r"perfect|awesome|cheers|noted|understood|sounds good|alright|yes|yep|yeah|no|nope)\b[\s!.,]*$", re.I)
 BYE_PATTERN = re.compile(r"^\s*(bye|goodbye|good bye|see you|see ya|cya|good night)\b[\s!.,]*$", re.I)
 
+# Fulfillment procedures: packing, picking, dispatch checks, order delay actions
+_FULFILLMENT_PROCEDURE_STRONG = [
+    r"\b(packing|picking|dispatch|shipping|carrier)\b.*\b(procedure|sop|steps?|guide|guidelines?|checklist|process|protocol|instructions?)\b",
+    r"\b(procedure|sop|steps?|guide|guidelines?|checklist|process|protocol|instructions?)\b.*\b(pack|packing|pick|picking|dispatch|shipping|transit|carrier|fulfillment)\b",
+    r"\b(procedural|sop|protocol|guideline)\b.*\b(pack|packing|pick|picking|dispatch|shipping|order|delay)\b",
+    r"\b(order\s*delay|delayed\s*order)\b.*\b(procedure|sop|steps?|guide|guidelines?|checklist|process|protocol|instructions?|escalat\w*)\b",
+    r"\b(procedure|sop|steps?|guide|guidelines?|checklist|process|protocol|instructions?|escalat\w*)\b.*\b(order\s*delay|delayed\s*order|delay\w*)\b",
+    r"\bhow (should|do|to|can)\b.*\b(pick|pack|dispatch|ship|fulfill)\b",
+    r"\bwhat (should i do|to do|steps?|actions?|checks?)\b.*\b(when|if|before|after)\b.*\b(order|delay|delayed|dispatch|ship|carrier)\b",
+    r"\bwhat are the (dispatch|shipping|packing|picking) (steps?|verification|checks?|procedures?)\b",
+    r"\bexplain the (shipping|dispatch|packing|picking|procedural) (procedure|process|steps?|protocol|verification)\b",
+    r"\bwhat (checks?|steps?|verifications?)\b.*\b(required|needed)\b.*\b(before|for)\b.*\b(dispatch|shipping|pack|picking)\b",
+    r"\bwhat should (i|we|staff) do if (the carrier|carrier fails|driver|pickup fails)\b",
+]
+
+# Strong domain signals win over the weaker words of another domain.
 _KNOWLEDGE_STRONG = [
-    r"\b(sop|sop-\d+|standard operating procedure|procedures?|policy|policies|guidelines?|protocol|sp-\d+)\b",
-    r"\b(returns|how to return|compliance|shift handover|shift notes|speed limit)\b",
+    r"\b(sop|sop-\d+|standard operating procedure|procedures?|policy|policies|guidelines?|protocol|regulations?|regulatory|rules?|sp-\d+)\b",
+    r"\b(returns|how to return|compliance|shift handover|shift notes|speed limit|forklift safety|pallet stacking|hazmat)\b",
     r"\bmanual\b(?!\s+(count|counts|adjustment|adjustments|stock))",
     r"\b(building\s*#?[1-7]|bld-0[1-7]|cold vault|cold storage|quarantine yard|quarantine bay\s*11|high-bay hub|high-bay|bulk distribution|tech mezzanine|fleet depot|gatehouse|weighbridge|60t scale|airlock port|spill berm|freight lift)\b",
     r"\b(campus layout|campus map|site plan|campus plan|campus facilities|all buildings|warehouse site plan|warehouse layout|warehouse facilities|warehouse complex)\b",
@@ -160,6 +177,14 @@ _FULFILLMENT_STRONG = [
 ]
 # Inventory: stock quantities, availability, locations, low stock, movements (meaning-level phrases)
 _INVENTORY_STRONG = [
+    r"\b(list|show)\b.*\b(products|skus|catalog|catalogue)\b",
+    r"\b(products|items|stock)\b.*\b(reserved|quarantined|unassigned|unplaced)\b",
+    r"\b(highest|most|largest|top\s+\d+)\b.*\b(stocks?|inventory|quantity|quantities)\b",
+    r"\b(inventory|stock)\s+(summary|overview|totals?)\b|\btotal (stock|inventory|units)\b",
+    r"\b(how many|count|number of|list|show)\s+(all\s+|distinct\s+)?(products|skus)\b",
+    r"\b(reserved|quarantined|unassigned|unplaced)\b.*\b(stock|products|inventory|units|items)\b",
+    r"\b(lowest|least|smallest)\b.*\b(stocks?|inventory|quantity|quantities)\b",
+    r"\b(stocks?|inventory|quantity|quantities)\b.*\b(lowest|least|smallest)\b",
     r"\bsku[-\s]?\d{3,6}\b", r"\bprd-\d{5}\b",
     r"\b(in stock|out of stock|low stock|low on stock|stock ?(level|levels|count|counts|status|movements?|history|on hand)|"
     r"on hand|safety stock|reorder (point|level|quantity|threshold)|restock\w*|replenish\w*|inventory)\b",
@@ -176,15 +201,15 @@ _INVENTORY_STRONG = [
 ]
 # The original keyword lists, checked after the strong signals
 _KNOWLEDGE_KEYWORDS = [
-    r"\b(sop|sop-\d+|standard operating procedure|policy|policies|guideline|manual|safety|protocol|sp-\d+)\b",
-    r"\b(returns|how to return|compliance|shift handover|shift notes|speed limit|vest)\b",
+    r"\b(sop|sop-\d+|standard operating procedure|policy|policies|guideline|manual|safety|protocol|regulations?|regulatory|sp-\d+)\b",
+    r"\b(returns|how to return|compliance|shift handover|shift notes|speed limit|vest|forklift|pallet stacking)\b",
 ]
 _FULFILLMENT_KEYWORDS = [
     r"\b(order|orders|ord-\d+|#\d+|delay|delayed|dispatch|tracking|track|shipment|courier|carrier)\b",
     r"\b(complaint|shipping|packing slip|transit)\b",
 ]
 _INVENTORY_KEYWORDS = [
-    r"\b(stock|inventory|quantity|sku|sku-\d+|reorder|restock|battery|label rolls|pallet wrap)\b",
+    r"\b(stocks?|inventory|quantity|sku|sku-\d+|reorder|restock|battery|label rolls|pallet wrap)\b",
     r"\b(how many|on hand|in stock|warehouse aisle|shelf|bin location|bay map)\b",
     r"\b(supplier email|supplier pdf|parse email|inbound invoice|manifest|po-\d+|we shipped)\b",
     r"\b(grinding|hydraulic leak|conveyor slip|belt squeal|agv-\d+|equipment health|machine breakdown|informal log)\b",
@@ -315,6 +340,7 @@ class IntentClassifier:
     def _heuristic_match(self, ql: str) -> Optional[IntentResult]:
         """Domain keyword rules in priority order; None when nothing matches."""
         table = [
+            (_FULFILLMENT_PROCEDURE_STRONG, "FULFILLMENT", 0.95, "fulfillment.procedure", "Fulfillment packing, dispatch or delay procedure signal."),
             (_KNOWLEDGE_STRONG, "KNOWLEDGE", 0.91, "knowledge.strong", "Warehouse SOP, policy or protocol signal."),
             (_FULFILLMENT_STRONG, "FULFILLMENT", 0.94, "fulfillment.strong", "Order id, dispatch or tracking signal."),
             (_INVENTORY_STRONG, "INVENTORY", 0.95, "inventory.strong", "Stock quantity, availability or product id."),
@@ -325,6 +351,10 @@ class IntentClassifier:
             (_TWIN_HINT, "INVENTORY", 0.75, "inventory.twin_hint", "Warehouse map wording (weak hint)."),
         ]
         for patterns, domain, confidence, rule_id, reasoning in table:
+            if rule_id == 'inventory.strong':
+                report = report_spec(ql)
+                if report and report['operation'] in ('rank','equal','filter'):
+                    return IntentResult('INVENTORY', 0.95, 'Stock quantity comparison.', 'heuristic', rule_id=rule_id)
             if _any(patterns, ql):
                 return IntentResult(domain, confidence, f"Heuristic match: {reasoning}", "heuristic", rule_id=rule_id)
         return None

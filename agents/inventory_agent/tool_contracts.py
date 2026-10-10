@@ -16,6 +16,7 @@ import re
 from typing import Any, Dict, List, Literal, Optional, Type
 
 from pydantic import BaseModel, ConfigDict, Field
+from agents.inventory_agent.report_queries import CollectionIntent
 
 from agents.inventory_agent.schemas import (
     AnomalyAlert,
@@ -30,6 +31,7 @@ from agents.inventory_agent.schemas import (
 GET_PRODUCT_STOCK = "get_product_stock"
 SEARCH_PRODUCTS = "search_products"
 LIST_LOW_STOCK = "list_low_stock"
+QUERY_INVENTORY = "query_inventory"
 GET_STOCK_MOVEMENTS = "get_stock_movements"
 PREDICT_DEPLETION = "predict_depletion"
 CHECK_STOCK_ANOMALIES = "check_stock_anomalies"
@@ -39,7 +41,7 @@ ANALYZE_EQUIPMENT_LOG = "analyze_equipment_log"
 TWIN_ANSWER = "twin_answer"
 PUBLISH_MAP_COMMAND = "publish_map_command"
 
-SKU_PATTERN = r"^SKU-\d{3,6}$"
+SKU_PATTERN = re.compile(r"^(?:SKU-\d{3,6}|(?!SKU-)[A-Z0-9]+(?:-[A-Z0-9]+)+)$")
 PRD_PATTERN = r"^PRD-\d{5}$"
 _SKU_LOOSE = re.compile(r"^\s*sku[-\s]?(\d{3,6})\s*$", re.I)
 
@@ -49,7 +51,10 @@ def canonical_sku(raw: Optional[str]) -> Optional[str]:
     if not raw:
         return None
     m = _SKU_LOOSE.match(raw)
-    return f"SKU-{m.group(1)}" if m else None
+    if m:
+        return f"SKU-{m.group(1)}"
+    value = raw.strip().upper()
+    return value if len(value) <= 100 and re.fullmatch(SKU_PATTERN, value) else None
 
 
 class _Args(BaseModel):
@@ -68,6 +73,26 @@ class SearchProductsArgs(_Args):
 
 class LowStockArgs(_Args):
     limit: int = Field(50, ge=1, le=200)
+    selection: Literal["reorder", "lowest_on_hand"] = "reorder"
+
+
+class InventoryReportArgs(_Args):
+    query: str = Field(..., min_length=1, max_length=2000)
+    selected_scope: Optional[str] = Field(None, pattern=r'^WH\d+(?:-F\d+)?(?:-Z\d{2})?(?:-R\d{2})?(?:-S\d{2})?(?:-B\d{2})?$')
+    intent: Optional[CollectionIntent] = None
+
+
+class InventoryReportResult(BaseModel):
+    status: Literal['ok','empty','ambiguous','not_found','missing_data']
+    response: str
+    items: List[StockItemInfo] = Field(default_factory=list)
+    as_of: Optional[str] = None
+    matched_count: int = 0
+    location_scope: Optional[str] = None
+    operation: Optional[str] = None
+    missing_product_ids: List[str] = Field(default_factory=list)
+    source_updated_at: Optional[str] = None
+    freshness: Literal['recorded','unknown','stale'] = 'unknown'
 
 
 class MovementsArgs(_Args):
@@ -173,6 +198,7 @@ class TransferResult(_Result):
     sku: str
     recommendation: Optional[TransferRecommendation] = None
     quantity_source: Literal["requested", "reorder_quantity", "default_reorder_quantity"] = "requested"
+    sibling_data_source: str = 'local_snapshot'
 
 
 class DocumentResult(_Result):
@@ -197,6 +223,7 @@ class PublishMapCommandResult(_Result):
 
 
 ARG_MODELS: Dict[str, Type[BaseModel]] = {
+    QUERY_INVENTORY: InventoryReportArgs,
     GET_PRODUCT_STOCK: ProductStockArgs,
     SEARCH_PRODUCTS: SearchProductsArgs,
     LIST_LOW_STOCK: LowStockArgs,
@@ -211,6 +238,7 @@ ARG_MODELS: Dict[str, Type[BaseModel]] = {
 }
 
 RESULT_MODELS: Dict[str, Type[BaseModel]] = {
+    QUERY_INVENTORY: InventoryReportResult,
     GET_PRODUCT_STOCK: ProductStockResult,
     SEARCH_PRODUCTS: SearchProductsResult,
     LIST_LOW_STOCK: LowStockResult,
