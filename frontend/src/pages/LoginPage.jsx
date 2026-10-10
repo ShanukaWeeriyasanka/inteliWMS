@@ -36,7 +36,7 @@ export default function LoginPage({ onLogin, onRegister, authLoading, authError,
         playsInline
         disablePictureInPicture
         aria-label="Aerial view of a container freight train crossing black coal terrain"
-        src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20261005_115944_095d91d4-030f-4e82-b42b-a388c0816d24.mp4"
+        src="/login_video.mp4"
       />
 
       {/* Subtle Ambient Tint — Minimal & Clean (No Heavy Overlays) */}
