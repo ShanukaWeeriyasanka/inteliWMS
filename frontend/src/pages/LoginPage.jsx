@@ -27,7 +27,7 @@ export default function LoginPage({ onLogin, onRegister, authLoading, authError,
 
   return (
     <div className="logistics-frame">
-      {/* Background Video from logistics showcase */}
+      {/* Background Freight Train / Ship Video */}
       <video
         className="logistics-bg-video"
         autoPlay
@@ -39,213 +39,51 @@ export default function LoginPage({ onLogin, onRegister, authLoading, authError,
         src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20261005_115944_095d91d4-030f-4e82-b42b-a388c0816d24.mp4"
       />
 
-      {/* Atmospheric Overlays */}
+      {/* Subtle Ambient Tint — Minimal & Clean (No Heavy Overlays) */}
       <div className="logistics-tint" />
-      <div className="logistics-overlay-glow" />
 
-      {/* Main Centered Stage */}
-      <main className="logistics-stage-centered">
-        {/* TOP: CENTERED HERO HEADLINE */}
-        <header className="logistics-hero-header">
+      {/* Main Content Stage: Text Left | Video Corridor Middle | Login Right */}
+      <main className="logistics-stage">
+        {/* LEFT COLUMN: HERO SHOWCASE */}
+        <section className="logistics-hero">
           <p className="logistics-eyebrow">
             <span className="eyebrow-badge">INTELIWMS</span>
             <span>WHY US · AGENTIC FULFILLMENT</span>
           </p>
 
-          <h1 className="logistics-headline-centered">
+          {/* HEADLINE: EXACT IMPACT FONT STYLE MATCHING IMAGE */}
+          <h1 className="logistics-headline">
             <span className="hl-line hl1">LOGISTICS</span>
             <span className="hl-line hl2">THAT WORKS</span>
             <span className="hl-line hl3">AS HARD AS</span>
             <span className="hl-line hl4">YOU DO.</span>
           </h1>
-        </header>
 
-        {/* CENTER: INTEGRATED FROSTED GLASS LOGIN TERMINAL */}
-        <section className="logistics-auth-card-centered">
-          {/* Brand Header */}
-          <div className="auth-card-header">
-            <img
-              src="/intelliwms_logo.png"
-              alt="InteliWMS Emblem"
-              className="auth-card-emblem"
-            />
-            <div className="auth-card-titles">
-              <h2 className="auth-brand-name">InteliWMS</h2>
-              <p className="auth-brand-subtitle">Operations Access Terminal</p>
-            </div>
-          </div>
-
-          {/* Quick 1-Click Demo Profiles */}
-          <div className="quick-access-section">
-            <span className="section-label">Quick 1-Click Demo Profiles</span>
-            <div className="quick-oauth-row">
-              <button
-                type="button"
-                className="oauth-btn"
-                onClick={() => handleQuickLogin('john_staff', 'pass123', 'staff')}
-                title="Login as Warehouse Staff"
-              >
-                <span className="oauth-icon">👷</span>
-                <span className="oauth-text">Staff (John)</span>
-              </button>
-
-              <button
-                type="button"
-                className="oauth-btn"
-                onClick={() => handleQuickLogin('sarah_manager', 'pass456', 'manager')}
-                title="Login as Shift Supervisor"
-              >
-                <span className="oauth-icon">👩‍💼</span>
-                <span className="oauth-text">Manager (Sarah)</span>
-              </button>
-
-              <button
-                type="button"
-                className="oauth-btn"
-                onClick={() => handleQuickLogin('admin_user', 'admin123', 'admin')}
-                title="Login as System Admin"
-              >
-                <span className="oauth-icon">⚙️</span>
-                <span className="oauth-text">Admin (Alex)</span>
-              </button>
-            </div>
-          </div>
-
-          {/* OR Divider */}
-          <div className="or-separator">
-            <span className="or-line" />
-            <span className="or-label">OR WITH CREDENTIALS</span>
-            <span className="or-line" />
-          </div>
-
-          {/* Mode Switch Tabs */}
-          <div className="auth-tab-row">
-            <button
-              type="button"
-              className={`tab-link ${!isRegisterMode ? 'active' : ''}`}
-              onClick={() => {
-                setIsRegisterMode(false)
-                setAuthError('')
-              }}
-            >
-              Sign In
-            </button>
-            <button
-              type="button"
-              className={`tab-link ${isRegisterMode ? 'active' : ''}`}
-              onClick={() => {
-                setIsRegisterMode(true)
-                setRole('staff')
-                setAuthError('')
-              }}
-            >
-              Register Account
-            </button>
-          </div>
-
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="credential-form">
-            {isRegisterMode && (
-              <div className="input-group">
-                <label className="field-label" htmlFor="fullName">Full Name</label>
-                <input
-                  id="fullName"
-                  type="text"
-                  placeholder="e.g. Alex Morgan"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  required
-                />
-              </div>
-            )}
-
-            <div className="input-group">
-              <label className="field-label" htmlFor="username">Username or Warehouse ID</label>
-              <input
-                id="username"
-                type="text"
-                placeholder="e.g. john_staff"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                required
+          {/* Mark Divider */}
+          <div className="logistics-mark-row">
+            <svg className="logistics-mark-svg" viewBox="0 0 52 52" fill="none" aria-hidden="true">
+              <circle
+                cx="26"
+                cy="26"
+                r="23"
+                stroke="#D6523A"
+                strokeWidth="1.6"
+                strokeDasharray="98.3 46.3"
+                transform="rotate(2.5 26 26)"
               />
-            </div>
+              <g stroke="#D6523A" strokeWidth="1.6" strokeLinecap="round">
+                <circle cx="26.5" cy="26.1" r="2.3" />
+                <path d="M28.9 27.6C31.6 29 32.9 31.2 31.8 33.3 30.7 35.4 27.2 36.1 24.2 35.1" />
+              </g>
+            </svg>
+            <div className="logistics-mark-divider" />
+          </div>
 
-            <div className="input-group">
-              <label className="field-label" htmlFor="password">Password</label>
-              <input
-                id="password"
-                type="password"
-                placeholder="Enter your secure password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-            </div>
-
-            <div className="input-group">
-              <label className="field-label" htmlFor="role">Warehouse Operational Role</label>
-              <select
-                id="role"
-                value={isRegisterMode ? 'staff' : role}
-                onChange={(e) => setRole(e.target.value)}
-                aria-describedby={isRegisterMode ? 'role-register-note' : undefined}
-              >
-                <option value="staff">Staff — Floor Operations & Picking</option>
-                <option value="manager" disabled={isRegisterMode}>
-                  Manager — Shift Supervisor & Approvals
-                </option>
-                <option value="admin" disabled={isRegisterMode}>
-                  Admin — System & Security SOC
-                </option>
-              </select>
-              {isRegisterMode && (
-                <span id="role-register-note" className="field-hint">
-                  Manager and admin accounts are created by an administrator.
-                </span>
-              )}
-            </div>
-
-            {authError && <div className="error-banner">{authError}</div>}
-
-            <button
-              type="submit"
-              className="primary-white-btn"
-              disabled={authLoading}
-            >
-              {authLoading
-                ? 'Authenticating...'
-                : isRegisterMode
-                ? 'Create Account & Continue'
-                : 'Continue to Operations'}
-            </button>
-          </form>
-        </section>
-
-        {/* BOTTOM: SYMMETRICAL MARK & FEATURES FLANKING CENTER */}
-        <section className="logistics-bottom-section">
-          {/* Centered Circular Mark */}
-          <svg className="logistics-mark-centered" viewBox="0 0 52 52" fill="none" aria-hidden="true">
-            <circle
-              cx="26"
-              cy="26"
-              r="23"
-              stroke="#D6523A"
-              strokeWidth="1.6"
-              strokeDasharray="98.3 46.3"
-              transform="rotate(2.5 26 26)"
-            />
-            <g stroke="#D6523A" strokeWidth="1.6" strokeLinecap="round">
-              <circle cx="26.5" cy="26.1" r="2.3" />
-              <path d="M28.9 27.6C31.6 29 32.9 31.2 31.8 33.3 30.7 35.4 27.2 36.1 24.2 35.1" />
-            </g>
-          </svg>
-
-          {/* Features Grid Flanking Center */}
-          <div className="logistics-bottom-features">
+          {/* Feature Badges */}
+          <div className="logistics-features-grid">
             {/* Feature Left: One point of contact */}
-            <article className="feature-side left">
-              <svg className="feature-icon-svg" viewBox="0 0 35 34" width="35" height="34" aria-hidden="true">
+            <article className="logistics-feature-card f-left">
+              <svg className="logistics-feature-icon" viewBox="0 0 35 34" width="35" height="34" aria-hidden="true">
                 <defs>
                   <clipPath id="gclip">
                     <circle cx="17.5" cy="17" r="9.80" />
@@ -260,15 +98,15 @@ export default function LoginPage({ onLogin, onRegister, authLoading, authError,
                   clipPath="url(#gclip)"
                 />
               </svg>
-              <h2 className="feature-title-text">One point of contact</h2>
-              <p className="feature-desc-text">
+              <h2 className="logistics-feature-title">One point of contact</h2>
+              <p className="logistics-feature-desc">
                 No more chasing multiple vendors. One intelligent platform manages your entire end-to-end warehouse flow origin to destination.
               </p>
             </article>
 
             {/* Feature Right: Full supply chain visibility */}
-            <article className="feature-side right">
-              <svg className="feature-icon-svg" viewBox="0 0 35 38" width="35" height="38" aria-hidden="true">
+            <article className="logistics-feature-card f-right">
+              <svg className="logistics-feature-icon" viewBox="0 0 35 38" width="35" height="38" aria-hidden="true">
                 <rect x="0.5" y="0.5" width="17" height="9.6" rx="0.5" fill="#F9F9F9" />
                 <rect x="10.5" y="13.5" width="13.5" height="10.9" rx="0.5" fill="#F9F9F9" />
                 <rect x="17.5" y="28.3" width="17" height="9.7" rx="0.5" fill="#F9F9F9" />
@@ -303,11 +141,178 @@ export default function LoginPage({ onLogin, onRegister, authLoading, authError,
                   <rect x="31.90" y="34.40" width="1.10" height="1.90" />
                 </g>
               </svg>
-              <h2 className="feature-title-text">Full supply chain visibility</h2>
-              <p className="feature-desc-text">
-                Track your freight in real time and get proactive updates before issues become delays.
+              <h2 className="logistics-feature-title">Full supply chain visibility</h2>
+              <p className="logistics-feature-desc">
+                Track your inventory in real time and get proactive multi-agent predictions before issues become delays.
               </p>
             </article>
+          </div>
+        </section>
+
+        {/* MIDDLE COLUMN: OPEN CORRIDOR FOR TRAIN / SHIP TO MOVE UNOBSTRUCTED */}
+        <div className="logistics-center-corridor" aria-hidden="true" />
+
+        {/* RIGHT COLUMN: AUTHENTICATION TERMINAL MATCHING CURRENT SYSTEM UI */}
+        <section className="logistics-auth-column">
+          <div className="claude-auth-box">
+            {/* Brand Header */}
+            <div className="auth-card-header">
+              <img
+                src="/intelliwms_logo.png"
+                alt="InteliWMS Emblem"
+                className="auth-card-emblem"
+              />
+              <div className="auth-card-titles">
+                <h2 className="auth-brand-name">InteliWMS</h2>
+                <p className="auth-brand-subtitle">Operations Access Terminal</p>
+              </div>
+            </div>
+
+            {/* Quick 1-Click Demo Profiles */}
+            <div className="quick-access-section">
+              <span className="section-label">Quick 1-Click Demo Profiles</span>
+              <div className="quick-oauth-row">
+                <button
+                  type="button"
+                  className="oauth-btn"
+                  onClick={() => handleQuickLogin('john_staff', 'pass123', 'staff')}
+                  title="Login as Warehouse Staff"
+                >
+                  <span className="oauth-icon">👷</span>
+                  <span className="oauth-text">Staff (John)</span>
+                </button>
+
+                <button
+                  type="button"
+                  className="oauth-btn"
+                  onClick={() => handleQuickLogin('sarah_manager', 'pass456', 'manager')}
+                  title="Login as Shift Supervisor"
+                >
+                  <span className="oauth-icon">👩‍💼</span>
+                  <span className="oauth-text">Manager (Sarah)</span>
+                </button>
+
+                <button
+                  type="button"
+                  className="oauth-btn"
+                  onClick={() => handleQuickLogin('admin_user', 'admin123', 'admin')}
+                  title="Login as System Admin"
+                >
+                  <span className="oauth-icon">⚙️</span>
+                  <span className="oauth-text">Admin (Alex)</span>
+                </button>
+              </div>
+            </div>
+
+            {/* OR Divider */}
+            <div className="or-separator">
+              <span className="or-line" />
+              <span className="or-label">OR WITH CREDENTIALS</span>
+              <span className="or-line" />
+            </div>
+
+            {/* Mode Switch Tabs */}
+            <div className="auth-tab-row">
+              <button
+                type="button"
+                className={`tab-link ${!isRegisterMode ? 'active' : ''}`}
+                onClick={() => {
+                  setIsRegisterMode(false)
+                  setAuthError('')
+                }}
+              >
+                Sign In
+              </button>
+              <button
+                type="button"
+                className={`tab-link ${isRegisterMode ? 'active' : ''}`}
+                onClick={() => {
+                  setIsRegisterMode(true)
+                  setRole('staff')
+                  setAuthError('')
+                }}
+              >
+                Register Account
+              </button>
+            </div>
+
+            {/* Form */}
+            <form onSubmit={handleSubmit} className="credential-form">
+              {isRegisterMode && (
+                <div className="input-group">
+                  <label className="field-label" htmlFor="fullName">Full Name</label>
+                  <input
+                    id="fullName"
+                    type="text"
+                    placeholder="e.g. Alex Morgan"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    required
+                  />
+                </div>
+              )}
+
+              <div className="input-group">
+                <label className="field-label" htmlFor="username">Username or Warehouse ID</label>
+                <input
+                  id="username"
+                  type="text"
+                  placeholder="e.g. john_staff"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="input-group">
+                <label className="field-label" htmlFor="password">Password</label>
+                <input
+                  id="password"
+                  type="password"
+                  placeholder="Enter your secure password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="input-group">
+                <label className="field-label" htmlFor="role">Warehouse Operational Role</label>
+                <select
+                  id="role"
+                  value={isRegisterMode ? 'staff' : role}
+                  onChange={(e) => setRole(e.target.value)}
+                  aria-describedby={isRegisterMode ? 'role-register-note' : undefined}
+                >
+                  <option value="staff">Staff — Floor Operations & Picking</option>
+                  <option value="manager" disabled={isRegisterMode}>
+                    Manager — Shift Supervisor & Approvals
+                  </option>
+                  <option value="admin" disabled={isRegisterMode}>
+                    Admin — System & Security SOC
+                  </option>
+                </select>
+                {isRegisterMode && (
+                  <span id="role-register-note" className="field-hint">
+                    Manager and admin accounts are created by an administrator.
+                  </span>
+                )}
+              </div>
+
+              {authError && <div className="error-banner">{authError}</div>}
+
+              <button
+                type="submit"
+                className="primary-white-btn"
+                disabled={authLoading}
+              >
+                {authLoading
+                  ? 'Authenticating...'
+                  : isRegisterMode
+                  ? 'Create Account & Continue'
+                  : 'Continue to Operations'}
+              </button>
+            </form>
           </div>
         </section>
       </main>
