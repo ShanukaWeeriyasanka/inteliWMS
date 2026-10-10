@@ -30,6 +30,19 @@ create table if not exists inventory_product_mappings (
   legacy_snapshot jsonb not null,
   imported_at timestamptz not null default now()
 );
+-- Multiple legacy databases can have different IDs for the same authoritative SKU.
+alter table inventory_product_mappings add column if not exists source_system text not null default 'application';
+alter table inventory_product_mappings drop constraint if exists inventory_product_mappings_product_id_key;
+alter table inventory_product_mappings drop constraint if exists inventory_product_mappings_sku_key;
+do $$
+begin
+  if exists (select 1 from pg_constraint
+      where conrelid='inventory_product_mappings'::regclass and contype='p'
+      and pg_get_constraintdef(oid) not like '%source_system%') then
+    alter table inventory_product_mappings drop constraint inventory_product_mappings_pkey;
+    alter table inventory_product_mappings add primary key (source_system, application_product_id);
+  end if;
+end $$;
 -- Legacy aisle text cannot safely be converted to a particular physical box.
 create table if not exists unplaced_stock (
   product_id text primary key references products(id),
@@ -75,7 +88,8 @@ left join lateral (
     array_agg(distinct data_source) filter (where quantity>0) sources
   from stock_locations where product_id=p.id
 ) b on true
-left join unplaced_stock u on u.product_id=p.id;
+left join unplaced_stock u on u.product_id=p.id
+where p.is_active;
 
 -- A physical bin row aggregates lots exactly once. Zero rows retain their known box assignment.
 create or replace view v_inventory_placements as
@@ -96,7 +110,25 @@ from stock_locations sl join products p on p.id=sl.product_id
 join bins b on b.id=sl.bin_id join shelves s on s.id=b.shelf_id
 join racks r on r.id=s.rack_id join zones z on z.id=r.zone_id
 join floors f on f.id=z.floor_id join warehouses w on w.id=f.warehouse_id
+where p.is_active
 group by p.id,b.id,s.id,r.id,z.id,f.id,w.id;
+
+-- Archived catalogs retain their records but do not populate the operational map.
+create or replace view v_rack_fill as
+select r.id rack_id,r.name rack_name,z.id zone_id,z.floor_id,
+  coalesce(sum(sl.quantity),0)::int total_units,
+  count(distinct sl.product_id) filter(where sl.quantity>0)::int distinct_products,
+  (select coalesce(sum(b2.capacity_units),0) from shelves s2 join bins b2 on b2.shelf_id=s2.id
+    where s2.rack_id=r.id)::int capacity_units,
+  round(coalesce(sum(sl.quantity),0)::numeric/nullif(
+    (select sum(b2.capacity_units) from shelves s2 join bins b2 on b2.shelf_id=s2.id
+      where s2.rack_id=r.id),0),3) fill_ratio
+from racks r join zones z on z.id=r.zone_id
+left join shelves s on s.rack_id=r.id
+left join bins b on b.shelf_id=s.id
+left join stock_locations sl on sl.bin_id=b.id
+  and exists(select 1 from products p where p.id=sl.product_id and p.is_active)
+group by r.id,z.id;
 
 create or replace function inventory_stamp() returns trigger language plpgsql as $$
 begin new.updated_at=now(); return new; end $$;

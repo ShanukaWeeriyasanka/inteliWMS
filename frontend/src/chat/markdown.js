@@ -95,7 +95,10 @@ export function parseInline(src = '') {
 // Joins lines of one block with explicit line breaks
 const withBreaks = (lines) => lines.flatMap((line, idx) => (idx === 0 ? parseInline(line) : [{ type: 'br' }, ...parseInline(line)]))
 
-export function parseMarkdown(text = '') {
+const tableCells = (line) => line.trim().replace(/^\|/, '').replace(/\|$/, '')
+  .split(/(?<!\\)\|/).map((cell) => cell.trim().replace(/\\\|/g, '|'))
+
+export function parseMarkdown(text = '', { allowTables = false } = {}) {
   const lines = String(text ?? '').replace(/\r\n?/g, '\n').split('\n')
   const blocks = []
   let para = null // lines of the current paragraph
@@ -110,7 +113,26 @@ export function parseMarkdown(text = '') {
     list = null
   }
 
-  for (const line of lines) {
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index]
+    if (allowTables && line.trim().startsWith('|') && lines[index + 1]?.trim().startsWith('|')) {
+      const header = tableCells(line)
+      const divider = tableCells(lines[index + 1])
+      if (header.length === divider.length && divider.every((cell) => /^:?-{3,}:?$/.test(cell))) {
+        closePara()
+        closeList()
+        const rows = []
+        index += 1
+        while (lines[index + 1]?.trim().startsWith('|')) {
+          const row = tableCells(lines[index + 1])
+          if (row.length !== header.length) break
+          rows.push(row.map(parseInline))
+          index += 1
+        }
+        blocks.push({ type: 'table', header: header.map(parseInline), rows })
+        continue
+      }
+    }
     if (!line.trim()) {
       closePara()
       closeList()

@@ -21,14 +21,14 @@ from database.twin.connection import twin_connection, twin_database_url, twin_sc
 from database.twin.setup import ensure_twin_schema
 
 
-def import_products(rows):
+def import_products(rows, source_system='application'):
     """SKU is the cross-system key. Keep snapshots but never add conflicting balances."""
     mappings = []
     with twin_connection() as conn:
         conn.execute(text("select pg_advisory_xact_lock(hashtext('inventory_legacy_import'))"))
         for p in rows:
-            previous = conn.execute(text('select product_id from inventory_product_mappings where application_product_id=:id'),
-                                    {'id': p.id}).scalar()
+            previous = conn.execute(text('select product_id from inventory_product_mappings where application_product_id=:id and source_system=:source'),
+                                    {'id': p.id, 'source':source_system}).scalar()
             if previous:
                 mappings.append((p.id, p.sku, previous, 'already mapped'))
                 continue
@@ -49,8 +49,8 @@ def import_products(rows):
                     values (:pid,:qty,:reserved,coalesce(:updated,now()))'''),
                     {'pid':pid,'qty':p.quantity or 0,'reserved':p.reserved_quantity or 0,'updated':p.updated_at})
             conn.execute(text('''insert into inventory_product_mappings
-                (application_product_id,product_id,sku,legacy_snapshot) values (:id,:pid,:sku,cast(:snapshot as jsonb))'''),
-                {'id':p.id,'pid':pid,'sku':p.sku,'snapshot':json.dumps(snapshot,default=str)})
+                (application_product_id,source_system,product_id,sku,legacy_snapshot) values (:id,:source,:pid,:sku,cast(:snapshot as jsonb))'''),
+                {'id':p.id,'source':source_system,'pid':pid,'sku':p.sku,'snapshot':json.dumps(snapshot,default=str)})
             mappings.append((p.id,p.sku,pid,'imported unplaced' if created else 'existing twin balance retained'))
     return mappings
 
@@ -65,6 +65,9 @@ def backup(pg_dump):
     url = make_url(twin_database_url())
     env = os.environ.copy()
     env['PGPASSWORD'] = url.password or ''
+    for key in ('sslmode', 'sslrootcert', 'sslcert', 'sslkey', 'connect_timeout'):
+        if key in url.query:
+            env['PG' + key.upper()] = str(url.query[key])
     result = subprocess.run([executable,'--format=custom','--no-password','--host',url.host or 'localhost',
         '--port',str(url.port or 5432),'--username',url.username or 'postgres','--dbname',url.database,
         '--schema',twin_schema(),'--file',str(destination)],env=env,capture_output=True)
@@ -77,19 +80,29 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--apply',action='store_true')
     parser.add_argument('--pg-dump')
+    parser.add_argument('--import-supabase-public',action='store_true',
+                        help='Also map existing public.products by SKU, without overwriting twin balances')
     args = parser.parse_args()
     with SessionLocal() as db:
         rows = db.query(Product).order_by(Product.id).all()
+        cloud_rows = []
+        if args.import_supabase_public:
+            with twin_connection() as conn:
+                cloud_rows = [Product(**dict(row._mapping)) for row in conn.execute(text('select * from public.products order by id'))]
         if not args.apply:
             with twin_connection() as conn:
                 existing = {r.sku.upper():r.id for r in conn.execute(text('select id,sku from products'))}
             for p in rows:
                 print(p.id,p.sku,existing.get(p.sku.upper(),'new stable ID; unassigned location'))
+            for p in cloud_rows:
+                print('supabase_public',p.id,p.sku,existing.get(p.sku.upper(),'new stable ID; unassigned location'))
             return
         print('Backup:',backup(args.pg_dump))
         ensure_twin_schema(seed=False)
         for mapping in import_products(rows):
             print(*mapping)
+        for mapping in import_products(cloud_rows,source_system='supabase_public'):
+            print('supabase_public',*mapping)
 
 
 if __name__ == '__main__':

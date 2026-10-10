@@ -24,6 +24,7 @@ from typing import Any, Dict, List, Optional
 from agents.inventory_agent import responder as R
 from agents.inventory_agent import tool_contracts as C
 from agents.inventory_agent.config import inventory_config
+from agents.inventory_agent.report_queries import report_spec, interpret_collection_language, collection_language_candidate
 from agents.inventory_agent.document_parser import summarise as summarise_document
 from agents.inventory_agent.intents import (
     TWIN_SUB_INTENTS,
@@ -37,7 +38,7 @@ from agents.inventory_agent.schemas import InventoryQueryRequest, InventoryQuery
 from agents.inventory_agent.warehouse_map import get_full_warehouse_layout
 from security.rbac import rbac_manager
 from utils.async_bridge import run_sync
-from utils.decisions import RULE, record_decision
+from utils.decisions import RULE, LLM, record_decision
 from utils.logger import StructuredLogger
 from utils.metrics import INVENTORY_REQUESTS
 from utils.tracing import span
@@ -86,6 +87,8 @@ class _Turn:
         self.session_id: Optional[str] = ctx.get("session_id")
         self.thread_id: Optional[str] = ctx.get('thread_id')
         self.conversation: Dict[str, Any] = ctx.get("conversation") or {}
+        self.collection_intent = report_spec(self.query)
+        self.selected_scope = ctx.get('inventory_scope') or self.conversation.get('selected_scope')
         self.sub_intent, self.sub_intent_rule = detect_sub_intent_with_rule(self.query)
         self.entities = extract_entities(self.query)
         self.raw_sku_hint = (request.sku or "").strip() or None
@@ -123,6 +126,7 @@ class _Turn:
             source=source, items=items, needs_reorder=needs_reorder, outcome=outcome,
             context_update={"skus": skus or [], "product_ids": product_ids or [],
                             "last_sub_intent": self.sub_intent, "pending_clarification": pending,
+                            "selected_scope": self.selected_scope,
                             # a pick ("2") re-asks this question for the chosen option
                             "pending_query": self.query[:300] if pending else None},
             clarification_candidates=pending or [],
@@ -160,7 +164,26 @@ class InventoryAgent:
 
     async def _handle(self, request: InventoryQueryRequest, tools) -> InventoryQueryResponse:
         turn = _Turn(request, tools)
-        record_decision("inventory.sub_intent", turn.sub_intent, RULE, turn.sub_intent_rule)
+        if (turn.sub_intent in ('stock_check','availability') and turn.collection_intent is None
+                and not turn.entities.skus and not turn.entities.product_ids and collection_language_candidate(turn.query)):
+            # One optional interpretation, followed by a fixed allowlisted read flow.
+            import anyio
+            from config.llm_config import llm_config
+            from agents.coordinator.llm_calls import call_llm, OK
+            if llm_config.gemini_key or llm_config.groq_key:
+                def interpret():
+                    def complete(prompt):
+                        status, text = call_llm('inventory_intent', lambda: llm_config.hybrid_complete(prompt=prompt, max_tokens=180))
+                        return text if status == OK else ''
+                    return interpret_collection_language(turn.query, complete)
+                turn.collection_intent = await anyio.to_thread.run_sync(interpret)
+                logger.log_event('INVENTORY_LANGUAGE_INTENT', {'thread_id':turn.thread_id,
+                    'accepted':bool(turn.collection_intent), 'scope':turn.selected_scope})
+                if turn.collection_intent:
+                    turn.sub_intent, turn.sub_intent_rule = 'inventory_report', 'sub_intent.structured_collection'
+        interpreted = turn.sub_intent_rule == 'sub_intent.structured_collection'
+        record_decision("inventory.sub_intent", turn.sub_intent, LLM if interpreted else RULE, turn.sub_intent_rule,
+                        llm_consulted=interpreted)
         with span("inventory.handle", agent=AGENT_NAME, sub_intent=turn.sub_intent) as sp:
             try:
                 resp = await self._answer(turn)
@@ -174,8 +197,11 @@ class InventoryAgent:
             'thread_id':turn.thread_id,
             "sub_intent": resp.sub_intent, "outcome": resp.outcome, "source": resp.source,
             "items": len(resp.items), "error_code": resp.error_code, "duration_ms": resp.execution_time_ms,
+            "result_count":len(resp.items),
             "follow_up": bool(turn.assumed_label), "sub_intent_rule": turn.sub_intent_rule,
             "product_ref": turn.ref_source,
+            "scope":turn.selected_scope, "handler":resp.sub_intent,
+            "tool":C.QUERY_INVENTORY if turn.collection_intent else None,
         }, level="WARNING" if resp.outcome == "error" else "INFO")
         return resp
 
@@ -189,6 +215,41 @@ class InventoryAgent:
             turn.ref_source = "forbidden_role"
             return turn.respond(R.FAILURE_TEXT["unauthorized"], source="error", outcome="error",
                                 error_code="FORBIDDEN_ROLE")
+
+        if (sub in ('stock_check','availability') and not turn.collection_intent and not turn.entities.skus
+                and not turn.entities.product_ids and collection_language_candidate(turn.query)):
+            return turn.respond('Which inventory comparison would you like: equal quantities, highest/lowest stock, '
+                                'or a stock summary? You can also specify a warehouse or floor.',
+                                source='database', outcome='invalid_request')
+
+        if sub in ('lowest_stock','inventory_report'):
+            logger.log_event('INVENTORY_COLLECTION_INTENT', {'thread_id':turn.thread_id,
+                'intent':turn.collection_intent, 'scope':turn.selected_scope,
+                'handler':'inventory_report', 'tool':C.QUERY_INVENTORY})
+            result = await turn.call(C.QUERY_INVENTORY, query=turn.query[:2000], selected_scope=turn.selected_scope,
+                                     intent=turn.collection_intent)
+            if result.data.operation:
+                turn.selected_scope = result.data.location_scope
+            items = result.data.items
+            pids = [i.product_id for i in items if i.product_id]
+            command, command_id = None, None
+            if pids and result.data.status == 'ok' and result.data.operation in ('rank','list','equal','filter'):
+                command = {'version':inventory_config.TWIN_COMMAND_VERSION, 'action':'locate_product',
+                           'product_ids':pids, 'answer_text':result.data.response[:1200]}
+                if result.data.location_scope:
+                    command['location_ids'] = [result.data.location_scope]
+                if turn.session_id:
+                    pub = await turn.tools.call(C.PUBLISH_MAP_COMMAND, {
+                        'session_id':turn.session_id,'query_text':turn.query[:2000],'command':command})
+                    if not pub.failed: command_id = pub.data.command_id
+                    else:
+                        logger.log_event('TWIN_COMMAND_STORE_FAILED', {'thread_id':turn.thread_id,
+                                         'error_code':pub.error_code}, level='WARNING')
+            return turn.respond(result.data.response, source='database', items=items,
+                                outcome={'ok':'answered','empty':'empty','ambiguous':'clarification_needed',
+                                         'not_found':'invalid_request','missing_data':'missing_data'}[result.data.status],
+                                skus=[i.sku for i in items][:5], product_ids=pids,
+                                **({'ui_command':command,'ui_command_id':command_id} if command else {}))
 
         if sub == "document_parser":
             return await self._document(turn)
@@ -240,7 +301,8 @@ class InventoryAgent:
             if found is not None:
                 ref = found
             else:
-                fu = resolve_follow_up(turn.query, turn.conversation, allow_short=True)
+                fu = resolve_follow_up(turn.query, turn.conversation,
+                                       allow_short=not meaningful_terms(turn.query))
                 if not fu.any:
                     turn.ref_source = "none"
                     return turn.respond(R.needs_product(sub), source="database", outcome="needs_product")
@@ -555,13 +617,15 @@ def _blank_question(query: Optional[str], sku: Optional[str]) -> Optional[Dict[s
 async def handle_inventory_query_async(
     query: str, *, sku: Optional[str] = None, user_role: str = "staff", session_id: Optional[str] = None,
     conversation: Optional[Dict[str, Any]] = None, tools=None, thread_id: Optional[str] = None,
+    inventory_scope: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Async entry point used by the coordinator's dispatcher."""
     blank = _blank_question(query, sku)
     if blank is not None:
         return blank
-    resp = await inventory_agent.handle_query_async(
-        _request(query or sku, sku, user_role, session_id, conversation, thread_id), tools)
+    req = _request(query or sku, sku, user_role, session_id, conversation, thread_id)
+    req.context['inventory_scope'] = inventory_scope
+    resp = await inventory_agent.handle_query_async(req, tools)
     return _to_dict(resp)
 
 

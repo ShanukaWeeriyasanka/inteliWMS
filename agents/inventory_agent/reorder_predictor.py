@@ -14,7 +14,7 @@ from typing import List, Optional
 from sqlalchemy.orm import Session
 
 from agents.inventory_agent.schemas import DepletionPrediction
-from database.connection import SessionLocal
+from database.inventory_source import inventory_session as SessionLocal
 from database.models import Product
 from utils.logger import StructuredLogger
 

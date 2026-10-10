@@ -55,6 +55,7 @@ class ToolStatus(str, Enum):
     OK = "ok"
     NOT_FOUND = "not_found"
     EMPTY = "empty"
+    MISSING_DATA = "missing_data"
     AMBIGUOUS = "ambiguous"
     DISABLED = "disabled"
     # No usable result

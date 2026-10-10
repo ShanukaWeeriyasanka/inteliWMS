@@ -179,3 +179,108 @@ The existing opt-in live HTTP MCP and original PostgreSQL route acceptance suite
 remain separate from the inventory acceptance tests. Configure a throwaway
 `TWIN_TEST_DATABASE_URL` before running the original route database tests: they
 reset their target schema. The inventory acceptance tests never reset `twin`.
+# Supabase connection update (2026-10-09)
+
+Inventory and the map now use the Supabase session pooler configured privately in
+`.env` (`TWIN_DATABASE_URL`, SSL required, port 5432). The application database
+remains SQLite, preserving existing users, chat history, orders, and other agents.
+Supabase's `public` records differ from SQLite and were not overwritten or merged.
+
+Before cloud changes, the existing `twin` schema was saved to
+`logs/inventory_backups/supabase_before_20261009T093858.dump`; the import also made
+`logs/inventory_backups/20261009T093958892876.dump`. Both are ignored by Git.
+The additive migration and five-product import completed. Existing 12 products and
+24 placements remain; imported IDs PRD-00013 through PRD-00017 have unplaced stock.
+Seeded stock is demo data, and imported stock is labelled imported.
+
+The exact question "which product have the lowest stocks" now routes in code to
+inventory. The existing allowlisted `list_low_stock` MCP tool supports a validated
+`selection=lowest_on_hand` mode, which compares all products and includes zero and
+ties. Its default reorder-threshold behavior is preserved.
+
+Verification: 140 existing routing/inventory/MCP regression tests passed, plus all
+five new lowest-stock tests. Eight PostgreSQL acceptance tests passed in disposable
+schemas on Supabase. Cloud read checks returned 17 products and 24 placements; the
+authenticated inventory snapshot returned HTTP 200, and the session pooler's
+LISTEN connection succeeded. The actual MCP answer identified HW-SCR-4X40 with
+zero stock and explicitly labelled its source demo. No production quantities were
+changed by these checks.
+
+Restart the backend and any standalone inventory MCP process to reload `.env`.
+Frontend tests (77) and production build passed for the details-panel layout fix.
+Credentials remain in ignored `.env`; tracked examples contain placeholders only.
+
+The subsequent full inventory update is documented in
+[INVENTORY_QUESTIONS.md](INVENTORY_QUESTIONS.md). It adds source-qualified ID mappings,
+imports the sixth Supabase application product (SKU-3300 → PRD-00018), and preserves
+the overlapping SKU balances. The cloud now has 18 products, 24 physical placements
+and 8 stock alerts. Catalog reports cover rankings, counts, summaries, status lists,
+category grouping and warehouse/floor scopes. Alert cards display provenance and
+unassigned balances; map commands highlight all returned products within their
+requested scope. Summary/count reports do not imply a single selected product.
+
+Final checks: 467 backend regressions passed (27 opt-in skipped), 10 separate
+Supabase acceptance tests passed, and the focused report suite passed 22 tests,
+including the additional reserved-zero ranking regression. Frontend tests passed
+81 checks across 8 files; the production build passed with existing dependency
+annotation and bundle-size warnings. Git whitespace checks passed. Actual cloud
+MCP checks returned both zero-stock products for "lowest stock" and all 8 stock
+alerts for "list low stock products". Interactive browser QA remains unverified.
+
+## Supabase catalog selection — latest state
+
+The user selected the supplied PostgreSQL database as the inventory catalog.
+`scripts/select_inventory_catalog.py --apply` backed up the twin to
+`logs/inventory_backups/20261009T102702880955.dump`, selected its six
+`public.products` records, and archived the twelve unrelated demo products using
+`is_active=false`. No product, placement, mapping or history row was deleted.
+Active product totals, placements, search, alerts, rack fill and capacity checks
+exclude archived products. Inventory history sessions and legacy inventory helpers
+connect to PostgreSQL when configured, with no local SQLite catalog reads.
+
+Current UI/API catalog: 6 products, 3 stock alerts, 0 verified physical placements.
+All 18 product records and the 24 demo placement records remain stored for review.
+Lowest-stock answers now identify only SKU-3300 at zero. Current Supabase application
+and twin SKU sets agree. Restart/setup retains the active catalog selection.
+
+Verification: 468 backend regressions passed; 28 opt-in tests skipped. All 11
+PostgreSQL acceptance cases passed, with the two mapping/catalog tests rerun after
+correcting their test layout. Authenticated map snapshot and real inventory MCP
+checks confirmed the selected PostgreSQL catalog. No frontend files changed in
+this catalog-selection update; previous 81 frontend tests and build remain valid.
+
+## Highest-stock wording and stale context correction
+
+The coordinator and inventory report parser now share ranking recognition for
+stock, quantities, units, items and pieces. A bounded correction recognizes
+"heights stock" as "highest stock". Catalog comparisons run before product
+resolution and do not inherit a prior SKU. Unrecognized short searches no longer
+borrow the previous product merely because they contain few words; explicit
+follow-up references retain their existing behavior.
+
+After the context change, 123 report, inventory MCP, edge-case and thread tests
+passed. Earlier routing and deterministic checks passed 163 tests. Real Supabase
+MCP verification of both screenshot phrases, with archived HW-SCR-4X40 in the
+conversation, returned SKU-4521 at 340 units. One initial live attempt timed out;
+a bounded direct database probe and both subsequent MCP queries succeeded.
+
+## Equal-stock questions and inventory knowledge guidance
+
+Added deterministic equal-quantity grouping and numeric stock filters to the
+existing inventory report tool. Coordinator routing recognizes these operations;
+results use current snapshots, preserve explicit metric and location scopes,
+include zero commitments, and compare equality within the same unit of measure.
+The existing map command supports returned comparison/filter product IDs.
+No database schema or product data changed in this update.
+
+Added knowledge document GUIDE-INV-001 for stock definitions, supported questions
+and missing-location/source guidance. It contains no cached product quantities.
+The current environment uses keyword fallback because chromadb is not installed;
+persistent vector retrieval remains unverified. Restart services to load the guide.
+
+Verification: 493 backend tests passed, 28 opt-in skipped. Real Supabase inventory
+MCP reads confirmed no equal on-hand matches in the current catalog, two zero-
+reserved roll products, and the correct more-than-100 count results. Tests cover
+matching groups, no matches, different units, zero commitments, scoped placement
+aggregation, numeric boundaries, stale chat context and knowledge retrieval.
+No frontend code changed in this update; interactive browser QA was not repeated.

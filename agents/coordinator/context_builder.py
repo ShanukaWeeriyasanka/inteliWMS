@@ -47,6 +47,7 @@ def build_context(
     thread_id: Optional[str] = None,
     conversation: Optional[Dict[str, Any]] = None,
     entity_text: Optional[str] = None,
+    inventory_scope: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     Builds structured context payload for target specialist agent.
@@ -79,6 +80,7 @@ def build_context(
         "session_id": session_id,
         "thread_id": thread_id,
         "conversation": conversation,
+        "inventory_scope": inventory_scope,
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "audit_log": "routed_by_coordinator"
     }

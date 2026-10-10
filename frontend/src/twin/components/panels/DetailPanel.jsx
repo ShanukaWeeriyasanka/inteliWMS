@@ -123,7 +123,10 @@ export function ProductDetail({
       sub={<><StatusChip status={status} /><span className="twin-muted">SKU {product.sku}</span>{updated && <span className="twin-muted">· updated {timeAgo(updated)}</span>}</>}>
 
       <div className="twin-hero">
-        <span className="twin-muted">Source: {product.data_source || 'unverified'} · Updated: {updated || 'unknown'}</span>
+        <div className="twin-hero-meta twin-muted">
+          <span>Source: {product.data_source || 'unverified'}</span>
+          <span>Updated: {updated || 'unknown'}</span>
+        </div>
         <div className="twin-hero-chips">
           <span className="twin-chip is-light">{product.total_quantity} {product.unit}</span>
           <span className="twin-chip is-light">{product.category || 'General'}</span>
@@ -135,7 +138,7 @@ export function ProductDetail({
         </div>
       </div>
 
-      <div className="twin-stat-card">
+      <div className="twin-stat-card twin-product-stats">
         <div>
           <span className="twin-label">Stock level</span>
           <div className="twin-big">{product.total_quantity}<small> {product.unit}</small></div>
@@ -189,7 +192,7 @@ export function ProductDetail({
           <div className="twin-section-head"><h3>Stock locations</h3><span className="twin-muted">{rows.length}</span></div>
           <div className="twin-rows">
             {rows.map((r) => (
-              <button key={r.bin_id} className={`twin-row${r.bin_id === focus?.bin_id ? ' is-on' : ''}`} onClick={() => onFocusRow(r)}>
+              <button key={r.bin_id} className={`twin-row twin-stock-location${r.bin_id === focus?.bin_id ? ' is-on' : ''}`} onClick={() => onFocusRow(r)}>
                 <span className="twin-row-main">
                   <strong>{shortBinLabel(r.bin_id, r.rack_name)}</strong>
                   <span className="twin-muted">{r.location_label}</span>

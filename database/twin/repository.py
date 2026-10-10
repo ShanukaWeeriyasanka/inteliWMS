@@ -80,6 +80,10 @@ def get_layout() -> Dict[str, List[Dict[str, Any]]]:
         }
 
 
+def get_floors() -> List[Dict[str, Any]]:
+    return _query("select id, warehouse_id, level, name from floors order by warehouse_id, level")
+
+
 def get_nav_edges() -> List[Dict[str, Any]]:
     return _query("select id, edge_type::text as edge_type, from_node_id, to_node_id, from_floor_id, to_floor_id, "
                   "bidirectional, blocked, distance_m, cost_s from v_nav_edges order by id")
@@ -94,6 +98,10 @@ def get_product_totals() -> List[Dict[str, Any]]:
         "       t.available_quantity, t.unplaced_quantity, t.updated_at, t.data_source, "
         "       p.category, p.unit, p.image_url, p.aliases, p.weight_kg, p.safety_stock, "
         "       p.reorder_quantity, p.daily_burn_rate, p.lead_time_days, p.unit_price, p.is_hazardous "
+          "       , (exists(select 1 from stock_locations sl where sl.product_id=p.id) "
+          "          or exists(select 1 from unplaced_stock u where u.product_id=p.id)) as stock_recorded "
+          "       , (select max(stamp) from (select updated_at stamp from stock_locations where product_id=p.id "
+          "          union all select updated_at from unplaced_stock where product_id=p.id) stamps) as stock_updated_at "
         "from v_product_totals t join products p on p.id = t.product_id "
         "where p.is_active order by t.product_no"
     )
@@ -167,7 +175,8 @@ def get_open_alerts() -> List[Dict[str, Any]]:
         "cross join lateral (select coalesce(a.bin_id, "
         "    (select sl.bin_id from stock_locations sl where sl.product_id = a.product_id "
         "      order by sl.quantity desc, sl.updated_at desc limit 1)) as bin_id) loc "
-        "where a.resolved_at is null order by a.level desc, a.created_at desc"
+        "where a.resolved_at is null and (a.product_id is null or p.is_active) "
+        "order by a.level desc, a.created_at desc"
     )
 
 
@@ -281,6 +290,6 @@ def get_ui_commands(session_id: str, limit: int = 10) -> List[Dict[str, Any]]:
 
 
 def floor_with_most_units() -> Optional[str]:
-    rows = _query("select floor_id from v_product_locations group by floor_id "
+    rows = _query("select floor_id from v_inventory_placements group by floor_id "
                   "order by sum(quantity) desc, floor_id limit 1")
     return rows[0]["floor_id"] if rows else None

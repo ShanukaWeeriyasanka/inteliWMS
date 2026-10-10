@@ -16,7 +16,7 @@ from typing import Dict, Any, List, Optional
 from sqlalchemy.orm import Session
 
 from agents.inventory_agent.schemas import StockItemInfo
-from database.connection import SessionLocal
+from database.inventory_source import inventory_session as SessionLocal
 from database.models import Product
 
 # ── Static fallback (used only for SKUs not in DB) ────────────────────────────

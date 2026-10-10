@@ -16,7 +16,7 @@ from agents.inventory_agent.schemas import (
     TransferRecommendation,
     SiblingWarehouseOption,
 )
-from database.connection import SessionLocal
+from database.inventory_source import inventory_session as SessionLocal
 from database.models import Product
 from utils.logger import StructuredLogger
 

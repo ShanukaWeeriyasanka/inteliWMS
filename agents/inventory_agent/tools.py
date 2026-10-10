@@ -22,6 +22,7 @@ from agents.inventory_agent.tool_contracts import (
     DocumentResult,
     EquipmentResult,
     LowStockResult,
+    InventoryReportResult,
     MovementsResult,
     ProductCandidate,
     ProductStockResult,
@@ -121,6 +122,105 @@ def canonical_item(row, placements):
 
 # ── Read tools ──────────────────────────────────────────────────────────────
 
+def query_inventory(db: Session, query: str, selected_scope=None, intent=None) -> InventoryReportResult:
+    from datetime import datetime, timezone
+    from agents.inventory_agent.report_queries import evaluate_report
+    if authority.uses_twin():
+        from database.twin import repository
+        snapshot = authority.snapshot()
+        layout = repository.get_layout()
+        rows, placements, as_of = snapshot['products'], snapshot['locations'], snapshot['as_of']
+        item_for = lambda p, locs: canonical_item(p, locs)[0]
+    else:
+        legacy_records = db.query(Product).all()
+        recorded = {p.sku:p.quantity is not None for p in legacy_records}
+        legacy = [product_to_item(p)[0] for p in legacy_records]
+        by_id = {i.sku:i for i in legacy}
+        rows = [dict(product_id=i.sku, sku=i.sku, name=i.name, category=i.category, unit=i.unit,
+                     total_quantity=i.quantity_on_hand, available_quantity=i.available_quantity,
+                     reserved_quantity=i.reserved_quantity, quarantined_quantity=0, unplaced_quantity=0,
+                     reorder_point=i.reorder_point) for i in legacy]
+        for row in rows:
+            row['stock_recorded'] = recorded[row['sku']]
+        placements, layout = [], {}
+        as_of = datetime.now(timezone.utc).isoformat()
+        item_for = lambda p, locs: by_id[p['product_id']]
+    report = evaluate_report(query, rows, placements, layout, selected_scope=selected_scope, intent=intent)
+    if report['status'] in ('ambiguous','unsupported') or 'spec' not in report:
+        return InventoryReportResult(status='not_found' if report['status']=='unsupported' else report['status'],
+                                     response=report['message'], as_of=as_of)
+    spec = report['spec']
+    items = [item_for(p, report['placements'][p['product_id']]) for p in report['products']]
+    metric_name = {'total_quantity':'on-hand', 'available_quantity':'available', 'reserved_quantity':'reserved',
+                   'quarantined_quantity':'quarantined'}[spec['metric']]
+    title = (('Highest' if spec['descending'] else 'Lowest')+' '+metric_name+' stock'
+             if spec['operation']=='rank' else 'Products with equal '+metric_name+' quantities'
+             if spec['operation']=='equal' else 'Inventory '+spec['operation'])
+    lines = [f'**{title}**', f"Scope: {report['scope']}. Matched products: **{report['matched_count']}**."]
+    if spec['operation']=='equal':
+        lines.append('Products are compared within the same stored unit of measure; zero quantities are included.')
+    if spec['threshold']:
+        lines.append(f"Filter: {spec['metric'].replace('_quantity','').replace('total','on-hand')} {spec['threshold'][0]} {spec['threshold'][1]}.")
+    if spec['operation']=='rank' and len(report['unit_totals']) > 1:
+        lines.append('Ranked by stored unit counts; units of measure differ across products.')
+    if spec['operation'] in ('summary','count'):
+        for unit, values in sorted(report['unit_totals'].items()):
+            lines.append(f"• {unit}: {values['total_quantity']} on hand, {values['available_quantity']} available, "
+                         f"{values['reserved_quantity']} reserved, {values['quarantined_quantity']} quarantined, "
+                         f"{values['unplaced_quantity']} unassigned.")
+        for group, units in sorted(report['groups'].items()):
+            lines.append(f"• {group}: "+', '.join(f"{v.get(spec['metric'],0)} {u} {metric_name}" for u,v in units.items()))
+        if spec['group_by'] in ('warehouse','floor') and spec['metric']!='total_quantity':
+            lines.append('Location groups contain assigned stock only; global totals include unassigned balances.')
+    else:
+        previous_group = None
+        for i in items:
+            if spec['operation']=='equal':
+                group = (i.unit, getattr(i, 'quantity_on_hand' if spec['metric']=='total_quantity' else spec['metric']))
+                if group != previous_group:
+                    lines.append(f'**Equal group: {group[1]} {group[0]} {metric_name} each**')
+                    if group[1] == 0:
+                        lines.append('Confirmed zero-stock group.' if spec['metric']=='total_quantity' else 'Confirmed zero '+metric_name+' group.')
+                    lines.extend(['| Product ID | Product name | Quantity | Unit | Warehouse / floor locations |',
+                                  '| --- | --- | ---: | --- | --- |'])
+                    previous_group = group
+                def cell(value):
+                    return str(value).replace('|', '\\|').replace('\n', ' ')
+                locs = report['placements'][i.product_id or i.sku]
+                location = '; '.join(sorted({r.get('warehouse_name',r.get('warehouse_id','Unknown warehouse'))+' / '+
+                                             r.get('floor_name',r.get('floor_id','Unknown floor')) for r in locs})) or i.location
+                lines.append('| '+ ' | '.join(cell(v) for v in (i.product_id or i.sku,i.name,group[1],i.unit,location))+' |')
+                continue
+            lines.append(f"• **{i.name}** (`{i.sku}`{', '+i.product_id if i.product_id else ''}): "
+                         f"{i.quantity_on_hand} {i.unit} on hand, {i.available_quantity} available, "
+                         f"{i.reserved_quantity} reserved, {i.quarantined_quantity} quarantined. "
+                         f"Location: {i.location}. Source: {i.data_source or 'unverified'}; updated {i.updated_at or 'unknown'}.")
+        if report['returned_count'] < report['result_count']:
+            lines.append(f"Showing {report['returned_count']} of {report['result_count']} matching results.")
+    if report['missing_product_ids']:
+        lines.append('Stock data missing for: '+', '.join(report['missing_product_ids'])+'. These products were excluded; missing data is not zero stock.')
+    if report['status']=='empty':
+        lines.append('No products share the same '+metric_name+' quantity within the same unit of measure.'
+                     if spec['operation']=='equal' else 'No matching inventory products.')
+    sources = sorted({p.get('data_source','unverified') for p in rows})
+    stamps = [p.get('stock_updated_at') for p in report['evaluated_products']]
+    source_updated_at = max((stamp for stamp in stamps if stamp), default=None)
+    oldest = min((stamp for stamp in stamps if stamp), default=None)
+    freshness = 'recorded' if stamps and all(stamps) else 'unknown'
+    if oldest and inventory_config.STOCK_MAX_AGE_SECONDS > 0:
+        stamp = datetime.fromisoformat(oldest.replace('Z','+00:00'))
+        if stamp.tzinfo is None: stamp = stamp.replace(tzinfo=timezone.utc)
+        if (datetime.now(timezone.utc)-stamp).total_seconds() > inventory_config.STOCK_MAX_AGE_SECONDS:
+            freshness = 'stale'
+    lines.append(f"Source stock last updated: {source_updated_at or 'unknown'}; oldest included record: {oldest or 'unknown'}. Freshness: {freshness}.")
+    if freshness == 'stale': lines.append('These recorded balances exceed the configured freshness limit; current physical stock is not verified.')
+    lines.append(f"Data sources: {', '.join(sources)}. Snapshot checked: {as_of}.")
+    return InventoryReportResult(status=report['status'], response='\n'.join(lines), items=items,
+                                 as_of=as_of, matched_count=report['matched_count'], location_scope=report['location_scope'],
+                                 operation=spec['operation'], missing_product_ids=report['missing_product_ids'],
+                                 source_updated_at=source_updated_at, freshness=freshness)
+
+
 def get_product_stock(db: Session, sku: str) -> ProductStockResult:
     if authority.uses_twin():
         snapshot = authority.snapshot()
@@ -198,18 +298,23 @@ def search_products(db: Session, text: str, limit: int = 5) -> SearchProductsRes
                                 candidates=candidates, matched_terms=matched)
 
 
-def list_low_stock(db: Session, limit: int = 50) -> LowStockResult:
+def list_low_stock(db: Session, limit: int = 50, selection: str = 'reorder') -> LowStockResult:
+    if selection not in ('reorder', 'lowest_on_hand'):
+        raise ValueError('Invalid stock selection')
     if authority.uses_twin():
         snapshot = authority.snapshot()
         rows = snapshot['products']
-        low = [p for p in rows if p['is_low_stock']]
+        minimum = min((p['total_quantity'] for p in rows), default=0)
+        low = [p for p in rows if (p['total_quantity'] == minimum if selection == 'lowest_on_hand' else p['is_low_stock'])]
         low.sort(key=lambda p: (not p['is_out_of_stock'], p['total_quantity'], p['product_id']))
         chosen = low[:limit]
         placements = snapshot['locations']
         return LowStockResult(status='ok' if chosen else 'empty', total_checked=len(rows), items=[
             canonical_item(p, [r for r in placements if r['product_id']==p['product_id']])[0] for p in chosen])
     products = db.query(Product).order_by(Product.sku).all()
-    low = [item for item, _ in map(product_to_item, products) if item.status in ("OUT_OF_STOCK", "LOW_STOCK")]
+    items = [item for item, _ in map(product_to_item, products)]
+    minimum = min((i.quantity_on_hand for i in items), default=0)
+    low = [i for i in items if (i.quantity_on_hand == minimum if selection == 'lowest_on_hand' else i.status in ('OUT_OF_STOCK', 'LOW_STOCK'))]
     low.sort(key=lambda i: (i.status != "OUT_OF_STOCK", i.quantity_on_hand))
     return LowStockResult(status="ok" if low else "empty", items=low[:limit], total_checked=len(products))
 

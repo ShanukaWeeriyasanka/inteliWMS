@@ -18,6 +18,7 @@ import re
 from typing import Any, List, Optional, Tuple
 
 from agents.coordinator.llm_calls import OK, UNAVAILABLE, call_llm
+from agents.inventory_agent.report_queries import report_spec
 from config.llm_config import llm_config
 from config.prompts import COORDINATOR_SYSTEM_PROMPT
 from utils.logger import StructuredLogger
@@ -156,6 +157,14 @@ _FULFILLMENT_STRONG = [
 ]
 # Inventory: stock quantities, availability, locations, low stock, movements (meaning-level phrases)
 _INVENTORY_STRONG = [
+    r"\b(list|show)\b.*\b(products|skus|catalog|catalogue)\b",
+    r"\b(products|items|stock)\b.*\b(reserved|quarantined|unassigned|unplaced)\b",
+    r"\b(highest|most|largest|top\s+\d+)\b.*\b(stocks?|inventory|quantity|quantities)\b",
+    r"\b(inventory|stock)\s+(summary|overview|totals?)\b|\btotal (stock|inventory|units)\b",
+    r"\b(how many|count|number of|list|show)\s+(all\s+|distinct\s+)?(products|skus)\b",
+    r"\b(reserved|quarantined|unassigned|unplaced)\b.*\b(stock|products|inventory|units|items)\b",
+    r"\b(lowest|least|smallest)\b.*\b(stocks?|inventory|quantity|quantities)\b",
+    r"\b(stocks?|inventory|quantity|quantities)\b.*\b(lowest|least|smallest)\b",
     r"\bsku[-\s]?\d{3,6}\b", r"\bprd-\d{5}\b",
     r"\b(in stock|out of stock|low stock|low on stock|stock ?(level|levels|count|counts|status|movements?|history|on hand)|"
     r"on hand|safety stock|reorder (point|level|quantity|threshold)|restock\w*|replenish\w*|inventory)\b",
@@ -180,7 +189,7 @@ _FULFILLMENT_KEYWORDS = [
     r"\b(complaint|shipping|packing slip|transit)\b",
 ]
 _INVENTORY_KEYWORDS = [
-    r"\b(stock|inventory|quantity|sku|sku-\d+|reorder|restock|battery|label rolls|pallet wrap)\b",
+    r"\b(stocks?|inventory|quantity|sku|sku-\d+|reorder|restock|battery|label rolls|pallet wrap)\b",
     r"\b(how many|on hand|in stock|warehouse aisle|shelf|bin location|bay map)\b",
     r"\b(supplier email|supplier pdf|parse email|inbound invoice|manifest|po-\d+|we shipped)\b",
     r"\b(grinding|hydraulic leak|conveyor slip|belt squeal|agv-\d+|equipment health|machine breakdown|informal log)\b",
@@ -321,6 +330,10 @@ class IntentClassifier:
             (_TWIN_HINT, "INVENTORY", 0.75, "inventory.twin_hint", "Warehouse map wording (weak hint)."),
         ]
         for patterns, domain, confidence, rule_id, reasoning in table:
+            if rule_id == 'inventory.strong':
+                report = report_spec(ql)
+                if report and report['operation'] in ('rank','equal','filter'):
+                    return IntentResult('INVENTORY', 0.95, 'Stock quantity comparison.', 'heuristic', rule_id=rule_id)
             if _any(patterns, ql):
                 return IntentResult(domain, confidence, f"Heuristic match: {reasoning}", "heuristic", rule_id=rule_id)
         return None

@@ -44,7 +44,8 @@ def update_placement(*, product_id, bin_id, lot_code, quantity, reserved_quantit
         if delta > 0:
             if str(bin_row['status']) != 'active':
                 raise ValueError('Bin is blocked or unavailable')
-            used = conn.execute(text('select coalesce(sum(quantity),0) from stock_locations where bin_id=:bin'),params).scalar()
+            used = conn.execute(text('''select coalesce(sum(sl.quantity),0) from stock_locations sl
+                join products p on p.id=sl.product_id where sl.bin_id=:bin and p.is_active'''),params).scalar()
             if used + delta > bin_row['capacity_units']:
                 raise ValueError('Bin capacity exceeded')
         source = 'operational'

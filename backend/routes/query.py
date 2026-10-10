@@ -47,6 +47,7 @@ BLOCKED_PLACEHOLDER = "[message blocked by the security filter]"
 
 
 class QueryRequest(BaseModel):
+    inventory_scope: Optional[str] = Field(None, pattern=r'^WH\d+(?:-F\d+)?(?:-Z\d{2})?(?:-R\d{2})?(?:-S\d{2})?(?:-B\d{2})?$')
     token: Optional[str] = None
     message: Optional[str] = Field(None, max_length=settings.CHAT_MAX_MESSAGE_CHARS)
     query: Optional[str] = Field(None, max_length=settings.CHAT_MAX_MESSAGE_CHARS)
@@ -267,6 +268,7 @@ async def handle_coordinator_query(payload: QueryRequest, request: Request, db: 
                 thread_id=thread.id if thread is not None else None,
                 conversation=ctx.inventory.model_dump() if domain == "INVENTORY" else None,
                 entity_text=routing_decision.get("normalized_query"),
+                inventory_scope=payload.inventory_scope if domain == 'INVENTORY' else None,
             )
 
             dispatch_start = time.perf_counter()

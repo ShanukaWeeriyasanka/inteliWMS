@@ -22,12 +22,20 @@ function renderInline(nodes) {
   })
 }
 
-export default function MarkdownText({ text, className = '' }) {
-  const blocks = useMemo(() => parseMarkdown(text), [text])
+export default function MarkdownText({ text, className = '', allowTables = false }) {
+  const blocks = useMemo(() => parseMarkdown(text, { allowTables }), [text, allowTables])
 
   return (
     <div className={`md-text ${className}`.trim()}>
       {blocks.map((block, i) => {
+        if (block.type === 'table') {
+          return <div key={i} className="inventory-query-table" tabIndex={0}>
+            <table aria-label="Inventory comparison">
+              <thead><tr>{block.header.map((cell, j) => <th key={j} scope="col">{renderInline(cell)}</th>)}</tr></thead>
+              <tbody>{block.rows.map((row, j) => <tr key={j}>{row.map((cell, k) => <td key={k}>{renderInline(cell)}</td>)}</tr>)}</tbody>
+            </table>
+          </div>
+        }
         if (block.type === 'list') {
           const ListTag = block.ordered ? 'ol' : 'ul'
           return (

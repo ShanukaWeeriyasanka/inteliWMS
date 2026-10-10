@@ -168,7 +168,7 @@ class InventoryQueryResponse(BaseModel):
 
     # How the request ended, so the coordinator can tell an answer from a failure
     outcome: Literal["answered", "not_found", "empty", "clarification_needed", "needs_product", "invalid_request",
-                     "error"] = "answered"
+                     "error", "missing_data"] = "answered"
     error_code: Optional[str] = Field(None, description="Tool / transport failure code when outcome == 'error'")
     context_update: Optional[Dict[str, Any]] = Field(None, description="Canonical product ids for the thread context")
     clarification_candidates: List[Dict[str, Any]] = Field(default_factory=list)

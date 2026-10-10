@@ -51,6 +51,14 @@ def ensure_twin_schema(seed: bool = True, reset: bool = False) -> bool:
             created = True
         cur.execute(_read_sql("realtime.sql"))
         cur.execute(_read_sql("inventory_migration.sql"))
+        # Refresh only product resolution so existing installations respect archived catalogs.
+        resolver = re.search(r'create or replace function resolve_product\(q text\).*?\$\$;',
+                             _read_sql('schema.sql'), re.S).group(0)
+        if extension:
+            namespace = sql.Identifier(extension[0]).as_string(cur)
+            resolver = re.sub(r'\b(word_similarity|similarity)\b',
+                              lambda m: namespace + '.' + m.group(1), resolver)
+        cur.execute(resolver)
         raw.commit()
     except Exception:
         raw.rollback()

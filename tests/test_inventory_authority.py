@@ -41,6 +41,63 @@ def stock(ref):
     return tools.get_product_stock(None,ref).item
 
 
+def test_lowest_stock_query_uses_authority(inventory_pg):
+    result = tools.list_low_stock(None, selection='lowest_on_hand')
+    assert result.total_checked == 12
+    assert [(i.product_id, i.quantity_on_hand) for i in result.items] == [('PRD-00012', 0)]
+
+
+def test_two_source_ids_map_to_one_product_without_doubling(inventory_pg):
+    a=Product(id=5,sku='SKU-8001',name='Scanner',quantity=45,reserved_quantity=3,unit='units',reorder_point=50)
+    first=import_products([a])[0][2]
+    b=Product(id=5,sku='SKU-8001',name='Scanner',quantity=999,reserved_quantity=0,unit='units',reorder_point=50)
+    assert import_products([b],source_system='supabase_public')[0][2]==first
+    assert stock(first).quantity_on_hand==45
+    with twin_connection() as c:
+        assert c.execute(text('select count(*) from inventory_product_mappings')).scalar()==2
+    ensure_twin_schema(seed=False)
+    import_products([b],source_system='supabase_public')
+    assert stock(first).quantity_on_hand==45
+
+
+def test_selected_catalog_excludes_demo_everywhere_without_deleting(inventory_pg):
+    from scripts.select_inventory_catalog import select_catalog
+    rows=[Product(id=24,sku='SKU-4521',name='Actual scanner',quantity=340,reserved_quantity=10,
+                  unit='units',reorder_point=60),
+          Product(id=25,sku='SKU-7788',name='Actual printer',quantity=15,reserved_quantity=2,
+                  unit='units',reorder_point=20)]
+    select_catalog(rows)
+    snap=repo.get_inventory_snapshot()
+    assert {p['sku'] for p in snap['products']}=={'SKU-4521','SKU-7788'}
+    assert snap['locations']==[]
+    assert all(r['total_units']==0 and r['distinct_products']==0 for r in snap['rack_fill'])
+    assert {a['product_id'] for a in snap['alerts']}=={'PRD-00014'}
+    assert repo.resolve_product('HW-SCR-4X40')==[]
+    assert tools.get_product_stock(None,'HW-SCR-4X40').status=='not_found'
+    assert tools.query_inventory(None,'lowest stock').items[0].sku=='SKU-7788'
+    with twin_connection() as c:
+        assert c.execute(text('select count(*) from products')).scalar()==14
+        assert c.execute(text('select count(*) from stock_locations')).scalar()==24
+    ensure_twin_schema(seed=False)
+    select_catalog(rows)
+    assert len(repo.get_product_totals())==2
+
+
+def test_inventory_reports_use_scoped_balances_and_current_snapshot(inventory_pg):
+    summary=tools.query_inventory(None,'inventory summary')
+    assert summary.status=='ok' and summary.matched_count==12 and summary.as_of
+    assert 'Snapshot checked:' in summary.response and 'demo' in summary.response
+    rank=tools.query_inventory(None,'lowest stock in WH1-F2')
+    assert rank.status=='ok' and rank.location_scope=='WH1-F2'
+    assert all(r['floor_id']=='WH1-F2' for i in rank.items for r in i.placements)
+    for item in rank.items:
+        assert item.quantity_on_hand==sum(r['quantity'] for r in item.placements)
+    low=tools.query_inventory(None,'list low stock products')
+    expected={p['product_id'] for p in repo.get_product_totals() if p['is_low_stock']}
+    assert {i.product_id for i in low.items}==expected
+    assert tools.query_inventory(None,'list products in warehouse 999').status=='empty'
+
+
 def test_single_multiple_bins_floors_and_zero(inventory_pg):
     single = stock('HW-DRL-18V')
     assert single.product_id=='PRD-00004' and single.quantity_on_hand==22 and len(single.placements)==1
@@ -76,6 +133,24 @@ def test_lots_aggregate_once_and_multiple_warehouses(inventory_pg):
     snap=repo.get_inventory_snapshot()
     total=next(p for p in snap['products'] if p['product_id']==item.product_id)
     assert total['bin_count']==4 and total['total_quantity']==sum(r['quantity'] for r in item.placements)
+
+
+def test_equal_groups_use_aggregated_lots_and_exclude_missing_stock(inventory_pg):
+    with twin_connection() as c:
+        c.execute(text("update products set is_active=false"))
+        c.execute(text("update products set is_active=true, unit='units' where id in ('PRD-00002','PRD-00004','PRD-00012')"))
+        c.execute(text("insert into stock_locations (product_id,bin_id,lot_code,quantity) values ('PRD-00002','WH1-F2-Z01-R02-S03-B04','EXTRA',3)"))
+        c.execute(text("update stock_locations set quantity=53 where product_id='PRD-00004'"))
+        c.execute(text("insert into products (product_no,sku,name) values (99,'SKU-9999','No stock record')"))
+    report=tools.query_inventory(None,'products with equal units')
+    assert report.status=='ok'
+    assert {i.product_id for i in report.items}=={'PRD-00002','PRD-00004'}
+    assert all(i.quantity_on_hand==53 for i in report.items)
+    assert report.missing_product_ids==['PRD-00099']
+    assert '| Warehouse / floor locations |' in report.response
+    scoped=tools.query_inventory(None,'products with equal units',selected_scope='WH1-F2')
+    assert scoped.items==[] # Charger floor-2 balance is 45, drill is 53.
+    assert scoped.status=='missing_data' # Unlocated product has no stock record; comparison completeness is unknown.
 
 
 def test_migration_import_mapping_and_allocation_preserve_totals(inventory_pg):

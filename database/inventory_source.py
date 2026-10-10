@@ -17,6 +17,15 @@ def uses_twin():
     return connection.is_enabled()
 
 
+def inventory_session():
+    """Inventory history sessions use the supplied PostgreSQL database when configured."""
+    if uses_twin():
+        from sqlalchemy.orm import Session
+        return Session(bind=connection.get_engine())
+    from database.connection import SessionLocal
+    return SessionLocal()
+
+
 def products():
     with span('inventory.retrieve', source='postgresql_twin'):
         rows = repository.get_product_totals()

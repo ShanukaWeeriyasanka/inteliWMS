@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import FloorMap from '../components/map/FloorMap'
 import { ProductDetail } from '../components/panels/DetailPanel'
+import InventoryPanel from '../components/panels/InventoryPanel'
 
 function fixture() {
   const shelf={id:'WH2-F1-Z01-R01-S01',rack_id:'WH2-F1-Z01-R01',level_index:1}
@@ -21,6 +22,19 @@ function fixture() {
 }
 
 describe('inventory UI data agreement', () => {
+  it('labels alert provenance and unassigned stock without implying a warehouse assignment', () => {
+    const {layout,row}=fixture()
+    const product={product_id:row.product_id,name:'Imported printer',unit:'pcs',data_source:'imported',
+      updated_at:row.updated_at,total_quantity:15,available_quantity:13,reserved_quantity:2,unplaced_quantity:15}
+    const data={layout:{...layout,raw:{warehouses:[]}},products:[product],locationsByProduct:new Map(),
+      fillByRack:new Map(),alerts:[{id:1,product_id:row.product_id,product_name:product.name,
+        level:'warning',created_at:row.updated_at,message:'15 left, reorder point 20'}]}
+    const html=renderToStaticMarkup(<InventoryPanel data={data} floorId="WH2-F1" tab="alerts" query="" />)
+    expect(html).toContain('All warehouses')
+    expect(html).toContain('imported')
+    expect(html).toContain('15 pcs awaiting bin assignment')
+    expect(html).toContain('13 available')
+  })
   it('highlights only the exact box, using the supplied floor and stock values', () => {
     const {bins,row,layout}=fixture()
     const html=renderToStaticMarkup(<FloorMap svgRef={{current:null}} layout={layout} edges={[]}

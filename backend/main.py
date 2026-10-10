@@ -24,6 +24,7 @@ from backend.middleware.error_handler import register_error_handlers
 from backend.middleware.request_context import RequestContextMiddleware
 from mcp_servers.mcp_tool_client import inventory_tool_gateway
 from backend.twin.routes import router as twin_router
+from backend.routes.inventory_suggestions import router as inventory_suggestions_router
 from backend.twin.realtime import twin_broker
 from database.twin import ensure_twin_schema, is_enabled as twin_is_enabled
 
@@ -280,6 +281,10 @@ app.include_router(metrics_router)
 # ==================== Warehouse Digital Twin (map, routes, live updates) ====================
 
 app.include_router(twin_router)
+
+# ==================== Inventory question autocomplete (read-only) ====================
+
+app.include_router(inventory_suggestions_router)
 
 if __name__ == "__main__":
     import uvicorn

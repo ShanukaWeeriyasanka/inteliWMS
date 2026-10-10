@@ -34,6 +34,12 @@ def ensure_sops_seeded():
 
 # ==================== 1. Physical Location Resolver Tests ====================
 
+def test_inventory_help_document_is_retrievable():
+    hits = knowledge_store.query('stock quantity definitions', n_results=3, category='Inventory Help')
+    assert any(h['doc_id']=='GUIDE-INV-001' for h in hits)
+    assert any('Reserved' in h['content'] for h in hits)
+
+
 def test_resolve_location_by_sku():
     """Test looking up item by exact SKU code."""
     result = resolve_location("where is SKU-4521?")

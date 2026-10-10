@@ -104,7 +104,7 @@ export default function ChatMessage({
 
           {/* Normal Assistant / User Content (agent replies use light Markdown) */}
           {!isBlocked && !isUser && (
-            <MarkdownText className="message-text-content" text={message.content} />
+            <MarkdownText className="message-text-content" text={message.content} allowTables={agentTarget === 'inventory_agent'} />
           )}
           {!isBlocked && isUser && message.content && (
             <div className="message-text-content">

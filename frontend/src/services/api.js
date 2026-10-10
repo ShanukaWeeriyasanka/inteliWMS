@@ -33,17 +33,24 @@ export const api = {
     return res.data
   },
 
-  sendQuery: async (queryText, token, sessionId, threadId = null, { signal } = {}) => {
+  sendQuery: async (queryText, token, sessionId, threadId = null, { signal, inventoryScope } = {}) => {
     // The token travels only in the Authorization header (the body `token` field is legacy)
     const body = { query: queryText, session_id: sessionId }
     // thread_id continues a saved conversation; leaving it out starts a new one
     if (threadId) body.thread_id = threadId
+    if (inventoryScope) body.inventory_scope = inventoryScope
     const res = await axios.post(
       `${API_BASE}/query`,
       // session_id lets inventory answers drive this tab's Digital Twin map
       body,
       { ...authHeader(token), signal }
     )
+    return res.data
+  },
+
+  // Read-only question autocomplete for the Inventory Agent (never answers or sends anything)
+  fetchInventorySuggestions: async (text, token, { signal } = {}) => {
+    const res = await axios.get(`${API_BASE}/inventory/suggestions`, { ...authHeader(token), params: { q: text }, signal })
     return res.data
   },
 

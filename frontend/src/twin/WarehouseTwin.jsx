@@ -15,6 +15,7 @@ import { floorOf, isProductId, isWithin, parseLocationId, rackOf } from './lib/i
 import { formatMetric, heatColor } from './lib/heat'
 import { frameView, growBox, unionBox, zoomAt } from './lib/viewport'
 import { sumBy } from './lib/products'
+import { productHighlightRows } from './lib/selection'
 import { useTwinData } from './hooks/useTwinData'
 import { useRoute } from './hooks/useRoute'
 import { useRoutePlayback } from './hooks/useRoutePlayback'
@@ -62,7 +63,7 @@ function useWidth() {
 }
 
 export default function WarehouseTwin({
-  token, sessionId, command, visible = true, onActivate, onClose, onAsk, agentReply, agentBusy,
+  token, sessionId, command, visible = true, onActivate, onClose, onAsk, agentReply, agentBusy, onScopeChange,
 }) {
   const reducedMotion = !!useReducedMotion()
   const api = useMemo(() => createTwinApi(token), [token])
@@ -250,14 +251,15 @@ export default function WarehouseTwin({
   }, [])
 
   // ── selection ──
-  const selectProduct = useCallback((pid, { floorId: want, rackId, binId } = {}) => {
+  const selectProduct = useCallback((pid, { floorId: want, rackId, binId, highlightProductIds, locationScopes } = {}) => {
     const d = dataRef.current
     const rows = d.locationsByProduct.get(pid) || []
     const floors = new Set(rows.map((r) => r.floor_id))
     const fid = (want && floors.has(want) && want) || rows[0]?.floor_id || floorRef.current
     const floorRows = rows.filter((r) => r.floor_id === fid)
     const rid = (rackId && floorRows.some((r) => r.rack_id === rackId) && rackId) || floorRows[0]?.rack_id || null
-    setSelection({ kind: 'product', id: pid, rackId: rid, binId: binId || null })
+    setSelection({ kind: 'product', id: pid, rackId: rid, binId: binId || null,
+      highlightProductIds, locationScopes })
     switchFloor(fid)
     if (rid) focusOn(fid, [d.layout.racksById.get(rid)])
   }, [focusOn, switchFloor])
@@ -344,8 +346,14 @@ export default function WarehouseTwin({
         if (locFilter.length) rows = rows.filter((r) => locFilter.some((l) => isWithin(r.bin_id, l)))
         const want = (cmd.floor_id && rows.some((r) => r.floor_id === cmd.floor_id) && cmd.floor_id) || rows[0]?.floor_id
         const best = rows.find((r) => r.floor_id === want)
-        selectProduct(pids[0], { floorId: want, rackId: best?.rack_id })
-        if (!rows.length) toast(`${d.productsById.get(pids[0])?.name || pids[0]} is not in stock anywhere.`)
+        selectProduct(pids[0], { floorId: want, rackId: best?.rack_id,
+          highlightProductIds: pids, locationScopes: locFilter })
+        if (!rows.some((r) => r.quantity > 0)) {
+          const product = d.productsById.get(pids[0])
+          toast(product?.unplaced_quantity > 0
+            ? `${product.name}: stock is awaiting a verified bin assignment.`
+            : `${product?.name || pids[0]} has no stock in the selected locations.`)
+        }
         if (!refresh && cmd.route && rows.length) {
           startRoute({ toId: cmd.route.to_id || pids[0], fromId: cmd.route.from_id, prefer: cmd.route.prefer, autoplay: true, targetFloor: want })
         }
@@ -550,7 +558,9 @@ export default function WarehouseTwin({
     let selectedRackId = null
     const s = selection
     if (s?.kind === 'product') {
-      for (const r of data.locationsByProduct.get(s.id) || []) { if (r.quantity > 0) { highlight.add(r.rack_id); targetBins.add(r.bin_id) } }
+      for (const r of productHighlightRows(s, data.locationsByProduct)) {
+        highlight.add(r.rack_id); targetBins.add(r.bin_id)
+      }
       selectedRackId = s.rackId
     } else if (s?.kind === 'rack') {
       highlight.add(s.id)
@@ -702,7 +712,7 @@ export default function WarehouseTwin({
 
         <section className="twin-map-card">
           <MapHeader warehouse={layout.raw.warehouses.find((w) => w.id === floor?.warehouse_id)} floors={layout.floors} floorId={currentFloor} targetFloors={targetFloors}
-            onFloor={(fid) => { interactionVersion.current += 1; switchFloor(fid); fitFloor(fid) }} counts={counts} live={data.live}
+            onFloor={(fid) => { interactionVersion.current += 1; onScopeChange?.(fid); switchFloor(fid); fitFloor(fid) }} counts={counts} live={data.live}
             alertsOn={tab === 'alerts' && showList}
             onProducts={() => { setTab('products'); setListOpen(true) }}
             onRacks={() => { setTab('racks'); setListOpen(true) }}
@@ -732,7 +742,7 @@ export default function WarehouseTwin({
             {panel}
 
             <div className="twin-dock-wrap">
-              <AgentDock reply={agentReply} busy={agentBusy} value={ask} onChange={setAsk} onSend={send} inputRef={inputRef} />
+              <AgentDock reply={agentReply} busy={agentBusy} value={ask} onChange={setAsk} onSend={send} inputRef={inputRef} token={token} />
             </div>
 
             <Toasts toasts={toasts} onDismiss={dismissToast} />

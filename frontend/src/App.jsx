@@ -110,6 +110,8 @@ export default function App() {
   const [selectedAgent, setSelectedAgent] = useState('auto')
   const sessionEpochRef = useRef(0) // bumps on logout: late answers from the old session are dropped
   const lastAskKeyRef = useRef(null) // conversation of the most recent question (map commands follow it)
+  const inventoryScopeRef = useRef(null)
+  const handleInventoryScope = useCallback((scope) => { inventoryScopeRef.current = scope }, [])
 
   // Warehouse Digital Twin: shown behind the chat when the inventory agent answers
   const [twinSessionId, setTwinSessionId] = useState(getTwinSessionId)
@@ -371,7 +373,7 @@ export default function App() {
     let assistantMsg
     try {
       // Execute query through real backend Coordinator API Gateway (same thread_id for the whole conversation)
-      res = await api.sendQuery(query, token, twinSessionId, threadId)
+      res = await api.sendQuery(query, token, twinSessionId, threadId, { inventoryScope: inventoryScopeRef.current })
       assistantMsg = toAssistantMessage(res, { text: query })
     } catch (err) {
       if (err.response?.status === 401 && epoch === sessionEpochRef.current) {
@@ -590,6 +592,7 @@ export default function App() {
 
           {/* Warehouse Digital Twin — interactive map workspace for inventory answers */}
           <WarehouseTwin
+            onScopeChange={handleInventoryScope}
             token={token}
             sessionId={twinSessionId}
             command={twinCommand}
@@ -620,6 +623,7 @@ export default function App() {
                   selectedAgent={selectedAgent}
                   setSelectedAgent={setSelectedAgent}
                   onOpenOperationalModal={(type) => setOperationalModal(type)}
+                  authToken={token}
                 />
               </div>
             </div>
@@ -678,6 +682,7 @@ export default function App() {
                   selectedAgent={selectedAgent}
                   setSelectedAgent={setSelectedAgent}
                   onOpenOperationalModal={(type) => setOperationalModal(type)}
+                  authToken={token}
                 />
               </div>
             </div>
