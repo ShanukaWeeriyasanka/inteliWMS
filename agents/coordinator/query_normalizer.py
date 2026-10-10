@@ -85,17 +85,16 @@ def normalize_with_outcome(raw_query: str, context: Optional[Dict[str, Any]] = N
         return raw_query, SKIPPED_EMPTY
     original = raw_query.strip()
 
-    # Fast path: skip expensive LLM call for clear inputs
-    if _is_already_clear(original):
-        return original, SKIPPED_CLEAR
-
-    # Deterministic spelling / typo correction (sub-millisecond, zero LLM cost)
+    # 1. Deterministic spelling / typo correction (sub-millisecond, zero LLM cost)
     corrected = correct_query(original)
-    if corrected != original:
+    was_corrected = (corrected != original)
+    if was_corrected:
         logger.log_event("SPELL_CORRECTED", {"original": original, "corrected": corrected})
-        if _is_already_clear(corrected):
-            return corrected, ACCEPTED
         original = corrected
+
+    # 2. Fast path: skip expensive LLM call for clear inputs
+    if _is_already_clear(original):
+        return original, (ACCEPTED if was_corrected else SKIPPED_CLEAR)
 
     # Follow-ups only make sense with their conversation; rewriting "the second one" or "and that?"
     # without it would change their meaning, so keep them exactly as typed.
