@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useEffect, useId, useState, useRef } from 'react'
 import {
   ArrowUp,
   Paperclip,
@@ -30,6 +30,9 @@ import {
   omittedFileNotice,
   unsupportedFileNotice
 } from '../../chat/attachments'
+import { suggestionKeyAction, suggestionOptionId } from '../../chat/inventorySuggestions'
+import { useInventorySuggestions } from '../../chat/useInventorySuggestions'
+import InventorySuggestions from './InventorySuggestions'
 
 // Reads the start of a text file (enough for one message); `truncated` when the file is longer
 const readTextFile = (file) =>
@@ -53,7 +56,8 @@ export default function PromptCapsule({
   currentUser,
   selectedAgent,
   setSelectedAgent,
-  onOpenOperationalModal
+  onOpenOperationalModal,
+  authToken
 }) {
   const [inputVal, setInputVal] = useState('')
   const [isRecording, setIsRecording] = useState(false)
@@ -81,7 +85,33 @@ export default function PromptCapsule({
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
+  const textareaRef = useRef(null)
+  const suggestListId = `inv-suggest-${useId().replace(/:/g, '')}`
+  // Inventory suggestions only while the message can reach the Inventory Agent under the user's plan
+  const reachesInventory = plan === 'starter'
+    || (plan === 'professional' ? activeSpecialist === 'inventory_agent'
+      : ['auto', 'inventory_agent'].includes(selectedAgent || 'auto'))
+  const suggest = useInventorySuggestions(inputVal, authToken, {
+    enabled: reachesInventory && !isLoading && !isRecording && attachments.length === 0
+  })
+
+  // A suggestion only fills the input; the user still decides to send it
+  const pickSuggestion = (item) => {
+    setInputVal(item.text)
+    suggest.close(item.text)
+    textareaRef.current?.focus()
+  }
+
   const handleKeyDown = (e) => {
+    const action = suggestionKeyAction(e.key, { open: suggest.open, index: suggest.index, shiftKey: e.shiftKey })
+    if (action) {
+      e.preventDefault()
+      if (action === 'next') suggest.move(1)
+      else if (action === 'prev') suggest.move(-1)
+      else if (action === 'close') suggest.close()
+      else if (action === 'select') pickSuggestion(suggest.items[suggest.index])
+      return
+    }
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
       handleSubmit()
@@ -112,6 +142,7 @@ export default function PromptCapsule({
 
     setInputVal('')
     setAttachments([])
+    suggest.close('')
   }
 
   const handleFileUpload = async (e) => {
@@ -429,9 +460,17 @@ export default function PromptCapsule({
 
         {/* Textarea */}
         <textarea
+          ref={textareaRef}
           value={inputVal}
           onChange={(e) => setInputVal(e.target.value)}
           onKeyDown={handleKeyDown}
+          onBlur={() => suggest.open && suggest.close()}
+          role="combobox"
+          aria-label="Message the warehouse coordinator"
+          aria-autocomplete="list"
+          aria-expanded={suggest.open}
+          aria-controls={suggestListId}
+          aria-activedescendant={suggest.index >= 0 ? suggestionOptionId(suggestListId, suggest.index) : undefined}
           placeholder={getPlaceholder()}
           rows={inputVal.split('\n').length > 1 ? Math.min(inputVal.split('\n').length, 5) : 2}
           disabled={isLoading}
@@ -497,6 +536,15 @@ export default function PromptCapsule({
         </div>
       </div>
 
+      {/* Inventory question suggestions, directly below the input */}
+      <InventorySuggestions
+        id={suggestListId}
+        items={suggest.items}
+        activeIndex={suggest.index}
+        onSelect={pickSuggestion}
+        onHighlight={suggest.setIndex}
+      />
+
       {/* Files that could not be attached or sent */}
       {fileNotices.length > 0 && (
         <div className="capsule-file-notice" role="status">
@@ -517,7 +565,7 @@ export default function PromptCapsule({
       )}
 
       {/* Clean & Independent Suggestion Chips */}
-      <div className="prompt-quick-chips-row">
+      {!suggest.open && <div className="prompt-quick-chips-row">
         {quickActionChips.map((chip) => {
           const Icon = chip.icon
           return (
@@ -532,7 +580,7 @@ export default function PromptCapsule({
             </button>
           )
         })}
-      </div>
+      </div>}
     </div>
   )
 }

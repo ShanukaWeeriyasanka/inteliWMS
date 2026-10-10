@@ -97,14 +97,14 @@ function IdPath({ id }) {
 }
 
 export function ProductDetail({
-  product, rows, focusRackId, layout, movements, route, rackView, onToggleRackView, onDirections, onAsk, onFocusRow,
+  product, rows, focusRackId, focusBinId, layout, movements, route, rackView, onToggleRackView, onDirections, onAsk, onFocusRow,
   onClose, reducedMotion,
 }) {
   const status = stockStatus(product)
-  const focus = rows.find((r) => r.rack_id === focusRackId) || rows[0]
+  const focus = rows.find((r) => r.bin_id === focusBinId) || rows.find((r) => r.rack_id === focusRackId) || rows[0]
   const floors = new Set(rows.map((r) => r.floor_id))
   const maxQty = Math.max(1, ...rows.map((r) => r.quantity))
-  const updated = rows.reduce((m, r) => (r.updated_at > m ? r.updated_at : m), '')
+  const updated = product.updated_at || rows.reduce((m, r) => (r.updated_at > m ? r.updated_at : m), '')
   let position = null
   if (focus) {
     const cols = layout.rackGrid.get(focus.rack_id)?.cols || 1
@@ -123,6 +123,10 @@ export function ProductDetail({
       sub={<><StatusChip status={status} /><span className="twin-muted">SKU {product.sku}</span>{updated && <span className="twin-muted">· updated {timeAgo(updated)}</span>}</>}>
 
       <div className="twin-hero">
+        <div className="twin-hero-meta twin-muted">
+          <span>Source: {product.data_source || 'unverified'}</span>
+          <span>Updated: {updated || 'unknown'}</span>
+        </div>
         <div className="twin-hero-chips">
           <span className="twin-chip is-light">{product.total_quantity} {product.unit}</span>
           <span className="twin-chip is-light">{product.category || 'General'}</span>
@@ -134,11 +138,12 @@ export function ProductDetail({
         </div>
       </div>
 
-      <div className="twin-stat-card">
+      <div className="twin-stat-card twin-product-stats">
         <div>
           <span className="twin-label">Stock level</span>
           <div className="twin-big">{product.total_quantity}<small> {product.unit}</small></div>
           <span className="twin-muted">Reorder at {product.reorder_point}</span>
+          <div className="twin-muted">Available {product.available_quantity ?? product.total_quantity} · Reserved {product.reserved_quantity ?? 0} · Quarantined {product.quarantined_quantity ?? 0}</div>
           <Gauge value={stockGauge(product)} status={status} />
         </div>
         <div className="twin-bars" aria-label="Units per bin">
@@ -158,17 +163,18 @@ export function ProductDetail({
         { icon: LayoutGrid, label: 'Rack view', onClick: onToggleRackView, disabled: !focus, on: rackView },
         { icon: MessageSquare, label: 'Ask agent', onClick: () => onAsk(`How many ${product.name} do we have left?`) },
       ]} />
+      {product.unplaced_quantity > 0 && <p className="twin-empty">{product.unplaced_quantity} {product.unit} have no verified box assignment.</p>}
 
       {focus ? (
         <section className="twin-section twin-position">
           <div className="twin-kv"><span className="twin-label">Position</span>
             <span className="twin-mono">{position.x.toFixed(2)} m / {position.y.toFixed(2)} m / {position.z.toFixed(2)} m</span></div>
           <div className="twin-kv"><span className="twin-label">Location</span>
-            <span>{focus.floor_name} · {focus.rack_name} · Shelf {focus.level_index} · Bin {focus.position_index}</span></div>
+            <span>{focus.location_label}</span></div>
           <div className="twin-kv"><span className="twin-label">Here</span>
             <span><strong>{focus.quantity}</strong> {product.unit} · bin holds {focus.capacity_units}</span></div>
         </section>
-      ) : <p className="twin-empty">{product.name} is out of stock — no bin holds it right now.</p>}
+      ) : <p className="twin-empty">No verified bin assignment for {product.name}.</p>}
 
       {rackView && focusRack && (
         <section className="twin-section">
@@ -186,13 +192,15 @@ export function ProductDetail({
           <div className="twin-section-head"><h3>Stock locations</h3><span className="twin-muted">{rows.length}</span></div>
           <div className="twin-rows">
             {rows.map((r) => (
-              <button key={r.bin_id} className={`twin-row${r.bin_id === focus?.bin_id ? ' is-on' : ''}`} onClick={() => onFocusRow(r)}>
+              <button key={r.bin_id} className={`twin-row twin-stock-location${r.bin_id === focus?.bin_id ? ' is-on' : ''}`} onClick={() => onFocusRow(r)}>
                 <span className="twin-row-main">
                   <strong>{shortBinLabel(r.bin_id, r.rack_name)}</strong>
-                  <span className="twin-muted">{r.zone_name}</span>
+                  <span className="twin-muted">{r.location_label}</span>
+                  <span className="twin-muted">{r.bin_id} · Updated {r.updated_at}</span>
                 </span>
                 <span className="twin-row-side">
                   <span>{r.quantity} {product.unit}</span>
+                  <span className="twin-muted">{r.available_quantity} available · {r.reserved_quantity} reserved · {r.quarantined_quantity} quarantined</span>
                   <Gauge value={r.quantity / Math.max(1, r.capacity_units)} />
                 </span>
               </button>

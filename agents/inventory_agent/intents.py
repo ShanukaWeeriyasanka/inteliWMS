@@ -11,6 +11,7 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Tuple
 
 from agents.inventory_agent.tool_contracts import canonical_sku
+from agents.inventory_agent.report_queries import report_spec
 
 
 def _rx(*parts: str) -> re.Pattern:
@@ -44,6 +45,8 @@ _LOCATION = _rx(r"\bwhere\b", r"\blocat\w*\b", r"\baisle\b", r"\bshelf\b", r"\bb
                 r"\brack\b")
 _AVAILABILITY = _rx(r"\bavailab\w*\b", r"\bin stock\b", r"\bdo we (have|stock|carry)\b", r"\bhave any\b",
                     r"\bany left\b", r"\bleft in stock\b", r"\bcan i (get|pick)\b")
+_LOWEST_STOCK = _rx(r"\b(lowest|least|smallest)\b.*\b(stocks?|inventory|quantity|quantities)\b",
+                    r"\b(stocks?|inventory|quantity|quantities)\b.*\b(lowest|least|smallest)\b")
 
 # Sub-intents that need a specific product to answer
 PRODUCT_SUB_INTENTS = {"stock_check", "availability", "location_lookup", "stock_movements",
@@ -60,6 +63,7 @@ _SUB_INTENT_RULES = [
     (_MOVEMENTS, "stock_movements", "sub_intent.movements"),
     (_TRANSFER, "transfer_advisor", "sub_intent.transfer"),
     (_PREDICT, "reorder_predictor", "sub_intent.forecast"),
+    (_LOWEST_STOCK, "lowest_stock", "sub_intent.lowest_stock"),
     (_REORDER, "reorder_check", "sub_intent.reorder"),
     (_AVAILABILITY, "availability", "sub_intent.availability"),
     (_LOCATION, "location_lookup", "sub_intent.location"),
@@ -70,6 +74,10 @@ def detect_sub_intent_with_rule(query: str) -> Tuple[str, str]:
     """(sub_intent, rule_id) — the first matching rule wins; stock_check is the default."""
     q = query or ""
     for pattern, sub_intent, rule_id in _SUB_INTENT_RULES:
+        if sub_intent == 'lowest_stock' and report_spec(q):
+            spec = report_spec(q)
+            name = 'lowest_stock' if spec['operation']=='rank' and not spec['descending'] else 'inventory_report'
+            return name, 'sub_intent.'+name
         if pattern.search(q):
             return sub_intent, rule_id
     return "stock_check", "sub_intent.default_stock_check"

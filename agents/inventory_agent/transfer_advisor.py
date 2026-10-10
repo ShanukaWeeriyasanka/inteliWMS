@@ -16,7 +16,7 @@ from agents.inventory_agent.schemas import (
     TransferRecommendation,
     SiblingWarehouseOption,
 )
-from database.connection import SessionLocal
+from database.inventory_source import inventory_session as SessionLocal
 from database.models import Product
 from utils.logger import StructuredLogger
 
@@ -47,7 +47,7 @@ class TransferAdvisor:
         return self._data_cache
 
     def evaluate_transfer(
-        self, sku: str, needed_quantity: int = 50, db: Optional[Session] = None
+        self, sku: str, needed_quantity: int = 50, db: Optional[Session] = None, product=None
     ) -> TransferRecommendation:
         logger.log_event("TRANSFER_ADVISOR_EVALUATION", {"sku": sku, "needed_qty": needed_quantity})
 
@@ -61,7 +61,7 @@ class TransferAdvisor:
         if own:
             db = SessionLocal()
         try:
-            prod = db.query(Product).filter(Product.sku.ilike(sku_clean)).first()
+            prod = product if product is not None else db.query(Product).filter(Product.sku.ilike(sku_clean)).first()
             if prod:
                 item_name = prod.name
                 if prod.unit_price is not None:

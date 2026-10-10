@@ -39,7 +39,9 @@ async def _dispatch_inventory(context_payload: Dict[str, Any]) -> Dict[str, Any]
                 sku=context_payload.get("extracted_sku"),
                 user_role=context_payload.get("user_role") or "staff",
                 session_id=context_payload.get("session_id"),
+                thread_id=context_payload.get('thread_id'),
                 conversation=context_payload.get("conversation"),
+                inventory_scope=context_payload.get('inventory_scope'),
             )
     except Exception as e:  # TimeoutError, ExceptionGroup from MCP task groups, anything else (not cancellation)
         code = "INVENTORY_TIMEOUT" if isinstance(e, TimeoutError) else "INVENTORY_AGENT_ERROR"

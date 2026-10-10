@@ -21,7 +21,7 @@ import json
 import os
 import sys
 from functools import partial
-from typing import Annotated, Any, Callable, Dict, Optional
+from typing import Annotated, Any, Callable, Dict, Literal, Optional
 
 import anyio
 from mcp.server.fastmcp import FastMCP
@@ -33,7 +33,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from agents.inventory_agent import tool_contracts as C
 from agents.inventory_agent import tools as T
-from database.connection import SessionLocal
+from database.inventory_source import inventory_session
 from database.twin.connection import TwinUnavailable
 from utils.logger import StructuredLogger
 
@@ -59,7 +59,7 @@ def _transport_security() -> TransportSecuritySettings:
     )
 
 
-def build_inventory_server(session_factory: Callable[[], Any] = SessionLocal) -> FastMCP:
+def build_inventory_server(session_factory: Callable[[], Any] = inventory_session) -> FastMCP:
     server = FastMCP(
         SERVER_NAME,
         instructions="Read-only warehouse inventory lookups plus storing Digital Twin map commands. "
@@ -118,10 +118,20 @@ def build_inventory_server(session_factory: Callable[[], Any] = SessionLocal) ->
                               limit: Annotated[int, Field(ge=1, le=20)] = 5) -> C.SearchProductsResult:
         return await with_db(C.SEARCH_PRODUCTS, T.search_products, text, limit)
 
+    @server.tool(name=C.QUERY_INVENTORY, annotations=READ,
+                 description='Deterministic inventory lists, rankings, summaries and counts from current stock placements.')
+    async def query_inventory(query: Annotated[str, Field(min_length=1, max_length=2000)],
+                              selected_scope: Optional[str] = None,
+                              intent: Optional[C.CollectionIntent] = None) -> C.InventoryReportResult:
+        args = C.InventoryReportArgs(query=query, selected_scope=selected_scope, intent=intent)
+        return await with_db(C.QUERY_INVENTORY, T.query_inventory, args.query, args.selected_scope,
+                             args.intent.model_dump() if args.intent else None)
+
     @server.tool(name=C.LIST_LOW_STOCK, annotations=READ,
                  description="Products at or below their reorder point, out-of-stock first.")
-    async def list_low_stock(limit: Annotated[int, Field(ge=1, le=200)] = 50) -> C.LowStockResult:
-        return await with_db(C.LIST_LOW_STOCK, T.list_low_stock, limit)
+    async def list_low_stock(limit: Annotated[int, Field(ge=1, le=200)] = 50,
+                             selection: Literal['reorder', 'lowest_on_hand'] = 'reorder') -> C.LowStockResult:
+        return await with_db(C.LIST_LOW_STOCK, T.list_low_stock, limit, selection)
 
     @server.tool(name=C.GET_STOCK_MOVEMENTS, annotations=READ,
                  description="Recent stock movements for a SKU (inventory transactions) or a twin product id.")

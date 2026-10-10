@@ -1790,6 +1790,89 @@ spline-viewer a {
   transform: scale(0.96);
 }
 
+/* Inventory question suggestions (below the prompt capsule). Dark by default; the
+   twin map dock uses the light variant in twin/twin.css. */
+.inv-suggest-status {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.inv-suggest {
+  background: rgba(24, 23, 22, 0.94);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 0.5px solid var(--glass-border);
+  border-radius: 18px;
+  padding: 6px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4), inset 0 0.5px 0 rgba(255, 255, 255, 0.12);
+  font-family: var(--font-sans);
+  animation: invSuggestIn 0.16s var(--apple-ease);
+}
+
+@keyframes invSuggestIn {
+  from { opacity: 0; transform: translateY(-4px); }
+}
+
+.inv-suggest-head {
+  padding: 4px 12px 6px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.inv-suggest-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.inv-suggest-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: 12px;
+  font-size: 13.5px;
+  line-height: 1.35;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background 0.12s var(--apple-ease), color 0.12s var(--apple-ease);
+}
+
+.inv-suggest-option .inv-suggest-icon {
+  flex: none;
+  color: var(--text-muted);
+}
+
+.inv-suggest-option.is-active {
+  background: var(--bg-active);
+  color: var(--text-primary);
+  box-shadow: inset 2px 0 0 var(--accent-gold);
+}
+
+.inv-suggest-option.is-active .inv-suggest-icon {
+  color: var(--accent-gold);
+}
+
+.inv-suggest-text {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .inv-suggest { animation: none; }
+  .inv-suggest-option { transition: none; }
+}
+
 /* =========================================================================
    ACTIVE CHAT STREAM & ENTERPRISE HUD MESSAGES
    ========================================================================= */

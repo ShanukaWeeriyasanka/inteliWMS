@@ -6,7 +6,7 @@ from typing import Any, Dict, List, Optional
 from pydantic import BaseModel, Field, field_validator
 
 MAX_ENTITIES = 5
-_SKU = re.compile(r"^SKU-\d{3,6}$")
+_SKU = re.compile(r"^(?:SKU-\d{3,6}|(?!SKU-)[A-Z0-9]+(?:-[A-Z0-9]+)+)$")
 _PRD = re.compile(r"^PRD-\d{5}$")
 _LOCATION = re.compile(r"^WH\d+(-F\d+(-Z\d{2}(-R\d{2}(-S\d{2}(-B\d{2})?)?)?)?)?$")
 
@@ -31,6 +31,7 @@ class InventoryThreadContext(BaseModel):
     skus: List[str] = Field(default_factory=list)
     product_ids: List[str] = Field(default_factory=list)
     last_sub_intent: Optional[str] = Field(None, max_length=50)
+    selected_scope: Optional[str] = Field(None, pattern=r'^WH\d+(?:-F\d+)?(?:-Z\d{2})?(?:-R\d{2})?(?:-S\d{2})?(?:-B\d{2})?$')
     # Offered candidates; valid for the very next turn only
     pending_clarification: Optional[List[PendingCandidate]] = None
     # The question those candidates answer, so a pick ("2") re-asks it for the chosen option

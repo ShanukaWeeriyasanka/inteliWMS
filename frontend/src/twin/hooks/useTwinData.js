@@ -4,6 +4,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { openTwinStream } from '../lib/stream'
 import { rackOf } from '../lib/ids'
+import { latestRequest } from '../lib/latest'
 
 function indexLayout(layout) {
   const by = (rows, key) => {
@@ -49,10 +50,10 @@ export function useTwinData(api, { sessionId, enabled = true, handlers }) {
   const [error, setError] = useState(null)
   const [layout, setLayout] = useState(null)
   const [edges, setEdges] = useState([])
-  const [products, setProducts] = useState([])
-  const [rackFill, setRackFill] = useState([])
-  const [alerts, setAlerts] = useState([])
-  const [locations, setLocations] = useState([])
+  const [snapshot, setSnapshot] = useState({ products: [], rack_fill: [], alerts: [], locations: [], as_of: null })
+  const { products, rack_fill: rackFill, alerts, locations, as_of: asOf } = snapshot
+  const pendingStock = useRef(latestRequest())
+  const loadVersion = useRef(0)
   const [live, setLive] = useState(false)
   const [stockVersion, setStockVersion] = useState(0)
   const handlersRef = useRef(handlers)
@@ -60,29 +61,33 @@ export function useTwinData(api, { sessionId, enabled = true, handlers }) {
 
   const refreshStock = useCallback(async () => {
     // Every stock row (v_product_locations) — a few dozen for the demo — drives bin shading and markers.
-    const [p, f, a, l] = await Promise.all([api.products(), api.rackFill(), api.alerts(), api.productLocations()])
-    setProducts(p)
-    setRackFill(f)
-    setAlerts(a)
-    setLocations(l)
-    setStockVersion((v) => v + 1)
+    await pendingStock.current.run(() => api.snapshot(), (value) => {
+      setSnapshot(value)
+      setError(null)
+      setStockVersion((v) => v + 1)
+    }, (e) => setError(e.message))
   }, [api])
 
   const load = useCallback(async () => {
+    const version = ++loadVersion.current
     setStatus('loading')
     setError(null)
     try {
       const st = await api.status()
+      if (version !== loadVersion.current) return
       if (!st.enabled) {
         setStatus('disabled')
         return
       }
       const lay = await api.layout()
+      if (version !== loadVersion.current) return
       setLayout(indexLayout(lay))
       setEdges(lay.nav_edges)
       await refreshStock()
+      if (version !== loadVersion.current) return
       setStatus('ready')
     } catch (e) {
+      if (version !== loadVersion.current) return
       setError(e.message)
       setStatus('error')
     }
@@ -90,6 +95,7 @@ export function useTwinData(api, { sessionId, enabled = true, handlers }) {
 
   useEffect(() => {
     if (enabled) load()
+    return () => { pendingStock.current.invalidate(); loadVersion.current += 1 }
   }, [enabled, load])
 
   // Live stream: refetch by ID on every change (debounced), never trust event numbers for display.
@@ -101,7 +107,7 @@ export function useTwinData(api, { sessionId, enabled = true, handlers }) {
       timer = setTimeout(() => refreshStock().catch(() => {}), 120)
     }
     const close = openTwinStream(api.streamUrl(sessionId), {
-      onLive: setLive,
+      onLive: (connected) => { setLive(connected); if (connected) scheduleRefresh() },
       onCommand: (ev) => {
         if (ev.op === 'INSERT') handlersRef.current?.onCommand?.({ id: ev.row.id, payload: ev.row.payload, query: ev.row.query_text, source: 'realtime' })
       },
@@ -109,6 +115,8 @@ export function useTwinData(api, { sessionId, enabled = true, handlers }) {
         if (ev.table === 'stock_locations') {
           scheduleRefresh()
           handlersRef.current?.onStockChange?.(rackOf(ev.row.bin_id), ev.row)
+        } else if (ev.table === 'products' || ev.table === 'unplaced_stock') {
+          scheduleRefresh()
         } else if (ev.table === 'alerts') {
           scheduleRefresh()
           if (ev.op === 'INSERT' && !ev.row.resolved_at) handlersRef.current?.onAlert?.(ev.row)
@@ -125,6 +133,13 @@ export function useTwinData(api, { sessionId, enabled = true, handlers }) {
       close()
     }
   }, [api, enabled, status, sessionId, refreshStock])
+
+  // Notifications are hints. Poll and refresh after reconnect to recover events missed in a gap.
+  useEffect(() => {
+    if (!enabled || status !== 'ready') return undefined
+    const timer = setInterval(() => refreshStock().catch(() => {}), 15000)
+    return () => clearInterval(timer)
+  }, [enabled, status, refreshStock])
 
   const productsById = useMemo(() => new Map(products.map((p) => [p.product_id, p])), [products])
   const fillByRack = useMemo(() => new Map(rackFill.map((f) => [f.rack_id, f])), [rackFill])
@@ -144,7 +159,7 @@ export function useTwinData(api, { sessionId, enabled = true, handlers }) {
 
   return {
     status, error, reload: load, layout, edges, products, productsById, rackFill, fillByRack,
-    alerts, live, stockVersion, refreshStock, locations,
+    alerts, live, stockVersion, refreshStock, locations, asOf,
     locationsByProduct: index.byProduct, locationsByRack: index.byRack, binQty: index.binQty,
   }
 }

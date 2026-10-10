@@ -22,5 +22,11 @@
     "title": "Customer Returns & Reverse Logistics SOP Documentation",
     "category": "Returns",
     "content": "1. RMA Verification: All inbound returns must be verified against an active Return Merchandise Authorization (RMA) number before unloading at Receiving Dock 3.\n\n2. Inspection & Grading: Grade A items (unopened box, undamaged seals) are returned to active stock in Zone B. Grade B items (opened box, complete accessories) are directed to the repackaging line.\n\n3. Quarantine & Scrap: Any returned item showing physical defects, water damage, or electrical fault must be tagged and transferred to the Returns Quarantine Area at Bay 11."
+  },
+  {
+    "doc_id": "GUIDE-INV-001",
+    "title": "Inventory quantities and stock question guide",
+    "category": "Inventory Help",
+    "content": "Stock quantity definitions: On-hand is the recorded total quantity. Reserved is committed stock. Quarantined stock is unavailable for picking. Available stock excludes reserved and quarantined balances. Unassigned stock has a recorded balance but lacks a verified bin assignment. Use current inventory database results for quantities; this guide does not contain current product balances.\n\nInventory question examples: Which products have equal number of units? Which products have the same available quantity? Which product has the highest stock? List products with more than 100 units. Show products with exactly 0 units. Show products with at least 10 available units. Inventory comparisons read the current authoritative PostgreSQL snapshot and include a data timestamp. Equal quantity comparisons group products with the same stored unit of measure and include zero quantities. A result with no matches is a valid answer.\n\nProduct lookup examples: Search by SKU, stable product ID, name or alias. Ask where a product is stored to retrieve all recorded bins, warehouses and floors. Warehouse-scoped questions use assigned bin balances only; unassigned stock is not assigned to a guessed warehouse. Missing placements or history must be reported as missing. Company procedures require actual approved documents; general guidance is not a substitute for those documents."
   }
 ]

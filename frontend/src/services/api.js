@@ -46,17 +46,20 @@ export const api = {
 
     let signal
     let selectedAgent
+    let inventoryScope
 
     if (typeof optionsOrAgent === 'string') {
       selectedAgent = optionsOrAgent
     } else if (optionsOrAgent && typeof optionsOrAgent === 'object') {
       signal = optionsOrAgent.signal
       selectedAgent = optionsOrAgent.selectedAgent
+      inventoryScope = optionsOrAgent.inventoryScope
     }
 
     if (selectedAgent && selectedAgent !== 'auto') {
       body.selected_agent = selectedAgent
     }
+    if (inventoryScope) body.inventory_scope = inventoryScope
 
     const res = await axios.post(
       `${API_BASE}/query`,
@@ -64,6 +67,12 @@ export const api = {
       body,
       { ...authHeader(token), signal }
     )
+    return res.data
+  },
+
+  // Read-only question autocomplete for the Inventory Agent (never answers or sends anything)
+  fetchInventorySuggestions: async (text, token, { signal } = {}) => {
+    const res = await axios.get(`${API_BASE}/inventory/suggestions`, { ...authHeader(token), params: { q: text }, signal })
     return res.data
   },
 

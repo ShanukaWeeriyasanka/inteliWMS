@@ -59,6 +59,7 @@ BLOCKED_PLACEHOLDER = "[message blocked by the security filter]"
 
 
 class QueryRequest(BaseModel):
+    inventory_scope: Optional[str] = Field(None, pattern=r'^WH\d+(?:-F\d+)?(?:-Z\d{2})?(?:-R\d{2})?(?:-S\d{2})?(?:-B\d{2})?$')
     token: Optional[str] = None
     message: Optional[str] = Field(None, max_length=settings.CHAT_MAX_MESSAGE_CHARS)
     query: Optional[str] = Field(None, max_length=settings.CHAT_MAX_MESSAGE_CHARS)
@@ -384,6 +385,14 @@ async def handle_coordinator_query(payload: QueryRequest, request: Request, db: 
                 return body
 
             # 5. Context Builder & MCP Delegation (the conversation travels with the hand-off)
+            if target_agent == 'inventory_agent' and thread is None and identity.authenticated:
+                try:
+                    thread = store.create(identity.user_id, title=sanitized_or_reason)
+                    request_context.bind(thread_id=thread.id)
+                except Exception as exc:
+                    logger.log_event('THREAD_CREATE_BEFORE_HANDOFF_FAILED',
+                                     {'error_type':type(exc).__name__}, level='WARNING')
+            # Agents get the user's own wording; ids from an accepted rewrite are only hints
             context_payload = build_context(
                 user_id=user_id,
                 message=sanitized_or_reason,
@@ -394,6 +403,7 @@ async def handle_coordinator_query(payload: QueryRequest, request: Request, db: 
                 conversation=ctx.inventory.model_dump() if domain == "INVENTORY" else None,
                 entity_text=routing_decision.get("normalized_query"),
                 user_plan=user_plan,
+                inventory_scope=payload.inventory_scope if domain == 'INVENTORY' else None,
             )
 
             dispatch_start = time.perf_counter()

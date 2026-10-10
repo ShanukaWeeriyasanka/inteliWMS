@@ -195,12 +195,19 @@ def _locate_product(product: _Candidate, context: Optional[_Pick], prefer: str) 
     if context and context.mode == "one" and context.top.floor_id:
         cmd["floor_id"] = context.top.floor_id
 
-    if not rows:
+    if not any(r['quantity'] > 0 for r in rows) and not (totals or {}).get('total_quantity'):
         text = f"{product.name} ({product.id}) is out of stock — no bin holds it right now."
         cmd["answer_text"] = text
         return TwinAnswer(cmd, text)
 
-    total = sum(r["quantity"] for r in rows)
+    if not rows:
+        text = (f"{product.name} ({product.id}): {totals['total_quantity']} {totals['unit']} on hand, "
+                f"{totals['available_quantity']} available, {totals['reserved_quantity']} reserved, "
+                f"{totals['quarantined_quantity']} quarantined. Location unassigned. "
+                f"Source: {totals['data_source']}; updated {totals['updated_at']}.")
+        cmd['answer_text'] = text
+        return TwinAnswer(cmd,text)
+    total = (totals or {}).get('total_quantity', sum(r['quantity'] for r in rows))
     floors = {r["floor_id"] for r in rows}
     best = rows[0]
     unit = (totals or {}).get("unit") or "units"
@@ -210,6 +217,11 @@ def _locate_product(product: _Candidate, context: Optional[_Pick], prefer: str) 
                 f"shelf {best['level_index']}, bin {best['position_index']}.")
     if totals and totals["is_low_stock"]:
         headline += f" Stock is low: {totals['total_quantity']} left, reorder point {totals['reorder_point']}."
+    if totals and 'available_quantity' in totals:
+        headline += (f" Available: {totals['available_quantity']}; reserved: {totals['reserved_quantity']}; "
+                     f"quarantined: {totals['quarantined_quantity']}; location unassigned: {totals['unplaced_quantity']}. "
+                     f"Source: {totals['data_source']}; updated {totals['updated_at']}.")
+    headline += '\n' + '\n'.join(f"{r['bin_id']} — {r['location_label']}: {r['quantity']} {unit}." for r in rows)
 
     route = _route_summary(twin_repo.get_route(product.id, None, prefer)["directions"])
     cmd["route"] = {"prefer": prefer}
@@ -300,6 +312,8 @@ def _count(res: Dict[str, Optional[_Pick]]) -> Optional[TwinAnswer]:
         return _clarify(loc_pick)
     if prod_pick and prod_pick.mode == "clarify" and res["primary"] == "product":
         return _clarify(prod_pick)
+    if prod_pick and prod_pick.mode == 'one' and not loc_pick:
+        return _locate_product(prod_pick.top, None, inventory_config.TWIN_DEFAULT_PREFER)
 
     if loc_pick and loc_pick.mode == "one":
         loc = loc_pick.top

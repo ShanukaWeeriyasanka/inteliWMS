@@ -115,7 +115,32 @@ The live floor-plan map behind the chat needs PostgreSQL. With only SQLite
 > ℹ️ This machine already has **PostgreSQL installed on Windows**, listening on port 5432.
 > Use that one (Option A). Docker's Postgres (Option B) wants the same port 5432 and will clash.
 
-### Option A — Use your installed PostgreSQL (recommended here)
+### Supabase — current inventory configuration
+
+See [INVENTORY_QUESTIONS.md](INVENTORY_QUESTIONS.md) for supported questions,
+current cloud ID mappings, migration commands and verification details.
+
+This workspace now uses Supabase for inventory and the floor map via the private
+`TWIN_DATABASE_URL` in `.env`. Keep its session pooler URL on port **5432** with
+`sslmode=require`; port 6543 transaction pooling cannot keep the map's `LISTEN`
+subscription. Do not replace that setting with the localhost examples below.
+
+`DATABASE_URL` still points to SQLite for existing accounts, conversations, orders,
+and other application features. Switching it to Supabase requires reconciling the
+different application records first.
+
+Restart the backend and any standalone inventory MCP server after changing `.env`.
+Then open the map and ask **which product has the lowest stock?** The answer uses
+Supabase inventory totals, includes zero stock, and returns ties. Stock below a
+reorder point remains a separate query: **what is running low?**
+
+The active inventory catalog now contains only Supabase `public.products`:
+six SKUs mapped to `PRD-00013`–`PRD-00018`. The twelve map demo products are
+archived and excluded from product cards, alerts, stock totals and rack fill.
+Inventory queries and transaction-history sessions use PostgreSQL. Quantities
+remain unassigned until actual physical bins are confirmed.
+
+### Option A — Use your installed PostgreSQL (alternative)
 
 **1.** Open **pgAdmin** (or `psql`) as the `postgres` superuser and create a database:
 
