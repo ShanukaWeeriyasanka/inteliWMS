@@ -16,6 +16,7 @@ from agents.coordinator.llm_calls import OK, TIMEOUT, call_llm
 from config.llm_config import llm_config
 from config.prompts import QUERY_NORMALIZER_PROMPT
 from utils.logger import StructuredLogger
+from utils.spelling import correct_query
 
 logger = StructuredLogger(__name__)
 
@@ -87,6 +88,14 @@ def normalize_with_outcome(raw_query: str, context: Optional[Dict[str, Any]] = N
     # Fast path: skip expensive LLM call for clear inputs
     if _is_already_clear(original):
         return original, SKIPPED_CLEAR
+
+    # Deterministic spelling / typo correction (sub-millisecond, zero LLM cost)
+    corrected = correct_query(original)
+    if corrected != original:
+        logger.log_event("SPELL_CORRECTED", {"original": original, "corrected": corrected})
+        if _is_already_clear(corrected):
+            return corrected, ACCEPTED
+        original = corrected
 
     # Follow-ups only make sense with their conversation; rewriting "the second one" or "and that?"
     # without it would change their meaning, so keep them exactly as typed.
