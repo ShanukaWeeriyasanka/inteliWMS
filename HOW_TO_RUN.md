@@ -39,6 +39,10 @@ npm install
 
 Also make sure `GEMINI_API_KEY` is set in `.env` (in the project folder).
 
+To switch subscription plans in the demo, `.env` also needs the **Subscription plans** lines from
+`.env.example` (`APP_ENV=development`, `DEMO_PLAN_SWITCH_ENABLED=true`, `DEMO_PLAN_SWITCH_USERS=...`).
+If your `.env` was made before they were added, copy those lines over and restart the backend.
+
 ---
 
 ## 🖥️ Step-by-Step: Open 3 Terminals
@@ -428,6 +432,15 @@ Run the one-time fix at the top of this file, then try `npm run dev` again.
 ### Map doesn't appear
 - Is PostgreSQL running? (`netstat -ano | findstr :5432` should show `LISTENING`)
 - Is `TWIN_DATABASE_URL` in `.env` with the right user/password, and did you restart the backend after adding it?
+- Is the account on the **Starter** plan? The Warehouse map is a Professional / Enterprise feature, so it is hidden for Starter.
+
+---
+
+### Upgrading the plan fails: `Plan switching for demonstrations is not enabled on this server`
+- Your `.env` is missing the demo plan switching lines. Copy the **Subscription plans** block from `.env.example`
+  (`APP_ENV=development`, `DEMO_PLAN_SWITCH_ENABLED=true`, `DEMO_PLAN_SWITCH_USERS=...`) and restart Terminal 1.
+- `Your account is not authorized to switch...`: add the username to `DEMO_PLAN_SWITCH_USERS` (comma-separated).
+- `.env` is never committed, so each teammate has to do this once on their own machine.
 
 ---
 
