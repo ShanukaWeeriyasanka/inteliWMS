@@ -18,6 +18,15 @@ from security.subscription import is_dashboard_allowed
 
 client = TestClient(app)
 
+
+@pytest.fixture(autouse=True)
+def no_llm(monkeypatch):
+    """Rules only: the outcome never depends on what an LLM says (or whether a key is configured)."""
+    from config.llm_config import llm_config
+    monkeypatch.setattr(llm_config, "gemini_key", "")
+    monkeypatch.setattr(llm_config, "groq_key", "")
+
+
 INVENTORY_Q = "How many SKU-1001 are on hand?"
 FULFILLMENT_Q = "Track order ORD-1001"
 
@@ -119,3 +128,70 @@ def test_soc_audit_stream_needs_professional_or_enterprise(monkeypatch):
 def test_soc_audit_stream_still_needs_a_manager_or_admin(monkeypatch):
     res = client.get("/security/audit-logs", headers=on_plan(monkeypatch, "enterprise", role="staff"))
     assert res.status_code == 403
+
+
+# ── The Coordinator's own replies (greetings, "what can you do?", small talk) ──
+
+LLM_LIE = "Yes, absolutely! I'm fully connected to the 🚚 Fulfillment Agent. I can help you right now with orders."
+
+
+def coordinator_small_talk(monkeypatch, text=LLM_LIE):
+    """Routing as when the LLM answers a message itself (e.g. 'do you have access to the fulfillment agent')."""
+    from agents.coordinator.router import decide_route
+
+    real = decide_route("hello")
+    fake = {**real, "rule_id": None, "decided_by": "llm", "direct_response": text}
+    monkeypatch.setattr("backend.routes.query.decide_route", lambda *a, **k: dict(fake))
+
+
+def test_starter_is_never_told_it_has_other_agents(monkeypatch, inventory_server):
+    headers = on_plan(monkeypatch, "starter")
+    coordinator_small_talk(monkeypatch)
+    data = ask(headers, "do you have access to the fulfillment agent")
+    assert data["agent_used"] == "coordinator"
+    assert "fully connected" not in data["response"]
+    assert "Inventory Agent** only" in data["response"] and "not included in your plan" in data["response"]
+
+
+def test_professional_small_talk_describes_the_specialist_dropdown(monkeypatch, inventory_server):
+    headers = on_plan(monkeypatch, "professional")
+    coordinator_small_talk(monkeypatch)
+    data = ask(headers, "do you have access to the fulfillment agent", "inventory_agent")
+    assert "fully connected" not in data["response"]
+    assert "specialist dropdown" in data["response"] and "**Enterprise** features" in data["response"]
+
+
+def test_enterprise_keeps_the_coordinator_reply(monkeypatch, inventory_server):
+    headers = on_plan(monkeypatch, "enterprise")
+    coordinator_small_talk(monkeypatch, "I route your question to the right agent.")
+    assert ask(headers, "can you help me")["response"] == "I route your question to the right agent."
+
+
+@pytest.mark.parametrize("plan, selected, must_contain, must_not_contain", [
+    ("starter", None, "Inventory Agent", "Fulfillment"),
+    ("professional", "inventory_agent", "Choose a specialist from the dropdown", "route"),
+    ("enterprise", None, "Fulfillment", "Choose a specialist"),
+])
+def test_greeting_matches_the_plan(monkeypatch, inventory_server, plan, selected, must_contain, must_not_contain):
+    data = ask(on_plan(monkeypatch, plan), "hello", selected)
+    assert must_contain in data["response"] and must_not_contain not in data["response"]
+
+
+@pytest.mark.parametrize("plan, selected, expected", [
+    ("starter", None, "Inventory Agent** only"),
+    ("professional", "knowledge_agent", "Choose one from the specialist dropdown"),
+    ("enterprise", None, "route it to the right agent"),
+])
+def test_what_can_you_do_matches_the_plan(monkeypatch, inventory_server, plan, selected, expected):
+    assert expected in ask(on_plan(monkeypatch, plan), "what can you do?", selected)["response"]
+
+
+@pytest.mark.parametrize("plan, selected, expected", [
+    ("starter", None, "Your **Starter** plan covers the 📦 **Inventory Agent**"),
+    ("professional", "fulfillment_agent", "Choose the specialist from the dropdown"),
+])
+def test_unclear_message_clarification_matches_the_plan(monkeypatch, inventory_server, plan, selected, expected):
+    # No LLM in tests: an unmatched message gets the Coordinator's clarification
+    data = ask(on_plan(monkeypatch, plan), "maybe something somewhere", selected)
+    assert data["routing"]["rule_id"] == "clarify.domain"
+    assert data["response"].startswith("I'm not sure what you need yet.") and expected in data["response"]

@@ -232,7 +232,9 @@ def _auth(user):
     return auth(user)
 
 
-def test_response_shows_the_rule_that_decided(api):
+def test_response_shows_the_rule_that_decided(api, monkeypatch):
+    # The default Coordinator replies are the Enterprise ones (Starter / Professional get plan texts)
+    monkeypatch.setattr("backend.auth.get_user_plan", lambda *a, **k: "enterprise")
     body = api.post("/query", json={"message": "thanks"}, headers=_auth("obs1")).json()
     assert body["response"] == COORDINATOR_ACK_REPLY
     routing = body["routing"]
@@ -249,7 +251,8 @@ def test_inventory_decisions_are_part_of_the_decision_path(api):
     assert all(d["decided_by"] == "rule" for d in body["routing"]["decisions"])
 
 
-def test_unmatched_text_without_llm_gets_the_clarification(api, caplog):
+def test_unmatched_text_without_llm_gets_the_clarification(api, caplog, monkeypatch):
+    monkeypatch.setattr("backend.auth.get_user_plan", lambda *a, **k: "enterprise")
     with caplog.at_level(logging.INFO):
         body = api.post("/query", json={"message": "maybe something somewhere"}, headers=_auth("obs3")).json()
     assert body["response"] == COORDINATOR_CLARIFY_DOMAIN_REPLY

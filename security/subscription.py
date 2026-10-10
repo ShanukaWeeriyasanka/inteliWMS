@@ -86,6 +86,64 @@ COLLABORATION_REQUIRES_ENTERPRISE_MESSAGE = (
     "Further cross-agent inventory investigation requires an Enterprise subscription."
 )
 
+# The Coordinator's own replies (greetings, "what can you do?", help, small talk) describe the
+# Enterprise service: three agents and automatic routing. On Starter and Professional they are
+# replaced with these fixed texts, so no plan is ever told about agents or routing it does not have.
+_PLAN_DIRECT_REPLIES: Dict[str, Dict[str, str]] = {
+    PLAN_STARTER: {
+        "greeting": (
+            "👋 Hello! Your **Starter** plan connects you to the 📦 **Inventory Agent** — "
+            "stock levels, SKU locations and restock checks. What would you like to check?"
+        ),
+        "capability": (
+            "Your **Starter** plan includes the 📦 **Inventory Agent** only — stock levels, "
+            "SKU locations and restock checks.\n\n"
+            "The 🚚 Fulfillment and 📚 Knowledge Agents are not included in your plan. "
+            "Upgrade to **Professional** to use them."
+        ),
+        "clarify": (
+            "I'm not sure what you need yet. Your **Starter** plan covers the 📦 **Inventory Agent** — "
+            "try e.g. \"how many SKU-4521 are on hand?\" or \"where is SKU-4521?\""
+        ),
+        "ack": "👍 Anything else I can check in inventory — stock levels, a SKU's location or restock needs?",
+        "bye": "👋 Bye! Come back any time you need stock or SKU information.",
+    },
+    PLAN_PROFESSIONAL: {
+        "greeting": (
+            "👋 Hello! Choose a specialist from the dropdown — 📦 **Inventory**, 🚚 **Fulfillment** "
+            "or 📚 **Knowledge** — and ask your question."
+        ),
+        "capability": (
+            "Your **Professional** plan includes 3 specialists:\n"
+            "• 📦 **Inventory Agent** — stock levels, SKU locations, restock alerts\n"
+            "• 🚚 **Fulfillment Agent** — order status, delays, shipping & dispatch\n"
+            "• 📚 **Knowledge Agent** — SOPs, safety, compliance, returns\n\n"
+            "Choose one from the specialist dropdown and that agent answers. Automatic Coordinator "
+            "routing and cross-agent collaboration are **Enterprise** features."
+        ),
+        "clarify": (
+            "I'm not sure what you need yet. Choose the specialist from the dropdown — 📦 **Inventory** "
+            "(stock, locations), 🚚 **Fulfillment** (orders) or 📚 **Knowledge** (SOPs) — and ask again."
+        ),
+        "ack": "👍 Anything else? Pick the specialist you need from the dropdown and ask away.",
+        "bye": "👋 Bye! Come back any time you need stock, order or SOP information.",
+    },
+}
+_DIRECT_REPLY_KIND = {"empty": "greeting", "meta.greeting": "greeting", "social.ack": "ack", "social.bye": "bye",
+                      "clarify.domain": "clarify"}
+
+
+def plan_direct_reply(plan: Optional[str], rule_id: Optional[str]) -> Optional[str]:
+    """
+    The Coordinator's direct reply for this plan, or None to keep the default (Enterprise) reply.
+    Greetings, thanks and goodbyes keep their tone; everything else the Coordinator answers itself
+    ("what can you do?", "do you have the fulfillment agent?", small talk) states the plan's agents.
+    """
+    replies = _PLAN_DIRECT_REPLIES.get(normalize_plan(plan))
+    if replies is None:
+        return None
+    return replies[_DIRECT_REPLY_KIND.get(rule_id or "", "capability")]
+
 
 def normalize_plan(plan: Optional[str]) -> str:
     """Normalize and validate a plan name. Missing/unknown values safely fall back to 'starter'."""

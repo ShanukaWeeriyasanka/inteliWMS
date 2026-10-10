@@ -50,7 +50,8 @@ from security.subscription import (
     PLAN_PROFESSIONAL,
     PLAN_ENTERPRISE,
     PLAN_ENTITLEMENTS,
-    AGENT_DISPLAY_NAMES
+    AGENT_DISPLAY_NAMES,
+    plan_direct_reply,
 )
 
 logger = StructuredLogger(__name__)
@@ -366,6 +367,10 @@ async def handle_coordinator_query(payload: QueryRequest, request: Request, db: 
 
             # 4.5. Coordinator Direct Reply — meta/system questions answered without delegation
             if routing_decision.get("direct_response"):
+                # Starter / Professional: the default replies describe Enterprise (3 agents, auto-routing)
+                plan_reply = plan_direct_reply(user_plan, routing_decision.get("rule_id"))
+                if plan_reply:
+                    routing_decision["direct_response"] = plan_reply
                 routing_decision["decisions"] = collected()
                 body = {
                     "status": "success",
