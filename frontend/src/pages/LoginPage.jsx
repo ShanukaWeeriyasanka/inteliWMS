@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import './LoginPage.css'
 
 export default function LoginPage({ onLogin, onRegister, authLoading, authError, setAuthError }) {
   const [isRegisterMode, setIsRegisterMode] = useState(false)
@@ -25,82 +26,218 @@ export default function LoginPage({ onLogin, onRegister, authLoading, authError,
   }
 
   return (
-    <div className="login-screen-wrapper side-by-side-mode">
-      <div className="login-split-container">
-        {/* LEFT SIDE: AUTHENTICATION CONTENT */}
-        <div className="auth-left-column">
-          <div className="login-header-text">
-            <h1 className="editorial-heading">Coordinate what’s next</h1>
-            <p className="editorial-subtitle">Your intelligent agentic partner for warehouse & supply chain operations</p>
+    <div className="logistics-frame">
+      {/* Background Video from logistics showcase */}
+      <video
+        className="logistics-bg-video"
+        autoPlay
+        muted
+        loop
+        playsInline
+        disablePictureInPicture
+        aria-label="Aerial view of a container freight train crossing black coal terrain"
+        src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20261005_115944_095d91d4-030f-4e82-b42b-a388c0816d24.mp4"
+      />
+
+      {/* Atmospheric Overlays */}
+      <div className="logistics-tint" />
+      <div className="logistics-overlay-glow" />
+
+      {/* Main Content Stage */}
+      <main className="logistics-stage">
+        {/* LEFT COLUMN: HERO SHOWCASE */}
+        <section className="logistics-hero">
+          <p className="logistics-eyebrow">
+            <span className="eyebrow-badge">INTELIWMS</span>
+            <span>WHY US · AGENTIC FULFILLMENT</span>
+          </p>
+
+          <h1 className="logistics-headline">
+            <span className="hl-line hl1">LOGISTICS</span>
+            <span className="hl-line hl2">THAT WORKS</span>
+            <span className="hl-line hl3">AS HARD AS</span>
+            <span className="hl-line hl4">YOU DO.</span>
+          </h1>
+
+          {/* Mark Divider */}
+          <div className="logistics-mark-row">
+            <svg className="logistics-mark-svg" viewBox="0 0 52 52" fill="none" aria-hidden="true">
+              <circle
+                cx="26"
+                cy="26"
+                r="23"
+                stroke="#D6523A"
+                strokeWidth="1.6"
+                strokeDasharray="98.3 46.3"
+                transform="rotate(2.5 26 26)"
+              />
+              <g stroke="#D6523A" strokeWidth="1.6" strokeLinecap="round">
+                <circle cx="26.5" cy="26.1" r="2.3" />
+                <path d="M28.9 27.6C31.6 29 32.9 31.2 31.8 33.3 30.7 35.4 27.2 36.1 24.2 35.1" />
+              </g>
+            </svg>
+            <div className="logistics-mark-divider" />
           </div>
 
-          <div className="claude-auth-box">
+          {/* Feature Badges */}
+          <div className="logistics-features-grid">
+            {/* Feature Left: One point of contact */}
+            <article className="logistics-feature-card f-left">
+              <svg className="logistics-feature-icon" viewBox="0 0 35 34" width="35" height="34" aria-hidden="true">
+                <defs>
+                  <clipPath id="gclip">
+                    <circle cx="17.5" cy="17" r="9.80" />
+                  </clipPath>
+                </defs>
+                <circle cx="17.5" cy="17" r="16.5" stroke="#F9F9F9" strokeWidth="1.9" strokeDasharray="3.6 3" fill="none" />
+                <circle cx="17.5" cy="17" r="9.80" fill="#F9F9F9" />
+                <path
+                  d="M11.90 7.20 V26.80 M17.5 7.20 V26.80 M23.10 7.20 V26.80 M7.70 11.40 H27.30 M7.70 17 H27.30 M7.70 22.60 H27.30"
+                  stroke="#101215"
+                  strokeWidth="0.90"
+                  clipPath="url(#gclip)"
+                />
+              </svg>
+              <h2 className="logistics-feature-title">One point of contact</h2>
+              <p className="logistics-feature-desc">
+                No more chasing multiple vendors. One intelligent platform manages your entire end-to-end warehouse flow origin to destination.
+              </p>
+            </article>
+
+            {/* Feature Right: Full supply chain visibility */}
+            <article className="logistics-feature-card f-right">
+              <svg className="logistics-feature-icon" viewBox="0 0 35 38" width="35" height="38" aria-hidden="true">
+                <rect x="0.5" y="0.5" width="17" height="9.6" rx="0.5" fill="#F9F9F9" />
+                <rect x="10.5" y="13.5" width="13.5" height="10.9" rx="0.5" fill="#F9F9F9" />
+                <rect x="17.5" y="28.3" width="17" height="9.7" rx="0.5" fill="#F9F9F9" />
+                <g fill="#101215">
+                  <rect x="2.50" y="2.50" width="1.10" height="1.90" />
+                  <rect x="5.60" y="2.50" width="1.10" height="1.90" />
+                  <rect x="8.70" y="2.50" width="1.10" height="1.90" />
+                  <rect x="11.80" y="2.50" width="1.10" height="1.90" />
+                  <rect x="14.90" y="2.50" width="1.10" height="1.90" />
+                  <rect x="2.50" y="6.50" width="1.10" height="1.90" />
+                  <rect x="5.60" y="6.50" width="1.10" height="1.90" />
+                  <rect x="8.70" y="6.50" width="1.10" height="1.90" />
+                  <rect x="11.80" y="6.50" width="1.10" height="1.90" />
+                  <rect x="14.90" y="6.50" width="1.10" height="1.90" />
+                  <rect x="12.50" y="15.20" width="1.10" height="1.90" />
+                  <rect x="15.60" y="15.20" width="1.10" height="1.90" />
+                  <rect x="18.70" y="15.20" width="1.10" height="1.90" />
+                  <rect x="21.80" y="15.20" width="1.10" height="1.90" />
+                  <rect x="12.50" y="20.40" width="1.10" height="1.90" />
+                  <rect x="15.60" y="20.40" width="1.10" height="1.90" />
+                  <rect x="18.70" y="20.40" width="1.10" height="1.90" />
+                  <rect x="21.80" y="20.40" width="1.10" height="1.90" />
+                  <rect x="19.50" y="30.30" width="1.10" height="1.90" />
+                  <rect x="22.60" y="30.30" width="1.10" height="1.90" />
+                  <rect x="25.70" y="30.30" width="1.10" height="1.90" />
+                  <rect x="28.80" y="30.30" width="1.10" height="1.90" />
+                  <rect x="31.90" y="30.30" width="1.10" height="1.90" />
+                  <rect x="19.50" y="34.40" width="1.10" height="1.90" />
+                  <rect x="22.60" y="34.40" width="1.10" height="1.90" />
+                  <rect x="25.70" y="34.40" width="1.10" height="1.90" />
+                  <rect x="28.80" y="34.40" width="1.10" height="1.90" />
+                  <rect x="31.90" y="34.40" width="1.10" height="1.90" />
+                </g>
+              </svg>
+              <h2 className="logistics-feature-title">Full supply chain visibility</h2>
+              <p className="logistics-feature-desc">
+                Track your freight in real time and get proactive updates before issues become delays.
+              </p>
+            </article>
+          </div>
+        </section>
+
+        {/* RIGHT COLUMN: AUTHENTICATION TERMINAL */}
+        <section className="logistics-auth-column">
+          <div className="logistics-auth-card">
+            {/* Brand Header */}
+            <div className="auth-card-header">
+              <img
+                src="/intelliwms_logo.png"
+                alt="InteliWMS Emblem"
+                className="auth-card-emblem"
+              />
+              <div className="auth-card-titles">
+                <span className="auth-brand-name">InteliWMS</span>
+                <span className="auth-brand-subtitle">Operations Access Terminal</span>
+              </div>
+            </div>
+
             {/* Quick 1-Click Demo Profiles */}
-            <div className="quick-access-section">
-              <span className="section-label">Quick 1-Click Demo Profiles</span>
-              <div className="quick-oauth-row">
+            <div className="quick-access-box">
+              <span className="quick-access-label">Quick 1-Click Demo Profiles</span>
+              <div className="quick-demo-row">
                 <button
                   type="button"
-                  className="oauth-btn"
+                  className="quick-demo-btn"
                   onClick={() => handleQuickLogin('john_staff', 'pass123', 'staff')}
                   title="Login as Warehouse Staff"
                 >
-                  <span className="oauth-icon">👷</span>
-                  <span className="oauth-text">Staff (John)</span>
+                  <span className="quick-demo-icon">👷</span>
+                  <span>Staff (John)</span>
                 </button>
 
                 <button
                   type="button"
-                  className="oauth-btn"
+                  className="quick-demo-btn"
                   onClick={() => handleQuickLogin('sarah_manager', 'pass456', 'manager')}
                   title="Login as Shift Supervisor"
                 >
-                  <span className="oauth-icon">👩‍💼</span>
-                  <span className="oauth-text">Manager (Sarah)</span>
+                  <span className="quick-demo-icon">👩‍💼</span>
+                  <span>Manager (Sarah)</span>
                 </button>
 
                 <button
                   type="button"
-                  className="oauth-btn"
+                  className="quick-demo-btn"
                   onClick={() => handleQuickLogin('admin_user', 'admin123', 'admin')}
                   title="Login as System Admin"
                 >
-                  <span className="oauth-icon">⚙️</span>
-                  <span className="oauth-text">Admin (Alex)</span>
+                  <span className="quick-demo-icon">⚙️</span>
+                  <span>Admin (Alex)</span>
                 </button>
               </div>
             </div>
 
-            {/* OR Divider */}
-            <div className="or-separator">
-              <span className="or-line"></span>
-              <span className="or-label">OR WITH CREDENTIALS</span>
-              <span className="or-line"></span>
+            {/* OR Separator */}
+            <div className="logistics-divider">
+              <span className="logistics-divider-line" />
+              <span className="logistics-divider-text">OR WITH CREDENTIALS</span>
+              <span className="logistics-divider-line" />
             </div>
 
             {/* Mode Switch Tabs */}
-            <div className="auth-tab-row">
+            <div className="auth-segmented-tabs">
               <button
                 type="button"
-                className={`tab-link ${!isRegisterMode ? 'active' : ''}`}
-                onClick={() => { setIsRegisterMode(false); setAuthError('') }}
+                className={`auth-tab ${!isRegisterMode ? 'active' : ''}`}
+                onClick={() => {
+                  setIsRegisterMode(false)
+                  setAuthError('')
+                }}
               >
                 Sign In
               </button>
               <button
                 type="button"
-                className={`tab-link ${isRegisterMode ? 'active' : ''}`}
-                onClick={() => { setIsRegisterMode(true); setRole('staff'); setAuthError('') }}
+                className={`auth-tab ${isRegisterMode ? 'active' : ''}`}
+                onClick={() => {
+                  setIsRegisterMode(true)
+                  setRole('staff')
+                  setAuthError('')
+                }}
               >
                 Register Account
               </button>
             </div>
 
             {/* Form */}
-            <form onSubmit={handleSubmit} className="credential-form">
+            <form onSubmit={handleSubmit} className="auth-form">
               {isRegisterMode && (
-                <div className="input-group">
-                  <label className="field-label" htmlFor="fullName">Full Name</label>
+                <div className="form-field">
+                  <label className="form-label" htmlFor="fullName">Full Name</label>
                   <input
                     id="fullName"
                     type="text"
@@ -112,8 +249,8 @@ export default function LoginPage({ onLogin, onRegister, authLoading, authError,
                 </div>
               )}
 
-              <div className="input-group">
-                <label className="field-label" htmlFor="username">Username or Warehouse ID</label>
+              <div className="form-field">
+                <label className="form-label" htmlFor="username">Username or Warehouse ID</label>
                 <input
                   id="username"
                   type="text"
@@ -124,8 +261,8 @@ export default function LoginPage({ onLogin, onRegister, authLoading, authError,
                 />
               </div>
 
-              <div className="input-group">
-                <label className="field-label" htmlFor="password">Password</label>
+              <div className="form-field">
+                <label className="form-label" htmlFor="password">Password</label>
                 <input
                   id="password"
                   type="password"
@@ -136,28 +273,36 @@ export default function LoginPage({ onLogin, onRegister, authLoading, authError,
                 />
               </div>
 
-              <div className="input-group">
-                <label className="field-label" htmlFor="role">Warehouse Operational Role</label>
+              <div className="form-field">
+                <label className="form-label" htmlFor="role">Warehouse Operational Role</label>
                 <select
                   id="role"
                   value={isRegisterMode ? 'staff' : role}
                   onChange={(e) => setRole(e.target.value)}
-                  aria-describedby={isRegisterMode ? 'role-register-note' : undefined}
+                  aria-describedby={isRegisterMode ? 'role-register-hint' : undefined}
                 >
                   <option value="staff">Staff — Floor Operations & Picking</option>
-                  <option value="manager" disabled={isRegisterMode}>Manager — Shift Supervisor & Approvals</option>
-                  <option value="admin" disabled={isRegisterMode}>Admin — System & Security SOC</option>
+                  <option value="manager" disabled={isRegisterMode}>
+                    Manager — Shift Supervisor & Approvals
+                  </option>
+                  <option value="admin" disabled={isRegisterMode}>
+                    Admin — System & Security SOC
+                  </option>
                 </select>
                 {isRegisterMode && (
-                  <span id="role-register-note" className="field-hint">
+                  <span id="role-register-hint" className="field-hint-text">
                     Manager and admin accounts are created by an administrator.
                   </span>
                 )}
               </div>
 
-              {authError && <div className="error-banner">{authError}</div>}
+              {authError && <div className="auth-error-box">{authError}</div>}
 
-              <button type="submit" className="primary-white-btn" disabled={authLoading}>
+              <button
+                type="submit"
+                className="auth-submit-btn"
+                disabled={authLoading}
+              >
                 {authLoading
                   ? 'Authenticating...'
                   : isRegisterMode
@@ -166,26 +311,8 @@ export default function LoginPage({ onLogin, onRegister, authLoading, authError,
               </button>
             </form>
           </div>
-        </div>
-
-        {/* RIGHT SIDE: INTELIWMS EMBLEM SHOWCASE */}
-        <div className="brand-right-column">
-          <div className="emblem-card-frame">
-            <div className="emblem-glow-wrapper">
-              <img
-                src="/intelliwms_logo.png"
-                alt="InteliWMS Official Emblem"
-                className="showcase-emblem"
-              />
-            </div>
-
-            <div className="brand-showcase-text">
-              <h2 className="showcase-title">InteliWMS</h2>
-              <p className="showcase-tagline">Intelligent Agentic Warehouse Management System</p>
-            </div>
-          </div>
-        </div>
-      </div>
+        </section>
+      </main>
     </div>
   )
 }
