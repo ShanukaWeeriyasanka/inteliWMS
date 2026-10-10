@@ -1,0 +1,6 @@
+{
+  "name": "Logistics that works as hard as you do.",
+  "description": "One point of contact and full supply-chain visibility, origin to destination.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
