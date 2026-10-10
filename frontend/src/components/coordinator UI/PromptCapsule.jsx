@@ -17,8 +17,10 @@ import {
   Layers,
   Sparkles,
   ChevronDown,
-  Check
+  Check,
+  AudioWaveform
 } from 'lucide-react'
+import { normalizeSpokenText } from '../../voice/voiceNormalizer'
 import {
   CHAT_MAX_CHARS,
   READ_LIMIT_BYTES,
@@ -57,7 +59,8 @@ export default function PromptCapsule({
   selectedAgent,
   setSelectedAgent,
   onOpenOperationalModal,
-  authToken
+  authToken,
+  onOpenVoiceMode
 }) {
   const [inputVal, setInputVal] = useState('')
   const [isRecording, setIsRecording] = useState(false)
@@ -199,7 +202,8 @@ export default function PromptCapsule({
           for (let i = 0; i < event.results.length; i++) {
             currentSessionText += event.results[i][0].transcript
           }
-          setInputVal(currentSessionText.slice(0, CHAT_MAX_CHARS))
+          const boosted = normalizeSpokenText(currentSessionText)
+          setInputVal(boosted.slice(0, CHAT_MAX_CHARS))
         }
 
         recognition.onerror = (e) => {
@@ -519,6 +523,20 @@ export default function PromptCapsule({
               >
                 {charCounterLabel(inputVal.length)}
               </span>
+            )}
+
+            {/* Live Voice Assistant (ChatGPT style) */}
+            {onOpenVoiceMode && (
+              <button
+                type="button"
+                onClick={onOpenVoiceMode}
+                className="capsule-voice-mode-trigger"
+                title="Launch Live Voice Assistant (ChatGPT Mode)"
+                aria-label="Launch Live Voice Assistant"
+              >
+                <span className="voice-pulse-ring" />
+                <AudioWaveform size={15} className="voice-wave-icon" />
+              </button>
             )}
 
             {/* Send Button */}

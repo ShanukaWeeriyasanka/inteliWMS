@@ -14,11 +14,14 @@ import {
   ThumbsDown,
   Paperclip,
   Activity,
-  Map as MapIcon
+  Map as MapIcon,
+  Volume2,
+  VolumeX
 } from 'lucide-react'
 import MarkdownText from './MarkdownText'
 import { agentLabel, isFulfillmentMessage } from '../../chat/messageMapping'
 import { parseFulfillmentContent } from '../../utils/fulfillmentParser'
+import { useSpeechSynthesis } from '../../voice/useSpeechSynthesis'
 import './FulfillmentAction.css'
 
 export default function ChatMessage({
@@ -31,6 +34,22 @@ export default function ChatMessage({
 }) {
   const [copied, setCopied] = useState(false)
   const isUser = message.role === 'user'
+
+  const { speak, stop: stopSpeech, isSpeaking } = useSpeechSynthesis()
+  const [isPlayingThis, setIsPlayingThis] = useState(false)
+
+  const toggleSpeak = () => {
+    if (isPlayingThis) {
+      stopSpeech()
+      setIsPlayingThis(false)
+    } else {
+      setIsPlayingThis(true)
+      speak(message.content, {
+        onEnd: () => setIsPlayingThis(false),
+        onError: () => setIsPlayingThis(false)
+      })
+    }
+  }
 
   const copyContent = () => {
     navigator.clipboard.writeText(message.content || '')
@@ -298,6 +317,14 @@ export default function ChatMessage({
           {!isUser && (
             <div className="message-footer-bar">
               <div className="footer-actions-right">
+                <button
+                  onClick={toggleSpeak}
+                  className={`icon-action-btn ${isPlayingThis ? 'is-speaking' : ''}`}
+                  title={isPlayingThis ? 'Stop voice readout' : 'Read aloud with AI voice'}
+                  aria-label="Read aloud with AI voice"
+                >
+                  {isPlayingThis ? <VolumeX size={13} className="text-cyan animate-pulse" /> : <Volume2 size={13} />}
+                </button>
                 <button onClick={copyContent} className="icon-action-btn" title="Copy response">
                   {copied ? <Check size={13} className="text-emerald" /> : <Copy size={13} />}
                 </button>

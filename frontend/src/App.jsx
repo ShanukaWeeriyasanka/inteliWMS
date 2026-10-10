@@ -15,6 +15,7 @@ import {
 } from './components/coordinator UI'
 import CommercializationModal from './components/CommercializationModal'
 import PricingModal from './components/PricingModal'
+import VoiceModeModal from './components/VoiceAssistant/VoiceModeModal'
 import SplineScene from './components/SplineScene'
 import LoginPage from './pages/LoginPage'
 import FulfillmentDashboard from './pages/FulfillmentDashboard'
@@ -96,6 +97,7 @@ export default function App() {
   const [operationalModal, setOperationalModal] = useState(null) // null | 'approvals' | 'injection_sandbox'
   const [isPricingModalOpen, setIsPricingModalOpen] = useState(false)
   const [isCommercializationOpen, setIsCommercializationOpen] = useState(false)
+  const [isVoiceModeOpen, setIsVoiceModeOpen] = useState(false)
   const [isEnterpriseTrial, setIsEnterpriseTrial] = useState(false)
   const [actionLoading, setActionLoading] = useState(false)
 
@@ -446,22 +448,22 @@ export default function App() {
       }
     }
 
-    if (epoch !== sessionEpochRef.current) return // signed out while waiting
+    if (epoch !== sessionEpochRef.current) return assistantMsg // signed out while waiting
     const stillOnScreen = chatRef.current.activeKey === key
     dispatchChat({ type: 'RESPONSE', key, message: assistantMsg, threadId: res?.thread_id || null })
-    if (!res) return
+    if (!res) return assistantMsg
 
     // First answer of a new conversation: the URL now names its thread (no reload, no new history entry)
     if (key === DRAFT && res.thread_id && stillOnScreen) {
       threadNavigator.replace({ threadId: res.thread_id, view: threadNavigator.current().view })
     }
     if (res.thread_id) loadThreads()
-    if (!stillOnScreen) return // saved in its own conversation; leave the current screen alone
+    if (!stillOnScreen) return assistantMsg // saved in its own conversation; leave the current screen alone
 
     // Check if backend returned security block
     if (assistantMsg.status === 'blocked') {
       fetchAuditData()
-      return
+      return assistantMsg
     }
 
     const uiCommand = assistantMsg.uiCommand
@@ -473,6 +475,7 @@ export default function App() {
     }
 
     fetchAuditData()
+    return assistantMsg
   }
 
   // Handle Role Actions (e.g. approve_restock)
@@ -711,6 +714,7 @@ export default function App() {
                   setSelectedAgent={setSelectedAgent}
                   onOpenOperationalModal={(type) => setOperationalModal(type)}
                   authToken={token}
+                  onOpenVoiceMode={() => setIsVoiceModeOpen(true)}
                 />
               </div>
             </div>
@@ -762,6 +766,7 @@ export default function App() {
                   setSelectedAgent={setSelectedAgent}
                   onOpenOperationalModal={(type) => setOperationalModal(type)}
                   authToken={token}
+                  onOpenVoiceMode={() => setIsVoiceModeOpen(true)}
                 />
               </div>
             </div>
@@ -789,6 +794,21 @@ export default function App() {
           setIsPricingModalOpen(false)
           setIsCommercializationOpen(false)
         }}
+      />
+
+      {/* ChatGPT-Style Live Voice Assistant Modal */}
+      <VoiceModeModal
+        isOpen={isVoiceModeOpen}
+        onClose={() => setIsVoiceModeOpen(false)}
+        onSendVoiceQuery={async (voiceQuery) => {
+          return await handleSendMessage({
+            text: voiceQuery,
+            attachments: [],
+            targetAgent: selectedAgent
+          })
+        }}
+        selectedAgent={selectedAgent}
+        onSelectAgent={(agent) => setSelectedAgent(agent)}
       />
     </div>
   )
