@@ -1,0 +1,178 @@
+{
+ "key": "RA-29#2",
+ "stack": "after",
+ "runs": [
+  [
+   {
+    "method": "POST",
+    "url": "http://127.0.0.1:8020/query",
+    "account": "admin_user",
+    "request_headers": {
+     "Content-Type": "application/json",
+     "Authorization": "Bearer <token hidden>"
+    },
+    "request_json": {
+     "message": "What should I do if the cold vault temperature goes above the limit?"
+    },
+    "status": 200,
+    "reason": "OK",
+    "ms": 38,
+    "size": 3216,
+    "response_json": {
+     "status": "success",
+     "agent_used": "knowledge_agent",
+     "response": "According to SOP-COLD-005 §3 — 'Cold-Chain Vault (Building 4) Storage & Temperature Excursion SOP':\n3. Excursion Handling: If ambient vault temperature rises above 5.0°C for more than 15 minutes, automated telemetry triggers Alarm Code T-EX-4. Notify Shift Supervisor immediately and activate the backup secondary cooling compressors. Quarantine affected vaccine lots pending QA audit.\n\n📎 Source: SOP-COLD-005 §3 (SOP library).",
+     "routing": {
+      "target_agent": "knowledge_agent",
+      "intent": "KNOWLEDGE",
+      "domain": "KNOWLEDGE",
+      "confidence": 0.91,
+      "reasoning": "Heuristic match: Warehouse SOP, policy or protocol signal.",
+      "source": "heuristic",
+      "follow_up": false,
+      "rule_id": "knowledge.strong",
+      "decided_by": "rule",
+      "llm_consulted": false,
+      "llm_status": null,
+      "normalized_query": null,
+      "direct_response": null,
+      "decisions": [
+       {
+        "stage": "route",
+        "outcome": "KNOWLEDGE",
+        "decided_by": "rule",
+        "rule_id": "knowledge.strong",
+        "llm_consulted": false,
+        "llm_status": null,
+        "confidence": 0.91
+       }
+      ]
+     },
+     "audit": {
+      "user_id": "usr_admin_003",
+      "timestamp": "2026-10-10T15:31:33.460917+00:00",
+      "routing_confidence": 0.91,
+      "domain": "KNOWLEDGE",
+      "original_query": "What should I do if the cold vault temperature goes above the limit?",
+      "normalized_query": "What should I do if the cold vault temperature goes above the limit?",
+      "request_id": "b86140722eaa48b5a45b2c8e022d57b2",
+      "trace_id": "efd798fc5d4918bbe84dcd0d108926ee"
+     },
+     "knowledge_details": {
+      "agent": "knowledge_agent",
+      "query": "What should I do if the cold vault temperature goes above the limit?",
+      "response": "According to SOP-COLD-005 §3 — 'Cold-Chain Vault (Building 4) Storage & Temperature Excursion SOP':\n3. Excursion Handling: If ambient vault temperature rises above 5.0°C for more than 15 minutes, automated telemetry triggers Alarm Code T-EX-4. Notify Shift Supervisor immediately and activate the backup secondary cooling compressors. Quarantine affected vaccine lots pending QA audit.\n\n📎 Source: SOP-COLD-005 §3 (SOP library).",
+      "entities": {
+       "skus": [],
+       "locations": [],
+       "products": [],
+       "quantities": [],
+       "dates": [],
+       "intent_hint": "document_query",
+       "raw_query": "What should I do if the cold vault temperature goes above the limit?"
+      },
+      "rag_sources": [
+       {
+        "title": "Cold-Chain Vault (Building 4) Storage & Temperature Excursion SOP",
+        "category": "Cold-Chain",
+        "doc_id": "SOP-COLD-005",
+        "content": "3. Excursion Handling: If ambient vault temperature rises above 5.0°C for more than 15 minutes, automated telemetry triggers Alarm Code T-EX-4. Notify Shift Supervisor immediately and activate the backup secondary cooling compressors. Quarantine affected vaccine lots pending QA audit.",
+        "section": 3,
+        "distance": null,
+        "keyword_score": 0.67
+       },
+       {
+        "title": "Cold-Chain Vault (Building 4) Storage & Temperature Excursion SOP",
+        "category": "Cold-Chain",
+        "doc_id": "SOP-COLD-005",
+        "content": "1. Target Storage Envelope: All pharmaceutical products, vaccines, and biologics in Building 4 Cold Vault must be maintained continuously between 2.0°C and 4.0°C.",
+        "section": 1,
+        "distance": null,
+        "keyword_score": 0.5
+       }
+      ],
+      "source": "vector_rag"
+     },
+     "thread_id": "8f5e1d08-9d46-416f-a8a9-3dec89134459",
+     "persisted": true,
+     "request_id": "b86140722eaa48b5a45b2c8e022d57b2",
+     "trace_id": "efd798fc5d4918bbe84dcd0d108926ee"
+    },
+    "response_text": null,
+    "sent_at": "2026-10-10 21:01:33"
+   },
+   {
+    "method": "POST",
+    "url": "http://127.0.0.1:8020/query",
+    "account": "admin_user",
+    "request_headers": {
+     "Content-Type": "application/json",
+     "Authorization": "Bearer <token hidden>"
+    },
+    "request_json": {
+     "message": "Where did you get that from?",
+     "thread_id": "8f5e1d08-9d46-416f-a8a9-3dec89134459"
+    },
+    "status": 200,
+    "reason": "OK",
+    "ms": 34,
+    "size": 1511,
+    "response_json": {
+     "status": "success",
+     "agent_used": "coordinator",
+     "response": "📎 That answer came from: SOP library — SOP-COLD-005 §3.\nI don't search the web — answers come from the warehouse database and the SOP library, quoted as written.",
+     "routing": {
+      "target_agent": "coordinator",
+      "intent": "COORDINATOR",
+      "domain": "COORDINATOR",
+      "confidence": 0.99,
+      "reasoning": "Question about the source of the previous answer.",
+      "source": "meta",
+      "follow_up": false,
+      "rule_id": "transparency.source",
+      "decided_by": "rule",
+      "llm_consulted": false,
+      "llm_status": null,
+      "normalized_query": null,
+      "direct_response": "📎 That answer came from: SOP library — SOP-COLD-005 §3.\nI don't search the web — answers come from the warehouse database and the SOP library, quoted as written.",
+      "decisions": [
+       {
+        "stage": "route",
+        "outcome": "COORDINATOR",
+        "decided_by": "rule",
+        "rule_id": "transparency.source",
+        "llm_consulted": false,
+        "llm_status": null,
+        "confidence": 0.99
+       },
+       {
+        "stage": "reply",
+        "outcome": "transparency.source",
+        "decided_by": "rule",
+        "rule_id": "reply.transparency.source",
+        "llm_consulted": false,
+        "llm_status": null,
+        "confidence": null
+       }
+      ]
+     },
+     "audit": {
+      "user_id": "usr_admin_003",
+      "timestamp": "2026-10-10T15:31:33.499147+00:00",
+      "routing_confidence": 0.99,
+      "domain": "COORDINATOR",
+      "normalized_query": "Where did you get that from?",
+      "request_id": "2a91a3022c814de6b6fdaa85d4d8695f",
+      "trace_id": "021578b59bc3075959cb60057a767782"
+     },
+     "thread_id": "8f5e1d08-9d46-416f-a8a9-3dec89134459",
+     "persisted": true,
+     "request_id": "2a91a3022c814de6b6fdaa85d4d8695f",
+     "trace_id": "021578b59bc3075959cb60057a767782"
+    },
+    "response_text": null,
+    "sent_at": "2026-10-10 21:01:33"
+   }
+  ]
+ ]
+}

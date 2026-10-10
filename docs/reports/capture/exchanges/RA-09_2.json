@@ -1,0 +1,103 @@
+{
+ "key": "RA-09#2",
+ "stack": "after",
+ "runs": [
+  [
+   {
+    "method": "POST",
+    "url": "http://127.0.0.1:8020/query",
+    "account": "admin_user",
+    "request_headers": {
+     "Content-Type": "application/json",
+     "Authorization": "Bearer <token hidden>"
+    },
+    "request_json": {
+     "message": "Can I stack 2 tiers in Zone A if one pallet is cracked?"
+    },
+    "status": 200,
+    "reason": "OK",
+    "ms": 34,
+    "size": 2784,
+    "response_json": {
+     "status": "success",
+     "agent_used": "knowledge_agent",
+     "response": "❌ NON-COMPLIANT (SAFETY VIOLATION)\n• Rule: SOP-STG-002 (Pallet Stacking & Racking Regulations - Section 2)\n• Finding: Pallet has physical defects (cracked/missing boards).\n• Mandatory Action: Affix RED TAG immediately and transfer to the Quarantine Staging Area at Building 5 Bay 11. DO NOT RACK.",
+     "routing": {
+      "target_agent": "knowledge_agent",
+      "intent": "KNOWLEDGE",
+      "domain": "KNOWLEDGE",
+      "confidence": 0.91,
+      "reasoning": "Heuristic match: Warehouse SOP / safety keywords.",
+      "source": "heuristic",
+      "follow_up": false,
+      "rule_id": "knowledge.keywords",
+      "decided_by": "rule",
+      "llm_consulted": false,
+      "llm_status": null,
+      "normalized_query": null,
+      "direct_response": null,
+      "decisions": [
+       {
+        "stage": "route",
+        "outcome": "KNOWLEDGE",
+        "decided_by": "rule",
+        "rule_id": "knowledge.keywords",
+        "llm_consulted": false,
+        "llm_status": null,
+        "confidence": 0.91
+       }
+      ]
+     },
+     "audit": {
+      "user_id": "usr_admin_003",
+      "timestamp": "2026-10-10T15:31:19.207181+00:00",
+      "routing_confidence": 0.91,
+      "domain": "KNOWLEDGE",
+      "original_query": "Can I stack 2 tiers in Zone A if one pallet is cracked?",
+      "normalized_query": "Can I stack 2 tiers in Zone A if one pallet is cracked?",
+      "request_id": "a7ff314f6f934db0b316fa365d0ebab7",
+      "trace_id": "6b64940240007be69d6177ee0b0f9e0b"
+     },
+     "knowledge_details": {
+      "agent": "knowledge_agent",
+      "query": "Can I stack 2 tiers in Zone A if one pallet is cracked?",
+      "response": "❌ NON-COMPLIANT (SAFETY VIOLATION)\n• Rule: SOP-STG-002 (Pallet Stacking & Racking Regulations - Section 2)\n• Finding: Pallet has physical defects (cracked/missing boards).\n• Mandatory Action: Affix RED TAG immediately and transfer to the Quarantine Staging Area at Building 5 Bay 11. DO NOT RACK.",
+      "entities": {
+       "skus": [],
+       "locations": [
+        "Zone A"
+       ],
+       "products": [],
+       "quantities": [
+        {
+         "value": 2,
+         "text": "2"
+        }
+       ],
+       "dates": [],
+       "intent_hint": "location_query",
+       "raw_query": "Can I stack 2 tiers in Zone A if one pallet is cracked?"
+      },
+      "data": {
+       "compliant": false,
+       "severity": "CRITICAL",
+       "sop_id": "SOP-STG-002",
+       "rule_title": "Pallet Stacking & Racking Regulations",
+       "limit_description": "Damaged pallets must never be stacked or placed in high racking.",
+       "violation_reason": "Pallet has structural defects.",
+       "recommended_action": "Tag RED and transfer to the Quarantine Staging Area at Building 5 Bay 11.",
+       "formatted_message": "❌ NON-COMPLIANT (SAFETY VIOLATION)\n• Rule: SOP-STG-002 (Pallet Stacking & Racking Regulations - Section 2)\n• Finding: Pallet has physical defects (cracked/missing boards).\n• Mandatory Action: Affix RED TAG immediately and transfer to the Quarantine Staging Area at Building 5 Bay 11. DO NOT RACK."
+      },
+      "source": "compliance_engine"
+     },
+     "thread_id": "cd9558e7-7d53-4c4d-bbb4-6b7a4ce42b3d",
+     "persisted": true,
+     "request_id": "a7ff314f6f934db0b316fa365d0ebab7",
+     "trace_id": "6b64940240007be69d6177ee0b0f9e0b"
+    },
+    "response_text": null,
+    "sent_at": "2026-10-10 21:01:19"
+   }
+  ]
+ ]
+}

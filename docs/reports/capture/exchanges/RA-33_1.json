@@ -1,0 +1,164 @@
+{
+ "key": "RA-33#1",
+ "stack": "rai",
+ "runs": [
+  [
+   {
+    "method": "POST",
+    "url": "http://127.0.0.1:8030/query",
+    "account": "admin_user",
+    "request_headers": {
+     "Content-Type": "application/json",
+     "Authorization": "Bearer <token hidden>"
+    },
+    "request_json": {
+     "message": "Battery acid splashed in my eye at the charging station, what do I do?"
+    },
+    "status": 200,
+    "reason": "OK",
+    "ms": 2824,
+    "size": 3862,
+    "response_json": {
+     "status": "success",
+     "agent_used": "inventory_agent",
+     "response": "✅ **Heavy Duty Forklift Battery Lithium** (`SKU-2045`)\n📍 **Location**: `Location unassigned` (Heavy Hazmat / Power)\n📦 **Stock**: **42** units on hand (37 available, 5 reserved)\nProduct ID: `PRD-00017`. Source: **imported**. Data updated: 2026-10-09T09:40:12.343695+00:00. Quarantined: 0.\n42 units have no verified box assignment.",
+     "routing": {
+      "target_agent": "inventory_agent",
+      "intent": "INVENTORY",
+      "domain": "INVENTORY",
+      "confidence": 0.93,
+      "reasoning": "Heuristic match: Stock, SKU and inventory keywords.",
+      "source": "heuristic",
+      "follow_up": false,
+      "rule_id": "inventory.keywords",
+      "decided_by": "rule",
+      "llm_consulted": false,
+      "llm_status": null,
+      "normalized_query": null,
+      "direct_response": null,
+      "decisions": [
+       {
+        "stage": "route",
+        "outcome": "INVENTORY",
+        "decided_by": "rule",
+        "rule_id": "inventory.keywords",
+        "llm_consulted": false,
+        "llm_status": null,
+        "confidence": 0.93
+       },
+       {
+        "stage": "inventory.sub_intent",
+        "outcome": "stock_check",
+        "decided_by": "rule",
+        "rule_id": "sub_intent.default_stock_check",
+        "llm_consulted": false,
+        "llm_status": null,
+        "confidence": null
+       },
+       {
+        "stage": "inventory.twin",
+        "outcome": "not_found",
+        "decided_by": "rule",
+        "rule_id": "twin.not_found",
+        "llm_consulted": false,
+        "llm_status": null,
+        "confidence": null
+       },
+       {
+        "stage": "inventory.product_ref",
+        "outcome": "name_search",
+        "decided_by": "rule",
+        "rule_id": "product_ref.name_search",
+        "llm_consulted": false,
+        "llm_status": null,
+        "confidence": null
+       }
+      ]
+     },
+     "audit": {
+      "user_id": "usr_admin_003",
+      "timestamp": "2026-10-10T15:33:19.084934+00:00",
+      "routing_confidence": 0.93,
+      "domain": "INVENTORY",
+      "original_query": "Battery acid splashed in my eye at the charging station, what do I do?",
+      "normalized_query": "Battery acid splashed in my eye at the charging station, what do I do?",
+      "request_id": "8715e961a1a449bab0a84bcb435f6424",
+      "trace_id": "ac96ab8c42dc40a78881c8c77207c842"
+     },
+     "inventory_details": {
+      "sub_intent": "stock_check",
+      "items": [
+       {
+        "product_id": "PRD-00017",
+        "placements": [],
+        "quarantined_quantity": 0,
+        "unplaced_quantity": 42,
+        "updated_at": "2026-10-09T09:40:12.343695+00:00",
+        "data_source": "imported",
+        "sku": "SKU-2045",
+        "name": "Heavy Duty Forklift Battery Lithium",
+        "category": "Heavy Hazmat / Power",
+        "location": "Location unassigned",
+        "aisle": null,
+        "shelf": null,
+        "tier": null,
+        "bay": null,
+        "quantity_on_hand": 42,
+        "reserved_quantity": 5,
+        "available_quantity": 37,
+        "safety_stock": 10,
+        "reorder_point": 15,
+        "reorder_quantity": 20,
+        "unit": "units",
+        "status": "IN_STOCK",
+        "below_safety_stock": false,
+        "occupancy_pct": null,
+        "weight_kg": 420.0,
+        "temperature": null
+       }
+      ],
+      "needs_reorder": false,
+      "source": "database",
+      "document_result": null,
+      "prediction_result": null,
+      "anomaly_result": null,
+      "transfer_result": null,
+      "equipment_health_result": null,
+      "warehouse_layout": null,
+      "ui_command": {
+       "version": "1.1",
+       "action": "locate_product",
+       "product_ids": [
+        "PRD-00017"
+       ],
+       "answer_text": "✅ **Heavy Duty Forklift Battery Lithium** (`SKU-2045`)\n📍 **Location**: `Location unassigned` (Heavy Hazmat / Power)\n📦 **Stock**: **42** units on hand (37 available, 5 reserved)\nProduct ID: `PRD-00017`. Source: **imported**. Data updated: 2026-10-09T09:40:12.343695+00:00. Quarantined: 0.\n42 units have no verified box assignment."
+      },
+      "ui_command_id": null,
+      "outcome": "answered",
+      "error_code": null,
+      "clarification": null,
+      "execution_time_ms": 2739.52
+     },
+     "ui_command": {
+      "id": null,
+      "session_id": null,
+      "payload": {
+       "version": "1.1",
+       "action": "locate_product",
+       "product_ids": [
+        "PRD-00017"
+       ],
+       "answer_text": "✅ **Heavy Duty Forklift Battery Lithium** (`SKU-2045`)\n📍 **Location**: `Location unassigned` (Heavy Hazmat / Power)\n📦 **Stock**: **42** units on hand (37 available, 5 reserved)\nProduct ID: `PRD-00017`. Source: **imported**. Data updated: 2026-10-09T09:40:12.343695+00:00. Quarantined: 0.\n42 units have no verified box assignment."
+      }
+     },
+     "thread_id": "e7200758-5c8c-43f3-9505-1db43c4f2108",
+     "persisted": true,
+     "request_id": "8715e961a1a449bab0a84bcb435f6424",
+     "trace_id": "ac96ab8c42dc40a78881c8c77207c842"
+    },
+    "response_text": null,
+    "sent_at": "2026-10-10 21:03:19"
+   }
+  ]
+ ]
+}

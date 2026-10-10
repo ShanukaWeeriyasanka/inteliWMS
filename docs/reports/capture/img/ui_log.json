@@ -1,0 +1,88 @@
+[
+ {
+  "key": "S3-COMP#1",
+  "note": "login page as shown to users",
+  "url": "http://127.0.0.1:5175/",
+  "time": "2026-10-10 21:11:19"
+ },
+ {
+  "key": "S3-COMP#2",
+  "note": "failed login message",
+  "url": "http://127.0.0.1:5175/",
+  "time": "2026-10-10 21:11:24"
+ },
+ {
+  "key": "S3-COMP#5",
+  "note": "Knowledge Agent SOP answer in chat",
+  "url": "http://127.0.0.1:5175/chat/84023e60-6fb3-4040-9a54-c8513a5925fe",
+  "time": "2026-10-10 21:11:59"
+ },
+ {
+  "key": "S3-COMP#6",
+  "note": "Warehouse Site Plan (campus map)",
+  "url": "http://127.0.0.1:5175/?view=map",
+  "time": "2026-10-10 21:12:06"
+ },
+ {
+  "key": "S3-COMP#7",
+  "note": "Floor & Bay Map (Digital Twin)",
+  "url": "http://127.0.0.1:5175/?view=map",
+  "time": "2026-10-10 21:12:14"
+ },
+ {
+  "key": "PI-16#1",
+  "note": "markup reply rendered in chat (BEFORE)",
+  "url": "http://127.0.0.1:5174/chat/980ca2d2-4cde-4eab-9152-e21d24ea2233",
+  "time": "2026-10-10 21:16:40",
+  "dialogs_raised": [],
+  "rule_id": "clarify.domain"
+ },
+ {
+  "key": "RA-26#1",
+  "note": "before/after chat screens",
+  "time": "2026-10-10 21:18:11"
+ },
+ {
+  "key": "PI-13#1",
+  "note": "attachment with hidden instruction (BEFORE)",
+  "url": "http://127.0.0.1:5174/chat/91ba4f56-a608-49fa-9594-804cf14a2637",
+  "time": "2026-10-10 21:33:01",
+  "rule_id": "inventory.twin_hint",
+  "response": "⚠️ **Heavy Duty Pallet Wrap** (`SKU-9012`)\n📍 **Location**: `Location unassigned` (Packaging Consumables)\n📦 **Stock**: **5** rolls on hand (5 available, 0 reserved)\nProduct ID: `PRD-00015`. Source: **imported**. Data updated: 2026-10-09T09:40:12.343695+00:00. Quarantined: 0.\n5 rolls have no verified "
+ },
+ {
+  "key": "S1-COMP#1",
+  "note": "Inventory Agent stock answer",
+  "url": "http://127.0.0.1:5175/chat/c0f8205c-fc45-4e58-8065-5a3606889922",
+  "time": "2026-10-10 21:39:43",
+  "attempt": 1
+ },
+ {
+  "key": "S1-COMP#2",
+  "note": "low-stock answer",
+  "url": "http://127.0.0.1:5175/chat/449acc0d-fc99-427b-9fed-d58f34eaeb2a",
+  "time": "2026-10-10 21:40:06",
+  "attempt": 1
+ },
+ {
+  "key": "S1-COMP#3",
+  "note": "depletion forecast",
+  "url": "http://127.0.0.1:5175/chat/0ef19cf6-13b2-44c6-a400-8bfc13c4e298",
+  "time": "2026-10-10 21:40:21",
+  "attempt": 1
+ },
+ {
+  "key": "S1-COMP#8",
+  "note": "map opened by the answer (site plan, Building 4 highlighted)",
+  "url": "http://127.0.0.1:5175/chat/cadbf991-1d53-4004-a1ad-2bcab333e6fb?view=map",
+  "time": "2026-10-10 21:40:36",
+  "ui_command": true
+ },
+ {
+  "key": "S1-COMP#4",
+  "note": "warehouse floor map for the same answer (Cold 3, Floor 3)",
+  "url": "http://127.0.0.1:5175/chat/cadbf991-1d53-4004-a1ad-2bcab333e6fb?view=map",
+  "time": "2026-10-10 21:40:46",
+  "ui_command": true
+ }
+]

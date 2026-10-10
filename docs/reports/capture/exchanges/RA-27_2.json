@@ -1,0 +1,101 @@
+{
+ "key": "RA-27#2",
+ "stack": "after",
+ "runs": [
+  [
+   {
+    "method": "POST",
+    "url": "http://127.0.0.1:8020/query",
+    "account": "admin_user",
+    "request_headers": {
+     "Content-Type": "application/json",
+     "Authorization": "Bearer <token hidden>"
+    },
+    "request_json": {
+     "message": "Should I reorder SKU-7788? State the retrieved stock quantity, reorder threshold, and the applicable business rule supporting your recommendation."
+    },
+    "status": 200,
+    "reason": "OK",
+    "ms": 33,
+    "size": 2757,
+    "response_json": {
+     "status": "success",
+     "agent_used": "knowledge_agent",
+     "response": "Thermal Label Printer (SKU-7788) is stored in **Building 2 — Bulk Distribution** at Aisle 5, Shelf A1, Bay 02 (Building 2 — Bulk Distribution). Current stock: 15 units (21.0 °C (Ambient)).",
+     "routing": {
+      "target_agent": "knowledge_agent",
+      "intent": "KNOWLEDGE",
+      "domain": "KNOWLEDGE",
+      "confidence": 0.91,
+      "reasoning": "Heuristic match: Warehouse SOP, policy or protocol signal.",
+      "source": "heuristic",
+      "follow_up": false,
+      "rule_id": "knowledge.strong",
+      "decided_by": "rule",
+      "llm_consulted": false,
+      "llm_status": null,
+      "normalized_query": null,
+      "direct_response": null,
+      "decisions": [
+       {
+        "stage": "route",
+        "outcome": "KNOWLEDGE",
+        "decided_by": "rule",
+        "rule_id": "knowledge.strong",
+        "llm_consulted": false,
+        "llm_status": null,
+        "confidence": 0.91
+       }
+      ]
+     },
+     "audit": {
+      "user_id": "usr_admin_003",
+      "timestamp": "2026-10-10T15:35:26.572798+00:00",
+      "routing_confidence": 0.91,
+      "domain": "KNOWLEDGE",
+      "original_query": "Should I reorder SKU-7788? State the retrieved stock quantity, reorder threshold, and the applicable business rule supporting your recommendation.",
+      "normalized_query": "Should I reorder SKU-7788? State the retrieved stock quantity, reorder threshold, and the applicable business rule supporting your recommendation.",
+      "request_id": "6ce3cdc845bc41bc8f79e2379e7115c2",
+      "trace_id": "a3788595b779ef9071fdb573d74f5534"
+     },
+     "knowledge_details": {
+      "agent": "knowledge_agent",
+      "query": "Should I reorder SKU-7788? State the retrieved stock quantity, reorder threshold, and the applicable business rule supporting your recommendation.",
+      "response": "Thermal Label Printer (SKU-7788) is stored in **Building 2 — Bulk Distribution** at Aisle 5, Shelf A1, Bay 02 (Building 2 — Bulk Distribution). Current stock: 15 units (21.0 °C (Ambient)).",
+      "entities": {
+       "skus": [
+        "SKU-7788"
+       ],
+       "locations": [],
+       "products": [],
+       "quantities": [],
+       "dates": [],
+       "intent_hint": "document_query",
+       "raw_query": "Should I reorder SKU-7788? State the retrieved stock quantity, reorder threshold, and the applicable business rule supporting your recommendation."
+      },
+      "data": {
+       "found": true,
+       "entity_type": "product_sku",
+       "sku": "SKU-7788",
+       "name": "Thermal Label Printer",
+       "building_id": "BLD-02",
+       "building_name": "Building 2 — Bulk Distribution",
+       "location": "Aisle 5, Shelf A1, Bay 02 (Building 2 — Bulk Distribution)",
+       "quantity": 15,
+       "category": "Dispatch Equipment",
+       "temperature": "21.0 °C (Ambient)",
+       "formatted_message": "Thermal Label Printer (SKU-7788) is stored in **Building 2 — Bulk Distribution** at Aisle 5, Shelf A1, Bay 02 (Building 2 — Bulk Distribution). Current stock: 15 units (21.0 °C (Ambient))."
+      },
+      "source": "database_location"
+     },
+     "thread_id": "41cca376-cd1f-4edb-8beb-0fb4e349535f",
+     "persisted": true,
+     "request_id": "6ce3cdc845bc41bc8f79e2379e7115c2",
+     "trace_id": "a3788595b779ef9071fdb573d74f5534"
+    },
+    "response_text": null,
+    "sent_at": "2026-10-10 21:05:26"
+   }
+  ]
+ ]
+}

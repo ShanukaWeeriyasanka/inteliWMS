@@ -1527,6 +1527,14 @@ spline-viewer a {
   gap: 12px;
 }
 
+.ai-disclosure-note {
+  margin: 0;
+  text-align: center;
+  font-size: 11px;
+  line-height: 1.4;
+  color: rgba(214, 205, 194, 0.72);
+}
+
 .claude-capsule-box {
   background: rgba(30, 28, 26, 0.68);
   backdrop-filter: blur(36px) saturate(190%);

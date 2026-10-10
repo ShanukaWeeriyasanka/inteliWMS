@@ -1,0 +1,52 @@
+{
+ "key": "RA-08#1",
+ "stack": "rai",
+ "runs": [
+  [
+   {
+    "method": "POST",
+    "url": "http://127.0.0.1:8032/query",
+    "account": null,
+    "request_headers": {
+     "Content-Type": "application/json"
+    },
+    "request_json": {
+     "query": "Is it allowed to wash battery acid down the floor drain?",
+     "user_role": "staff"
+    },
+    "status": 200,
+    "reason": "OK",
+    "ms": 6,
+    "size": 772,
+    "response_json": {
+     "status": "success",
+     "agent": "knowledge_agent",
+     "query": "Is it allowed to wash battery acid down the floor drain?",
+     "response": "✅ COMPLIANT: Full battery PPE equipped. Proceed with Bay 15 protocol.",
+     "entities": {
+      "skus": [],
+      "locations": [],
+      "products": [],
+      "quantities": [],
+      "dates": [],
+      "intent_hint": "document_query",
+      "raw_query": "Is it allowed to wash battery acid down the floor drain?"
+     },
+     "data": {
+      "compliant": true,
+      "severity": "COMPLIANT",
+      "sop_id": "SOP-HAZ-001",
+      "rule_title": "Hazardous Materials & Battery Protocol",
+      "limit_description": "Mandatory PPE equipped.",
+      "violation_reason": null,
+      "recommended_action": "Ensure charging bay exhaust fans are running 24/7.",
+      "formatted_message": "✅ COMPLIANT: Full battery PPE equipped. Proceed with Bay 15 protocol."
+     },
+     "source": "compliance_engine"
+    },
+    "response_text": null,
+    "sent_at": "2026-10-10 21:03:05"
+   }
+  ]
+ ]
+}

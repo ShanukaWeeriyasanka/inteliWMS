@@ -1,0 +1,103 @@
+{
+ "key": "RA-07#2",
+ "stack": "after",
+ "runs": [
+  [
+   {
+    "method": "POST",
+    "url": "http://127.0.0.1:8020/query",
+    "account": "admin_user",
+    "request_headers": {
+     "Content-Type": "application/json",
+     "Authorization": "Bearer <token hidden>"
+    },
+    "request_json": {
+     "message": "In aisle 4, is driving at 6 mph allowed?"
+    },
+    "status": 200,
+    "reason": "OK",
+    "ms": 33,
+    "size": 2632,
+    "response_json": {
+     "status": "success",
+     "agent_used": "knowledge_agent",
+     "response": "❌ NON-COMPLIANT (SPEED LIMIT VIOLATION)\n• Rule: SOP-SAF-003 (Forklift & Mobile Equipment Safety Protocol - Section 1)\n• Requested Speed: 6 mph in aisle\n• Maximum Legal Speed: 5 mph\n• Mandatory Action: Reduce travel speed by 1 mph. Operators must sound horn at blind corners.",
+     "routing": {
+      "target_agent": "knowledge_agent",
+      "intent": "KNOWLEDGE",
+      "domain": "KNOWLEDGE",
+      "confidence": 0.91,
+      "reasoning": "Heuristic match: Warehouse SOP / safety keywords.",
+      "source": "heuristic",
+      "follow_up": false,
+      "rule_id": "knowledge.keywords",
+      "decided_by": "rule",
+      "llm_consulted": false,
+      "llm_status": null,
+      "normalized_query": null,
+      "direct_response": null,
+      "decisions": [
+       {
+        "stage": "route",
+        "outcome": "KNOWLEDGE",
+        "decided_by": "rule",
+        "rule_id": "knowledge.keywords",
+        "llm_consulted": false,
+        "llm_status": null,
+        "confidence": 0.91
+       }
+      ]
+     },
+     "audit": {
+      "user_id": "usr_admin_003",
+      "timestamp": "2026-10-10T15:31:19.136565+00:00",
+      "routing_confidence": 0.91,
+      "domain": "KNOWLEDGE",
+      "original_query": "In aisle 4, is driving at 6 mph allowed?",
+      "normalized_query": "In aisle 4, is driving at 6 mph allowed?",
+      "request_id": "a00fdd805e9e443dbf0a4a66300a2efd",
+      "trace_id": "1cd07a68c0c5fe4c18a8a54a94358de4"
+     },
+     "knowledge_details": {
+      "agent": "knowledge_agent",
+      "query": "In aisle 4, is driving at 6 mph allowed?",
+      "response": "❌ NON-COMPLIANT (SPEED LIMIT VIOLATION)\n• Rule: SOP-SAF-003 (Forklift & Mobile Equipment Safety Protocol - Section 1)\n• Requested Speed: 6 mph in aisle\n• Maximum Legal Speed: 5 mph\n• Mandatory Action: Reduce travel speed by 1 mph. Operators must sound horn at blind corners.",
+      "entities": {
+       "skus": [],
+       "locations": [
+        "aisle 4"
+       ],
+       "products": [],
+       "quantities": [
+        {
+         "value": 6,
+         "text": "6"
+        }
+       ],
+       "dates": [],
+       "intent_hint": "location_query",
+       "raw_query": "In aisle 4, is driving at 6 mph allowed?"
+      },
+      "data": {
+       "compliant": false,
+       "severity": "CRITICAL",
+       "sop_id": "SOP-SAF-003",
+       "rule_title": "Forklift & Mobile Equipment Operations",
+       "limit_description": "Maximum speed in aisles is 5.0 mph (8 km/h in aisles).",
+       "violation_reason": "Vehicle speed 6 mph exceeds 5 mph limit.",
+       "recommended_action": "Throttle down vehicle below 5.0 mph.",
+       "formatted_message": "❌ NON-COMPLIANT (SPEED LIMIT VIOLATION)\n• Rule: SOP-SAF-003 (Forklift & Mobile Equipment Safety Protocol - Section 1)\n• Requested Speed: 6 mph in aisle\n• Maximum Legal Speed: 5 mph\n• Mandatory Action: Reduce travel speed by 1 mph. Operators must sound horn at blind corners."
+      },
+      "source": "compliance_engine"
+     },
+     "thread_id": "0372856a-945b-43ef-8c33-fbf27ef8ba1c",
+     "persisted": true,
+     "request_id": "a00fdd805e9e443dbf0a4a66300a2efd",
+     "trace_id": "1cd07a68c0c5fe4c18a8a54a94358de4"
+    },
+    "response_text": null,
+    "sent_at": "2026-10-10 21:01:19"
+   }
+  ]
+ ]
+}

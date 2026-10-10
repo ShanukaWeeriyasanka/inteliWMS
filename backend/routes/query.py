@@ -33,6 +33,7 @@ from backend.twin.sessions import twin_sessions
 from config.settings import settings
 from database.connection import get_db
 from database.models import ChatThread
+from security.responsible_ai import is_guard_rule
 from security.sanitizer import EMPTY_QUERY_MESSAGE, is_empty_query, sanitize_input
 from utils import request_context
 from utils.logger import StructuredLogger
@@ -237,9 +238,15 @@ async def handle_coordinator_query(payload: QueryRequest, request: Request, db: 
             sp.set(domain=domain, target_agent=target_agent, rule_id=routing_decision.get("rule_id"),
                    decided_by=routing_decision.get("decided_by"))
 
+            # Responsible AI answers (crisis, harmful or unfair requests, AI disclosure) reach every plan:
+            # they skip the plan checks below and keep their own wording (no plan-specific reply)
+            guarded = is_guard_rule(routing_decision.get("rule_id")) and bool(routing_decision.get("direct_response"))
+
             # 4.2. Subscription Entitlement & Agent Access Enforcement
             # STARTER: Only inventory agent is customer-facing. Unavailable specialists return a restriction message.
-            if user_plan == PLAN_STARTER:
+            if guarded:
+                pass
+            elif user_plan == PLAN_STARTER:
                 if target_agent in {"fulfillment_agent", "knowledge_agent"}:
                     routing_decision["decisions"] = collected()
                     audit_meta = {
@@ -368,7 +375,7 @@ async def handle_coordinator_query(payload: QueryRequest, request: Request, db: 
             # 4.5. Coordinator Direct Reply — meta/system questions answered without delegation
             if routing_decision.get("direct_response"):
                 # Starter / Professional: the default replies describe Enterprise (3 agents, auto-routing)
-                plan_reply = plan_direct_reply(user_plan, routing_decision.get("rule_id"))
+                plan_reply = None if guarded else plan_direct_reply(user_plan, routing_decision.get("rule_id"))
                 if plan_reply:
                     routing_decision["direct_response"] = plan_reply
                 routing_decision["decisions"] = collected()

@@ -866,7 +866,7 @@ export default function WarehouseFloorVisualizer({ selectedMessage, currentUser 
                 Multiple negative manual adjustments recorded by Shift 2 operator within 48 hours without supervisory sign-off.
               </p>
               <div className="anom-action">
-                🛡️ <strong>Directive:</strong> Escalate to Loss Prevention & freeze manual override privileges for operator ID #OP-882.
+                🛡️ <strong>Suggested next step:</strong> Supervisor to review the unapproved adjustments with Loss Prevention before any action — a signal to investigate, not a finding against a person.
               </div>
             </div>
           </div>

@@ -1,0 +1,355 @@
+{
+ "key": "S3-COMP#8",
+ "stack": "after",
+ "runs": [
+  [
+   {
+    "method": "GET",
+    "url": "http://127.0.0.1:8022/campus/overview",
+    "account": null,
+    "request_headers": {},
+    "request_json": null,
+    "status": 200,
+    "reason": "OK",
+    "ms": 7,
+    "size": 8557,
+    "response_json": {
+     "status": "success",
+     "overview": {
+      "complex_id": "CMP-01",
+      "name": "Colombo Logistics Complex",
+      "hub_code": "NORTH-HUB",
+      "gate_origin": {
+       "x": 55,
+       "y": 155,
+       "name": "Gate 1 (Main Security Checkpoint & Weighbridge)"
+      },
+      "total_buildings": 7,
+      "operational_status": "Fully Operational (24/7 Multi-Building Logistics Campus)",
+      "description": "Colombo Logistics Complex is a regional multi-building supply chain campus featuring 7 specialized facilities: Automated High-Bay Hub (BLD-01), Bulk Distribution (BLD-02), Cleanroom Tech Mezzanine (BLD-03), Pharma Cold-Chain Vault (BLD-04), Quarantine Yard (BLD-05), MHE Fleet Depot (BLD-06), and Security Gatehouse & 60T Scale (BLD-07)."
+     },
+     "buildings": [
+      {
+       "id": "BLD-01",
+       "number": "1",
+       "name": "Building 1 — High-Bay Hub",
+       "title": "1 · High-Bay Hub",
+       "aliases": [
+        "bld-01",
+        "bld-1",
+        "bld 1",
+        "building 1",
+        "high bay hub",
+        "high bay",
+        "high-bay",
+        "automated high bay"
+       ],
+       "category": "Automated Pallet High-Bay",
+       "color": "#3B7BF6",
+       "status": "94% Operational",
+       "status_tone": "is-ok",
+       "rect": {
+        "x": 50,
+        "y": 28,
+        "w": 125,
+        "h": 80
+       },
+       "dock_coords": {
+        "x": 112,
+        "y": 108
+       },
+       "capacity": "2,400 Pallet Bays",
+       "capacity_value": 2400,
+       "lots": "150 Stored Lots",
+       "mhe_active": "2 Forklifts Active (FL-01, RT-01)",
+       "assigned_mhe": [
+        "FL-01",
+        "RT-01"
+       ],
+       "dock_doors": "Docks 1 to 4 (North Receiving & Automated Inbound)",
+       "key_skus": [
+        "SKU-4521 (Wireless Barcode Scanner, Aisle 12)",
+        "SKU-1088 (Thermal Industrial Label Rolls, Aisle 1)"
+       ],
+       "description": "Building 1 (High-Bay Hub) is an automated narrow-aisle pallet high-bay facility with 2,400 pallet bays, 150 active stored lots, and high-density racking. Operates FL-01 and RT-01 with automatic guide-wire retrieval and barcode scanning.",
+       "safety_notes": "Speed limit strictly 5 mph in aisles. Pedestrians must wear high-vis vests and keep to green marked walkways."
+      },
+      {
+       "id": "BLD-02",
+       "number": "2",
+       "name": "Building 2 — Bulk Distribution",
+       "title": "2 · Bulk Distribution",
+       "aliases": [
+        "bld-02",
+        "bld-2",
+        "bld 2",
+        "building 2",
+        "bulk distribution",
+        "bulk storage",
+        "bulk",
+        "outbound distribution"
+       ],
+       "category": "Bulk Storage & Outbound",
+       "color": "#8B5CF6",
+       "status": "78% Operational",
+       "status_tone": "is-ok",
+       "rect": {
+        "x": 195,
+        "y": 28,
+        "w": 115,
+        "h": 80
+       },
+       "dock_coords": {
+        "x": 252,
+        "y": 108
+       },
+       "capacity": "1,600 Pallet Bays",
+       "capacity_value": 1600,
+       "lots": "95 Stored Lots",
+       "mhe_active": "1 Shunt Truck, 1 Electric Pallet Jack (PJ-01)",
+       "assigned_mhe": [
+        "PJ-01",
+        "Shunt Truck"
+       ],
+       "dock_doors": "Docks 5 to 10 (Outbound Cross-Dock & Trailer Staging)",
+       "key_skus": [
+        "SKU-7788 (Thermal Label Printer, Aisle 5)",
+        "SKU-9012 (Heavy Duty Pallet Wrap, Aisle 3)"
+       ],
+       "description": "Building 2 (Bulk Distribution) manages bulk palletized freight, cross-dock consolidation, and high-velocity trailer outbound dispatch with 1,600 pallet bays and 95 active lots. Equipped with 6 heavy-duty hydraulic dock levelers.",
+       "safety_notes": "Cross-dock corridor speed limit capped at 8 mph. Full trailer wheel chocks mandatory before loading."
+      },
+      {
+       "id": "BLD-03",
+       "number": "3",
+       "name": "Building 3 — Tech Mezzanine",
+       "title": "3 · Tech Mezzanine",
+       "aliases": [
+        "bld-03",
+        "bld-3",
+        "bld 3",
+        "building 3",
+        "tech mezzanine",
+        "mezzanine",
+        "cleanroom",
+        "esd",
+        "electronics mezzanine"
+       ],
+       "category": "Cleanroom ESD Electronics",
+       "color": "#06B6D4",
+       "status": "100% Regulated ESD",
+       "status_tone": "is-ok",
+       "rect": {
+        "x": 145,
+        "y": 130,
+        "w": 115,
+        "h": 70
+       },
+       "dock_coords": {
+        "x": 202,
+        "y": 130
+       },
+       "capacity": "950 Electronics Bins",
+       "capacity_value": 950,
+       "lots": "42 Stored Lots",
+       "mhe_active": "2.5T Heavy Freight Lift (OBJ-LFT-01)",
+       "assigned_mhe": [
+        "OBJ-LFT-01"
+       ],
+       "dock_doors": "Cleanroom Transfer Airlock Bay 3",
+       "key_skus": [
+        "SKU-3301 (Precision Semiconductor Wafers / IoT Sensor Modules, Cleanroom Bin CR-04)"
+       ],
+       "description": "Building 3 (Tech Mezzanine) is an ISO Class 7 cleanroom facility dedicated to micro-electronics, semiconductor components, and sensitive tech assemblies. Features conductive grounding floors and a dedicated 2.5-tonne vertical freight lift.",
+       "safety_notes": "Antistatic wrist straps, ESD heel grounders, and ESD coats mandatory. Strictly no unshielded cardboard inside cleanroom."
+      },
+      {
+       "id": "BLD-04",
+       "number": "4",
+       "name": "Building 4 — Cold Vault",
+       "title": "4 · Cold Vault",
+       "aliases": [
+        "bld-04",
+        "bld-4",
+        "bld 4",
+        "building 4",
+        "cold vault",
+        "cold storage",
+        "pharma cold chain",
+        "cold chain",
+        "chilled vault",
+        "freezer"
+       ],
+       "category": "Pharma Cold-Chain (2°–4°C)",
+       "color": "#0284C7",
+       "status": "Chilled Vault Active (2°–4°C Monitored)",
+       "status_tone": "is-ok",
+       "rect": {
+        "x": 280,
+        "y": 130,
+        "w": 80,
+        "h": 70
+       },
+       "dock_coords": {
+        "x": 320,
+        "y": 130
+       },
+       "capacity": "320 Chilled Bays",
+       "capacity_value": 320,
+       "lots": "50 Vaccine Lots",
+       "mhe_active": "Insulated Airlock Port (OBJ-AIR-01)",
+       "assigned_mhe": [
+        "OBJ-AIR-01"
+       ],
+       "dock_doors": "Airlock Cold Dock Port 4",
+       "key_skus": [
+        "SKU-5520 (Insulin Glargine & Temperature-Sensitive Biologics, Chilled Rack C-02)"
+       ],
+       "description": "Building 4 (Cold Vault) provides temperature-controlled pharmaceutical cold-chain storage kept continuously at 2.0°C to 4.0°C. Equipped with dual-door interlocking airlocks, dual-redundant compressors, and real-time IoT temperature logging.",
+       "safety_notes": "Door open time cannot exceed 3 minutes. Any temperature excursion above 5.0°C triggers immediate alert and supervisor notification (SOP-COLD-005)."
+      },
+      {
+       "id": "BLD-05",
+       "number": "5",
+       "name": "Building 5 — Quarantine Yard",
+       "title": "5 · Quarantine Yard",
+       "aliases": [
+        "bld-05",
+        "bld-5",
+        "bld 5",
+        "building 5",
+        "quarantine yard",
+        "quarantine",
+        "quarantine bay 11",
+        "bay 11",
+        "hazmat hold",
+        "rma hold",
+        "returns yard"
+       ],
+       "category": "Hazmat & Returns Hold",
+       "color": "#E5484D",
+       "status": "Restricted Access Quarantine",
+       "status_tone": "is-low",
+       "rect": {
+        "x": 380,
+        "y": 130,
+        "w": 55,
+        "h": 70
+       },
+       "dock_coords": {
+        "x": 407,
+        "y": 130
+       },
+       "capacity": "80 RMA Lots",
+       "capacity_value": 80,
+       "lots": "14 Hold Lots",
+       "mhe_active": "Spill Berm OK & Acid Neutralizer (OBJ-RMA-01)",
+       "assigned_mhe": [
+        "OBJ-RMA-01"
+       ],
+       "dock_doors": "Bay 11 Quarantine Dock & Hazmat Inspection Gate",
+       "key_skus": [
+        "Bay 11 (Quarantine RMA Disputed Lots)",
+        "SKU-2045 (Heavy Duty Forklift Battery Lithium, Hazmat Bay B-12)"
+       ],
+       "description": "Building 5 (Quarantine Yard) is a restricted-access containment compound for defective customer returns, damaged shipments, lithium battery quarantine, and RMA triage. Features secondary chemical spill berms and acid neutralizing containment.",
+       "safety_notes": "Restricted keycard access only. Level 2 PPE (chemical goggles, acid-resistant apron, nitrile gloves) required for hazardous inspection."
+      },
+      {
+       "id": "BLD-06",
+       "number": "6",
+       "name": "Building 6 — MHE Fleet Depot",
+       "title": "6 · Fleet Depot",
+       "aliases": [
+        "bld-06",
+        "bld-6",
+        "bld 6",
+        "building 6",
+        "fleet depot",
+        "mhe depot",
+        "charging depot",
+        "fleet maintenance",
+        "maintenance depot"
+       ],
+       "category": "Fleet Maintenance & Chargers",
+       "color": "#FF7A1A",
+       "status": "8 Charging Bays Online",
+       "status_tone": "is-ok",
+       "rect": {
+        "x": 330,
+        "y": 28,
+        "w": 105,
+        "h": 80
+       },
+       "dock_coords": {
+        "x": 382,
+        "y": 108
+       },
+       "capacity": "8 Fast Chargers (480V 3-Phase)",
+       "capacity_value": 8,
+       "lots": "4 Vehicles Parked",
+       "mhe_active": "100% Fleet Ready (Charger Bay 2 with RT-02)",
+       "assigned_mhe": [
+        "RT-02 (Charging Bay 2)"
+       ],
+       "dock_doors": "MHE Service Drive-In Ramp",
+       "key_skus": [
+        "Industrial Battery Charger Alpha",
+        "Hydraulic Servicing Rigs",
+        "MHE Replacement Spares"
+       ],
+       "description": "Building 6 (MHE Fleet Depot) handles preventive maintenance, hydraulic inspections, and rapid turnaround for all material handling equipment. Contains 8 three-phase 480V fast-charging bays with active forced-air ventilation.",
+       "safety_notes": "Continuous 24/7 exhaust fans must operate to prevent hydrogen gas accumulation during battery charging (SOP-MHE-008)."
+      },
+      {
+       "id": "BLD-07",
+       "number": "7",
+       "name": "Building 7 — Gatehouse & Scale",
+       "title": "7 · Gatehouse & Scale",
+       "aliases": [
+        "bld-07",
+        "bld-7",
+        "bld 7",
+        "building 7",
+        "gatehouse & scale",
+        "gatehouse",
+        "weighbridge gatehouse",
+        "security gatehouse"
+       ],
+       "category": "Security & Weighbridge",
+       "color": "#1E293B",
+       "status": "Online 24/7 Security & Check-in",
+       "status_tone": "is-ok",
+       "rect": {
+        "x": 50,
+        "y": 130,
+        "w": 75,
+        "h": 70
+       },
+       "dock_coords": {
+        "x": 87,
+        "y": 130
+       },
+       "capacity": "60T Certified Weighbridge Scale",
+       "capacity_value": 60,
+       "lots": "Inbound / Outbound Carrier Staging",
+       "mhe_active": "1 AGV Dispatch Station (AGV-01)",
+       "assigned_mhe": [
+        "AGV-01"
+       ],
+       "dock_doors": "Gate 1 Main Security Barrier",
+       "key_skus": [
+        "Carrier Manifest Terminals",
+        "Weighbridge Digital Display"
+       ],
+       "description": "Building 7 (Gatehouse & Scale) is the primary access control point at Gate 1. Features a certified 60-tonne electronic weighbridge platform, automated license plate recognition (ALPR), carrier document inspection, and AGV guide dispatch.",
+       "safety_notes": "All inbound trucks must stop on the weighbridge scale for gross tare weight logging before entering the campus (SOP-GATE-006)."
+      }
+     ]
+    },
+    "response_text": null,
+    "sent_at": "2026-10-10 21:01:34"
+   }
+  ]
+ ]
+}

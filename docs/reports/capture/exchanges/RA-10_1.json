@@ -1,0 +1,371 @@
+{
+ "key": "RA-10#1",
+ "stack": "after",
+ "runs": [
+  [
+   {
+    "method": "POST",
+    "url": "http://127.0.0.1:8020/query",
+    "account": "admin_user",
+    "request_headers": {
+     "Content-Type": "application/json",
+     "Authorization": "Bearer <token hidden>"
+    },
+    "request_json": {
+     "message": "What is the maximum stacking height in Zone A?"
+    },
+    "status": 200,
+    "reason": "OK",
+    "ms": 34,
+    "size": 2535,
+    "response_json": {
+     "status": "success",
+     "agent_used": "knowledge_agent",
+     "response": "According to SOP-STG-002 §1 — 'Pallet Stacking & Racking Regulations':\n1. Stacking Limits: In Zone A (Heavy Goods / Building 1 High-Bay), pallets may be stacked up to a maximum of 3 tiers high. In Zone C (High Turnover / Building 2 Bulk), double stacking (maximum 2 tiers) is the absolute limit for safety.\n\n📎 Source: SOP-STG-002 §1 (SOP library).",
+     "routing": {
+      "target_agent": "knowledge_agent",
+      "intent": "KNOWLEDGE",
+      "domain": "KNOWLEDGE",
+      "confidence": 0.91,
+      "reasoning": "Heuristic match: Warehouse SOP / safety keywords.",
+      "source": "heuristic",
+      "follow_up": false,
+      "rule_id": "knowledge.keywords",
+      "decided_by": "rule",
+      "llm_consulted": false,
+      "llm_status": null,
+      "normalized_query": null,
+      "direct_response": null,
+      "decisions": [
+       {
+        "stage": "route",
+        "outcome": "KNOWLEDGE",
+        "decided_by": "rule",
+        "rule_id": "knowledge.keywords",
+        "llm_consulted": false,
+        "llm_status": null,
+        "confidence": 0.91
+       }
+      ]
+     },
+     "audit": {
+      "user_id": "usr_admin_003",
+      "timestamp": "2026-10-10T15:31:19.243842+00:00",
+      "routing_confidence": 0.91,
+      "domain": "KNOWLEDGE",
+      "original_query": "What is the maximum stacking height in Zone A?",
+      "normalized_query": "What is the maximum stacking height in Zone A?",
+      "request_id": "d7bee662b84c4681b7a0678b9dbb4d46",
+      "trace_id": "b4c34c54c11adf6d7a078c12c9844faf"
+     },
+     "knowledge_details": {
+      "agent": "knowledge_agent",
+      "query": "What is the maximum stacking height in Zone A?",
+      "response": "According to SOP-STG-002 §1 — 'Pallet Stacking & Racking Regulations':\n1. Stacking Limits: In Zone A (Heavy Goods / Building 1 High-Bay), pallets may be stacked up to a maximum of 3 tiers high. In Zone C (High Turnover / Building 2 Bulk), double stacking (maximum 2 tiers) is the absolute limit for safety.\n\n📎 Source: SOP-STG-002 §1 (SOP library).",
+      "entities": {
+       "skus": [],
+       "locations": [
+        "Zone A"
+       ],
+       "products": [],
+       "quantities": [],
+       "dates": [],
+       "intent_hint": "location_query",
+       "raw_query": "What is the maximum stacking height in Zone A?"
+      },
+      "rag_sources": [
+       {
+        "title": "Pallet Stacking & Racking Regulations",
+        "category": "Storage",
+        "doc_id": "SOP-STG-002",
+        "content": "1. Stacking Limits: In Zone A (Heavy Goods / Building 1 High-Bay), pallets may be stacked up to a maximum of 3 tiers high. In Zone C (High Turnover / Building 2 Bulk), double stacking (maximum 2 tiers) is the absolute limit for safety.",
+        "section": 1,
+        "distance": null,
+        "keyword_score": 0.75
+       }
+      ],
+      "source": "vector_rag"
+     },
+     "thread_id": "dd9e0a70-19a6-4783-a105-d86b776bc07a",
+     "persisted": true,
+     "request_id": "d7bee662b84c4681b7a0678b9dbb4d46",
+     "trace_id": "b4c34c54c11adf6d7a078c12c9844faf"
+    },
+    "response_text": null,
+    "sent_at": "2026-10-10 21:01:19"
+   },
+   {
+    "method": "POST",
+    "url": "http://127.0.0.1:8020/query",
+    "account": "admin_user",
+    "request_headers": {
+     "Content-Type": "application/json",
+     "Authorization": "Bearer <token hidden>"
+    },
+    "request_json": {
+     "message": "how high can i stack in zone a"
+    },
+    "status": 200,
+    "reason": "OK",
+    "ms": 60,
+    "size": 2063,
+    "response_json": {
+     "status": "success",
+     "agent_used": "knowledge_agent",
+     "response": "ℹ️ SOP-STG-002 §1: in **Zone A** pallets may be stacked up to a maximum of **3 tiers** high. Tell me how many tiers you plan and I'll check it.",
+     "routing": {
+      "target_agent": "knowledge_agent",
+      "intent": "KNOWLEDGE",
+      "domain": "KNOWLEDGE",
+      "confidence": 0.91,
+      "reasoning": "Heuristic match: Warehouse SOP / safety keywords.",
+      "source": "heuristic",
+      "follow_up": false,
+      "rule_id": "knowledge.keywords",
+      "decided_by": "rule",
+      "llm_consulted": false,
+      "llm_status": null,
+      "normalized_query": null,
+      "direct_response": null,
+      "decisions": [
+       {
+        "stage": "route",
+        "outcome": "KNOWLEDGE",
+        "decided_by": "rule",
+        "rule_id": "knowledge.keywords",
+        "llm_consulted": false,
+        "llm_status": null,
+        "confidence": 0.91
+       }
+      ]
+     },
+     "audit": {
+      "user_id": "usr_admin_003",
+      "timestamp": "2026-10-10T15:31:19.275103+00:00",
+      "routing_confidence": 0.91,
+      "domain": "KNOWLEDGE",
+      "original_query": "how high can i stack in zone a",
+      "normalized_query": "how high can i stack in zone a",
+      "request_id": "db3a93c787b14f418ebde6b6fdcdce8e",
+      "trace_id": "e2cdbd9abca7b52fb66b0bc701f716fa"
+     },
+     "knowledge_details": {
+      "agent": "knowledge_agent",
+      "query": "how high can i stack in zone a",
+      "response": "ℹ️ SOP-STG-002 §1: in **Zone A** pallets may be stacked up to a maximum of **3 tiers** high. Tell me how many tiers you plan and I'll check it.",
+      "entities": {
+       "skus": [],
+       "locations": [
+        "zone a"
+       ],
+       "products": [],
+       "quantities": [],
+       "dates": [],
+       "intent_hint": "location_query",
+       "raw_query": "how high can i stack in zone a"
+      },
+      "data": {
+       "compliant": null,
+       "severity": "INFO",
+       "sop_id": "SOP-STG-002",
+       "rule_title": "Pallet Stacking & Racking Regulations",
+       "limit_description": "Maximum 3 tiers in Zone A.",
+       "violation_reason": null,
+       "recommended_action": "Stay within the limit.",
+       "formatted_message": "ℹ️ SOP-STG-002 §1: in **Zone A** pallets may be stacked up to a maximum of **3 tiers** high. Tell me how many tiers you plan and I'll check it."
+      },
+      "source": "compliance_engine"
+     },
+     "thread_id": "412c4852-fe89-461a-b31b-3f9f703806da",
+     "persisted": true,
+     "request_id": "db3a93c787b14f418ebde6b6fdcdce8e",
+     "trace_id": "e2cdbd9abca7b52fb66b0bc701f716fa"
+    },
+    "response_text": null,
+    "sent_at": "2026-10-10 21:01:19"
+   },
+   {
+    "method": "POST",
+    "url": "http://127.0.0.1:8020/query",
+    "account": "admin_user",
+    "request_headers": {
+     "Content-Type": "application/json",
+     "Authorization": "Bearer <token hidden>"
+    },
+    "request_json": {
+     "message": "zone A stack limit?"
+    },
+    "status": 200,
+    "reason": "OK",
+    "ms": 36,
+    "size": 2426,
+    "response_json": {
+     "status": "success",
+     "agent_used": "knowledge_agent",
+     "response": "According to SOP-STG-002 §1 — 'Pallet Stacking & Racking Regulations':\n1. Stacking Limits: In Zone A (Heavy Goods / Building 1 High-Bay), pallets may be stacked up to a maximum of 3 tiers high. In Zone C (High Turnover / Building 2 Bulk), double stacking (maximum 2 tiers) is the absolute limit for safety.\n\n📎 Source: SOP-STG-002 §1 (SOP library).",
+     "routing": {
+      "target_agent": "knowledge_agent",
+      "intent": "KNOWLEDGE",
+      "domain": "KNOWLEDGE",
+      "confidence": 0.91,
+      "reasoning": "Heuristic match: Warehouse SOP / safety keywords.",
+      "source": "heuristic",
+      "follow_up": false,
+      "rule_id": "knowledge.keywords",
+      "decided_by": "rule",
+      "llm_consulted": false,
+      "llm_status": null,
+      "normalized_query": null,
+      "direct_response": null,
+      "decisions": [
+       {
+        "stage": "route",
+        "outcome": "KNOWLEDGE",
+        "decided_by": "rule",
+        "rule_id": "knowledge.keywords",
+        "llm_consulted": false,
+        "llm_status": null,
+        "confidence": 0.91
+       }
+      ]
+     },
+     "audit": {
+      "user_id": "usr_admin_003",
+      "timestamp": "2026-10-10T15:31:19.337311+00:00",
+      "routing_confidence": 0.91,
+      "domain": "KNOWLEDGE",
+      "original_query": "zone A stack limit?",
+      "normalized_query": "zone A stack limit?",
+      "request_id": "51e4dd7cc2ff46c097fa8a60ecfa0155",
+      "trace_id": "81048fd219aa5c6b12ac45361286e373"
+     },
+     "knowledge_details": {
+      "agent": "knowledge_agent",
+      "query": "zone A stack limit?",
+      "response": "According to SOP-STG-002 §1 — 'Pallet Stacking & Racking Regulations':\n1. Stacking Limits: In Zone A (Heavy Goods / Building 1 High-Bay), pallets may be stacked up to a maximum of 3 tiers high. In Zone C (High Turnover / Building 2 Bulk), double stacking (maximum 2 tiers) is the absolute limit for safety.\n\n📎 Source: SOP-STG-002 §1 (SOP library).",
+      "entities": {
+       "skus": [],
+       "locations": [
+        "zone A"
+       ],
+       "products": [],
+       "quantities": [],
+       "dates": [],
+       "intent_hint": "document_query",
+       "raw_query": "zone A stack limit?"
+      },
+      "rag_sources": [
+       {
+        "title": "Pallet Stacking & Racking Regulations",
+        "category": "Storage",
+        "doc_id": "SOP-STG-002",
+        "content": "1. Stacking Limits: In Zone A (Heavy Goods / Building 1 High-Bay), pallets may be stacked up to a maximum of 3 tiers high. In Zone C (High Turnover / Building 2 Bulk), double stacking (maximum 2 tiers) is the absolute limit for safety.",
+        "section": 1,
+        "distance": null,
+        "keyword_score": 1.0
+       }
+      ],
+      "source": "vector_rag"
+     },
+     "thread_id": "e870954c-af1b-4e4d-8f66-61fe7f1b801e",
+     "persisted": true,
+     "request_id": "51e4dd7cc2ff46c097fa8a60ecfa0155",
+     "trace_id": "81048fd219aa5c6b12ac45361286e373"
+    },
+    "response_text": null,
+    "sent_at": "2026-10-10 21:01:19"
+   },
+   {
+    "method": "POST",
+    "url": "http://127.0.0.1:8020/query",
+    "account": "admin_user",
+    "request_headers": {
+     "Content-Type": "application/json",
+     "Authorization": "Bearer <token hidden>"
+    },
+    "request_json": {
+     "message": "Zone A — how many tiers max?"
+    },
+    "status": 200,
+    "reason": "OK",
+    "ms": 58,
+    "size": 2467,
+    "response_json": {
+     "status": "success",
+     "agent_used": "knowledge_agent",
+     "response": "According to SOP-STG-002 §1 — 'Pallet Stacking & Racking Regulations':\n1. Stacking Limits: In Zone A (Heavy Goods / Building 1 High-Bay), pallets may be stacked up to a maximum of 3 tiers high. In Zone C (High Turnover / Building 2 Bulk), double stacking (maximum 2 tiers) is the absolute limit for safety.\n\n📎 Source: SOP-STG-002 §1 (SOP library).",
+     "routing": {
+      "target_agent": "knowledge_agent",
+      "intent": "KNOWLEDGE",
+      "domain": "KNOWLEDGE",
+      "confidence": 0.91,
+      "reasoning": "Heuristic match: Warehouse SOP / safety keywords.",
+      "source": "heuristic",
+      "follow_up": false,
+      "rule_id": "knowledge.keywords",
+      "decided_by": "rule",
+      "llm_consulted": false,
+      "llm_status": null,
+      "normalized_query": null,
+      "direct_response": null,
+      "decisions": [
+       {
+        "stage": "route",
+        "outcome": "KNOWLEDGE",
+        "decided_by": "rule",
+        "rule_id": "knowledge.keywords",
+        "llm_consulted": false,
+        "llm_status": null,
+        "confidence": 0.91
+       }
+      ]
+     },
+     "audit": {
+      "user_id": "usr_admin_003",
+      "timestamp": "2026-10-10T15:31:19.391536+00:00",
+      "routing_confidence": 0.91,
+      "domain": "KNOWLEDGE",
+      "original_query": "Zone A — how many tiers max?",
+      "normalized_query": "Zone A — how many tiers max?",
+      "request_id": "e82a921dca3d45f1a593c6fa1de456ba",
+      "trace_id": "1ebad07d55ea525135f9b27de843ab84"
+     },
+     "knowledge_details": {
+      "agent": "knowledge_agent",
+      "query": "Zone A — how many tiers max?",
+      "response": "According to SOP-STG-002 §1 — 'Pallet Stacking & Racking Regulations':\n1. Stacking Limits: In Zone A (Heavy Goods / Building 1 High-Bay), pallets may be stacked up to a maximum of 3 tiers high. In Zone C (High Turnover / Building 2 Bulk), double stacking (maximum 2 tiers) is the absolute limit for safety.\n\n📎 Source: SOP-STG-002 §1 (SOP library).",
+      "entities": {
+       "skus": [],
+       "locations": [
+        "Zone A"
+       ],
+       "products": [],
+       "quantities": [],
+       "dates": [],
+       "intent_hint": "stock_query",
+       "raw_query": "Zone A — how many tiers max?"
+      },
+      "rag_sources": [
+       {
+        "title": "Pallet Stacking & Racking Regulations",
+        "category": "Storage",
+        "doc_id": "SOP-STG-002",
+        "content": "1. Stacking Limits: In Zone A (Heavy Goods / Building 1 High-Bay), pallets may be stacked up to a maximum of 3 tiers high. In Zone C (High Turnover / Building 2 Bulk), double stacking (maximum 2 tiers) is the absolute limit for safety.",
+        "section": 1,
+        "distance": null,
+        "keyword_score": 0.5
+       }
+      ],
+      "source": "vector_rag"
+     },
+     "thread_id": "84af67c7-5ee5-4e1f-9b8a-7bfe7898b17c",
+     "persisted": true,
+     "request_id": "e82a921dca3d45f1a593c6fa1de456ba",
+     "trace_id": "1ebad07d55ea525135f9b27de843ab84"
+    },
+    "response_text": null,
+    "sent_at": "2026-10-10 21:01:19"
+   }
+  ]
+ ]
+}

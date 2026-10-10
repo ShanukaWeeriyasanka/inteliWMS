@@ -78,6 +78,8 @@ _CORE_WAREHOUSE_VOCABULARY = [
     ("floor", 50), ("floors", 45), ("zone", 50), ("zones", 45), ("aisle", 50), ("aisles", 45),
     ("rack", 50), ("racks", 45), ("shelf", 50), ("shelves", 45), ("tier", 45), ("tiers", 40),
     ("bay", 50), ("bays", 45), ("bin", 50), ("bins", 45), ("slot", 45), ("slots", 40),
+    # Stacking words: without them "stack how high" was "corrected" to "stock how high"
+    ("stack", 45), ("stacks", 40), ("stacking", 45), ("stacked", 40), ("height", 40), ("limit", 40),
     ("dock", 50), ("docks", 45), ("gate", 45), ("gates", 40), ("cold", 50), ("vault", 45),
     ("freezer", 45), ("chilled", 45), ("ambient", 40), ("temperature", 40), ("humidity", 35),
     ("capacity", 45), ("utilization", 45), ("occupancy", 45),
@@ -97,6 +99,37 @@ _CORE_WAREHOUSE_VOCABULARY = [
     ("starter", 40), ("professional", 45), ("enterprise", 45), ("subscription", 40),
     ("plan", 45), ("upgrade", 40), ("twin", 45), ("digital", 45), ("map", 50),
 ]
+
+# Everyday words that are spelled right but sit one edit from a warehouse term ("late" → "gate",
+# "rain" → "rail"): known words are never "corrected"
+_COMMON_ENGLISH = """
+late early later soon today tomorrow yesterday tonight night day week month year time hour minute morning
+afternoon evening noon rain wet dry hot heat sun yes no ok okay maybe also just only very really still yet
+again here there now then why because but if so than that this these those they them their he she him her his
+hers we us our you your i me my mine it its one two three four five six seven eight nine ten first second
+third last next new old big small good bad best worst right wrong left came come go went gone done make made
+take took put set let said say see saw seen send sent need needs want wants know knew think like love hate
+please thanks thank sorry hello hi name names person people team crew boss lead finish finished start started
+stop stopped open close closed wait waiting sure fine ready late lost found broke broken fix fixed call called
+ask asked help told tell way ways thing things work working worked job jobs pay paid cash money price cost
+""".split()
+
+# Personal and place names (Sinhala, Tamil, Muslim, Burgher, English) that sit close to a warehouse term
+# ("Ali" → "all", "Mary" → "many", "Ganesh" → "gates", "Galle" → "pallet"): never altered. Not a complete list —
+# the capitalisation guard in SpellCorrector.correct_word covers names that aren't here.
+PROTECTED_NAMES = frozenset("""
+nimal kamal sunil saman ruwan kasun nuwan chamara dinesh lasith mahela kumar kumara bandara perera silva
+fernando dias jayasuriya ranasinghe wickramasinghe senanayake gunawardena herath dilani kumari kavindi nimali
+sanduni chathura tharindu isuru sena mala rani
+suresh ganesh siva sivakumar selvarajah rajendran pillai raja raj ravi kavitha priya lakshmi meena vani
+thiru murugan arjun karthik vijay
+mohamed muhammad ali ahamed ahmed hassan hasan rizwan nazeer fathima fatima ayesha aisha marikar farook
+farooq imran zainab nusrath ismail ibrahim
+shane michael michelle ebert toussaint bartholomeusz kretser jansz anthonisz ondaatje sarah mary john david
+james emma peter paul anne grace rose
+colombo kandy galle jaffna batticaloa trincomalee matara kurunegala negombo anuradhapura ratnapura badulla
+vavuniya mannar ampara kalmunai hambantota gampaha kalutara puttalam polonnaruwa nuwara eliya kegalle
+""".split())
 
 
 # =============================================================================
@@ -205,6 +238,8 @@ class SpellCorrector:
         # Load default warehouse dictionary
         vocab_items = initial_vocab or _CORE_WAREHOUSE_VOCABULARY
         self.learn_weighted_words(vocab_items)
+        if initial_vocab is None:
+            self.learn_weighted_words((w, 5) for w in _COMMON_ENGLISH)
 
     def learn_word(self, word: str, weight: int = 1) -> None:
         """Register a word into the active vocabulary."""
@@ -324,7 +359,7 @@ class SpellCorrector:
             return word
 
         w = word.lower()
-        if w in self._vocab:
+        if w in self._vocab or w in PROTECTED_NAMES:
             return word
 
         possible = self.candidates(w)
@@ -343,6 +378,10 @@ class SpellCorrector:
         
         # Only accept if similarity is at least 65%
         if similarity_ratio(w, best) < 0.65:
+            return word
+        # A capitalised word is usually a name ("Ganesh", "Galle", "Sarah"): fix a one-letter slip
+        # ("Quck" → "Quick") but never rewrite it into a different word
+        if not word.islower() and damerau_levenshtein_distance(w, best) > 1:
             return word
 
         return self._match_case(word, best)

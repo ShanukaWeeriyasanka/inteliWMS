@@ -1,0 +1,145 @@
+{
+ "key": "S1-COMP#5",
+ "stack": "after",
+ "runs": [
+  [
+   {
+    "method": "POST",
+    "url": "http://127.0.0.1:8020/query",
+    "account": "admin_user",
+    "request_headers": {
+     "Content-Type": "application/json",
+     "Authorization": "Bearer <token hidden>"
+    },
+    "request_json": {
+     "message": "where is cold 3?"
+    },
+    "status": 200,
+    "reason": "OK",
+    "ms": 4504,
+    "size": 3087,
+    "response_json": {
+     "status": "success",
+     "agent_used": "inventory_agent",
+     "response": "Cold 3, Zone A — Cold storage is on Floor 3. It holds 0 units of 0 products.\n\nDirections:\n1. Start at Main entrance on Floor 1.\n2. Walk 6 m to Lift A.\n3. Take Lift A up to Floor 3.\n4. Walk 6 m to Lift lobby, then turn left.\n5. Walk 36 m, then turn left.\n6. Walk 4 m to Cold 3.\n7. You have arrived. Cold 3 (Zone A — Cold storage, Floor 3) is straight ahead.\n\nTotal: about 1.6 minutes.",
+     "routing": {
+      "target_agent": "inventory_agent",
+      "intent": "INVENTORY",
+      "domain": "INVENTORY",
+      "confidence": 0.95,
+      "reasoning": "Heuristic match: Warehouse place or product number.",
+      "source": "heuristic",
+      "follow_up": false,
+      "rule_id": "inventory.twin_entity",
+      "decided_by": "rule",
+      "llm_consulted": false,
+      "llm_status": null,
+      "normalized_query": null,
+      "direct_response": null,
+      "decisions": [
+       {
+        "stage": "route",
+        "outcome": "INVENTORY",
+        "decided_by": "rule",
+        "rule_id": "inventory.twin_entity",
+        "llm_consulted": false,
+        "llm_status": null,
+        "confidence": 0.95
+       },
+       {
+        "stage": "inventory.sub_intent",
+        "outcome": "location_lookup",
+        "decided_by": "rule",
+        "rule_id": "sub_intent.location",
+        "llm_consulted": false,
+        "llm_status": null,
+        "confidence": null
+       },
+       {
+        "stage": "inventory.twin",
+        "outcome": "accepted",
+        "decided_by": "rule",
+        "rule_id": "twin.accepted",
+        "llm_consulted": false,
+        "llm_status": null,
+        "confidence": null
+       },
+       {
+        "stage": "inventory.product_ref",
+        "outcome": "not_required",
+        "decided_by": "rule",
+        "rule_id": "product_ref.not_required",
+        "llm_consulted": false,
+        "llm_status": null,
+        "confidence": null
+       }
+      ]
+     },
+     "audit": {
+      "user_id": "usr_admin_003",
+      "timestamp": "2026-10-10T15:36:10.977471+00:00",
+      "routing_confidence": 0.95,
+      "domain": "INVENTORY",
+      "original_query": "where is cold 3?",
+      "normalized_query": "where is cold 3?",
+      "request_id": "636152eb66ea4eefba9aca95a68f5740",
+      "trace_id": "f1596009f28428e667196ba5848a658f"
+     },
+     "inventory_details": {
+      "sub_intent": "twin_show_location",
+      "items": [],
+      "needs_reorder": false,
+      "source": "digital_twin",
+      "document_result": null,
+      "prediction_result": null,
+      "anomaly_result": null,
+      "transfer_result": null,
+      "equipment_health_result": null,
+      "warehouse_layout": null,
+      "ui_command": {
+       "version": "1.1",
+       "action": "show_location",
+       "answer_text": "Cold 3, Zone A — Cold storage is on Floor 3. It holds 0 units of 0 products. Walk 6 m to Lift A. Take Lift A up to Floor 3. Walk 6 m to Lift lobby, then turn left. About 1.6 minutes on foot.",
+       "location_ids": [
+        "WH1-F3-Z01-R03"
+       ],
+       "floor_id": "WH1-F3",
+       "route": {
+        "to_id": "WH1-F3-Z01-R03",
+        "prefer": "lift"
+       }
+      },
+      "ui_command_id": null,
+      "outcome": "answered",
+      "error_code": null,
+      "clarification": null,
+      "execution_time_ms": 4462.71
+     },
+     "ui_command": {
+      "id": null,
+      "session_id": null,
+      "payload": {
+       "version": "1.1",
+       "action": "show_location",
+       "answer_text": "Cold 3, Zone A — Cold storage is on Floor 3. It holds 0 units of 0 products. Walk 6 m to Lift A. Take Lift A up to Floor 3. Walk 6 m to Lift lobby, then turn left. About 1.6 minutes on foot.",
+       "location_ids": [
+        "WH1-F3-Z01-R03"
+       ],
+       "floor_id": "WH1-F3",
+       "route": {
+        "to_id": "WH1-F3-Z01-R03",
+        "prefer": "lift"
+       }
+      }
+     },
+     "thread_id": "812f472b-5e21-4b40-8d68-d4412bf19ef4",
+     "persisted": true,
+     "request_id": "636152eb66ea4eefba9aca95a68f5740",
+     "trace_id": "f1596009f28428e667196ba5848a658f"
+    },
+    "response_text": null,
+    "sent_at": "2026-10-10 21:06:10"
+   }
+  ]
+ ]
+}

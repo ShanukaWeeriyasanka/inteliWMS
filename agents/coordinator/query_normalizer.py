@@ -14,7 +14,9 @@ from typing import Any, Dict, Optional, Tuple
 
 from agents.coordinator.llm_calls import OK, TIMEOUT, call_llm
 from config.llm_config import llm_config
-from config.prompts import QUERY_NORMALIZER_PROMPT
+from config.prompts import QUERY_NORMALIZER_PROMPT, UNTRUSTED_DATA_RULE
+from security.responsible_ai import screen_output
+from security.sanitizer import fence_untrusted, sanitizer
 from utils.logger import StructuredLogger
 from utils.spelling import correct_query
 
@@ -61,6 +63,8 @@ ACCEPTED = "accepted"
 SKIPPED_EMPTY, SKIPPED_CLEAR, SKIPPED_FOLLOW_UP, SKIPPED_NO_LLM = (
     "skipped_empty", "skipped_clear", "skipped_follow_up", "skipped_no_llm")
 REJECTED_NEW_ID, REJECTED_TOO_LONG = "rejected_new_id", "rejected_too_long"
+# The rewrite is injection text or leaked prompt (a translated "ignore your instructions" lands here)
+REJECTED_UNSAFE = "rejected_unsafe"
 FAILED, TIMED_OUT = "failed", "timeout"
 
 
@@ -105,7 +109,8 @@ def normalize_with_outcome(raw_query: str, context: Optional[Dict[str, Any]] = N
         return original, SKIPPED_NO_LLM
 
     status, rewritten = call_llm("normalize", lambda: llm_config.hybrid_complete(
-        prompt=f'Input: "{original}"', system=QUERY_NORMALIZER_PROMPT, max_tokens=64))
+        prompt=f"<user_input>\n{fence_untrusted(original)}\n</user_input>",
+        system=f"{QUERY_NORMALIZER_PROMPT}\n{UNTRUSTED_DATA_RULE}", max_tokens=64))
     if status == TIMEOUT:
         return original, TIMED_OUT
     if status != OK:
@@ -117,6 +122,10 @@ def normalize_with_outcome(raw_query: str, context: Optional[Dict[str, Any]] = N
         return original, REJECTED_TOO_LONG
     if _invents_id(original, cleaned):
         return original, REJECTED_NEW_ID
+    # The rewrite goes back through the rules and on to the agents: it gets the same checks as typed input
+    if sanitizer.is_injection_attempt(cleaned)[0] or screen_output(cleaned):
+        logger.log_event("QUERY_REWRITE_REJECTED", {"reason": "unsafe"})
+        return original, REJECTED_UNSAFE
     logger.log_event("QUERY_NORMALIZED", {"original": original, "normalized": cleaned})
     return cleaned, ACCEPTED
 

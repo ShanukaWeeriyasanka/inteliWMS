@@ -1,0 +1,150 @@
+{
+ "key": "RA-23#2",
+ "stack": "after",
+ "runs": [
+  [
+   {
+    "method": "POST",
+    "url": "http://127.0.0.1:8020/query",
+    "account": "admin_user",
+    "request_headers": {
+     "Content-Type": "application/json",
+     "Authorization": "Bearer <token hidden>"
+    },
+    "request_json": {
+     "message": "detect inventory shrinkage for SKU-4521"
+    },
+    "status": 200,
+    "reason": "OK",
+    "ms": 2466,
+    "size": 3920,
+    "response_json": {
+     "status": "success",
+     "agent_used": "inventory_agent",
+     "response": "🧪 *Demo scenario (INVENTORY_DEMO_DATA is on) — not live inventory data.*\n🚨 **Inventory Movement Anomaly Flagged** (`ANOM-CCD347`)\n• Flagged SKU: **Wireless Barcode Scanner** (`SKU-4521`)\n• Anomaly Classification: **REPEATED ADJUSTMENT** (Severity: **CRITICAL**)\n• Book Count vs Physical: Expected **350**, Actual **340** (Discrepancy: `-10` units)\n• Estimated Financial Exposure: **$2,200.00**\n🔍 **Details**: Multiple negative manual inventory adjustments recorded by Shift 2 operator within 48 hours without supervisory sign-off.\n🛡️ **Suggested next step**: Supervisor to review the unapproved adjustments with Loss Prevention; require supervisory sign-off for further manual adjustments on this SKU until the review is done.\n⚖️ This is a signal for a supervisor to investigate, not a finding against any person — recount and check the records before any action.",
+     "routing": {
+      "target_agent": "inventory_agent",
+      "intent": "INVENTORY",
+      "domain": "INVENTORY",
+      "confidence": 0.95,
+      "reasoning": "Heuristic match: Stock quantity, availability or product id.",
+      "source": "heuristic",
+      "follow_up": false,
+      "rule_id": "inventory.strong",
+      "decided_by": "rule",
+      "llm_consulted": false,
+      "llm_status": null,
+      "normalized_query": null,
+      "direct_response": null,
+      "decisions": [
+       {
+        "stage": "route",
+        "outcome": "INVENTORY",
+        "decided_by": "rule",
+        "rule_id": "inventory.strong",
+        "llm_consulted": false,
+        "llm_status": null,
+        "confidence": 0.95
+       },
+       {
+        "stage": "inventory.sub_intent",
+        "outcome": "anomaly_watcher",
+        "decided_by": "rule",
+        "rule_id": "sub_intent.anomaly",
+        "llm_consulted": false,
+        "llm_status": null,
+        "confidence": null
+       },
+       {
+        "stage": "inventory.product_ref",
+        "outcome": "explicit_id",
+        "decided_by": "rule",
+        "rule_id": "product_ref.explicit_id",
+        "llm_consulted": false,
+        "llm_status": null,
+        "confidence": null
+       }
+      ]
+     },
+     "audit": {
+      "user_id": "usr_admin_003",
+      "timestamp": "2026-10-10T15:31:32.138591+00:00",
+      "routing_confidence": 0.95,
+      "domain": "INVENTORY",
+      "original_query": "detect inventory shrinkage for SKU-4521",
+      "normalized_query": "detect inventory shrinkage for SKU-4521",
+      "request_id": "078691c7465c4cc78ea302cf06886286",
+      "trace_id": "c74e05e9992df901a4d1933ea58f161b"
+     },
+     "inventory_details": {
+      "sub_intent": "anomaly_watcher",
+      "items": [
+       {
+        "product_id": "PRD-00013",
+        "placements": [],
+        "quarantined_quantity": 0,
+        "unplaced_quantity": 340,
+        "updated_at": "2026-10-09T09:40:12.343695+00:00",
+        "data_source": "imported",
+        "sku": "SKU-4521",
+        "name": "Wireless Barcode Scanner",
+        "category": "Electronics & Tech",
+        "location": "Location unassigned",
+        "aisle": null,
+        "shelf": null,
+        "tier": null,
+        "bay": null,
+        "quantity_on_hand": 340,
+        "reserved_quantity": 10,
+        "available_quantity": 330,
+        "safety_stock": 30,
+        "reorder_point": 60,
+        "reorder_quantity": 150,
+        "unit": "units",
+        "status": "OVERSTOCKED",
+        "below_safety_stock": false,
+        "occupancy_pct": null,
+        "weight_kg": 0.45,
+        "temperature": null
+       }
+      ],
+      "needs_reorder": true,
+      "source": "anomaly_watcher",
+      "document_result": null,
+      "prediction_result": null,
+      "anomaly_result": {
+       "anomaly_id": "ANOM-CCD347",
+       "sku": "SKU-4521",
+       "item_name": "Wireless Barcode Scanner",
+       "severity": "CRITICAL",
+       "anomaly_type": "REPEATED_ADJUSTMENT",
+       "expected_quantity": 350,
+       "recorded_quantity": 340,
+       "variance": -10,
+       "loss_value_est": 2200.0,
+       "detection_timestamp": "2026-10-10T15:31:30.980618",
+       "description": "Multiple negative manual inventory adjustments recorded by Shift 2 operator within 48 hours without supervisory sign-off.",
+       "recommended_action": "Supervisor to review the unapproved adjustments with Loss Prevention; require supervisory sign-off for further manual adjustments on this SKU until the review is done.",
+       "is_demo": true
+      },
+      "transfer_result": null,
+      "equipment_health_result": null,
+      "warehouse_layout": null,
+      "ui_command": null,
+      "ui_command_id": null,
+      "outcome": "answered",
+      "error_code": null,
+      "clarification": null,
+      "execution_time_ms": 2398.04
+     },
+     "thread_id": "48c39546-821f-44b0-b0ac-d428be8e7a7a",
+     "persisted": true,
+     "request_id": "078691c7465c4cc78ea302cf06886286",
+     "trace_id": "c74e05e9992df901a4d1933ea58f161b"
+    },
+    "response_text": null,
+    "sent_at": "2026-10-10 21:01:32"
+   }
+  ]
+ ]
+}

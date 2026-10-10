@@ -19,8 +19,10 @@ from typing import Any, List, Optional, Tuple
 
 from agents.coordinator.llm_calls import OK, UNAVAILABLE, call_llm
 from agents.inventory_agent.report_queries import report_spec
-from config.llm_config import llm_config
-from config.prompts import COORDINATOR_SYSTEM_PROMPT
+from config.llm_config import llm_config, system_config
+from config.prompts import COORDINATOR_SYSTEM_PROMPT, UNTRUSTED_DATA_RULE
+from security.responsible_ai import is_source_question, screen_output, screen_request
+from security.sanitizer import fence_untrusted
 from utils.logger import StructuredLogger
 from utils.metrics import ROUTING_FAILURES
 
@@ -146,6 +148,17 @@ ACK_PATTERN = re.compile(
     r"perfect|awesome|cheers|noted|understood|sounds good|alright|yes|yep|yeah|no|nope)\b[\s!.,]*$", re.I)
 BYE_PATTERN = re.compile(r"^\s*(bye|goodbye|good bye|see you|see ya|cya|good night)\b[\s!.,]*$", re.I)
 
+# Questions about the assistant's own rules or instructions ("what rules do assistants like you follow?").
+# Answered with a fixed refusal, only when no warehouse topic is left once the rule words are taken out
+# ("can you tell me the rules for pallet stacking" stays a KNOWLEDGE question).
+_SELF_TERMS = r"\b(you|your|yours|yourself|assistants?|bots?|chatbots?|ais?|models?)\b"
+_RULE_TERMS = (r"\b(rules?|instructions?|prompts?|guidelines?|restrictions?|limitations?|configuration|programming|"
+               r"directives?)\b")
+_SELF_DISCLOSURE = re.compile(f"{_SELF_TERMS}.*{_RULE_TERMS}|{_RULE_TERMS}.*{_SELF_TERMS}", re.I)
+_DISCLOSURE_WORDS = re.compile(f"{_RULE_TERMS}|\\b(polic(y|ies)|protocols?|regulations?|procedures?)\\b", re.I)
+# Marks the refusal in the conversation history, so "show me yours" right after it is refused too
+CONFIDENTIAL_REPLY_MARKER = "can't share my internal instructions"
+
 # Fulfillment procedures: packing, picking, dispatch checks, order delay actions
 _FULFILLMENT_PROCEDURE_STRONG = [
     r"\b(packing|picking|dispatch|shipping|carrier)\b.*\b(procedure|sop|steps?|guide|guidelines?|checklist|process|protocol|instructions?)\b",
@@ -203,6 +216,9 @@ _INVENTORY_STRONG = [
 _KNOWLEDGE_KEYWORDS = [
     r"\b(sop|sop-\d+|standard operating procedure|policy|policies|guideline|manual|safety|protocol|regulations?|regulatory|sp-\d+)\b",
     r"\b(returns|how to return|compliance|shift handover|shift notes|speed limit|vest|forklift|pallet stacking)\b",
+    # Stacking / speed / cold-chain rule questions belong to the SOP compliance checks
+    r"\b(stack|stacks|stacking|stacked|tiers?|speed|mph|km/?h|kph|cold vault|excursion|eyewash|spill kit|"
+    r"drains?|acid)\b",
 ]
 _FULFILLMENT_KEYWORDS = [
     r"\b(order|orders|ord-\d+|#\d+|delay|delayed|dispatch|tracking|track|shipment|courier|carrier)\b",
@@ -303,6 +319,15 @@ class IntentClassifier:
             return IntentResult("COORDINATOR", 1.0, "Empty query handled by coordinator", "meta",
                                 rule_id="empty"), None
 
+        # Responsible AI: crisis, harmful or unfair requests get a fixed answer before any domain rule
+        guard = screen_request(q)
+        if guard is not None:
+            return IntentResult("COORDINATOR", 0.99, f"Responsible AI rule {guard.rule_id}.", "safety",
+                                rule_id=guard.rule_id), None
+        if is_source_question(q) and (context or {}).get("history"):
+            return IntentResult("COORDINATOR", 0.99, "Question about the source of the previous answer.", "meta",
+                                rule_id="transparency.source"), None
+
         names_id = bool(_ENTITY_ID.search(ql))
         if not names_id:
             if _any(GREETING_PATTERNS, ql):
@@ -315,6 +340,8 @@ class IntentClassifier:
                 return IntentResult("COORDINATOR", 0.99, "Acknowledgement.", "social", rule_id="social.ack"), None
             if BYE_PATTERN.match(q):
                 return IntentResult("COORDINATOR", 0.99, "Goodbye.", "social", rule_id="social.bye"), None
+            if _SELF_DISCLOSURE.search(ql) and self._heuristic_match(_DISCLOSURE_WORDS.sub(" ", ql)) is None:
+                return self._meta("meta.self_disclosure", "Question about the assistant's own rules or instructions."), None
 
         if self._is_clarification_reply(q, context):
             return IntentResult("INVENTORY", 0.9, "Answer to the inventory clarification just offered.", "context",
@@ -324,6 +351,9 @@ class IntentClassifier:
         if hit is not None and hit.confidence >= self.HEURISTIC_CONFIDENCE_THRESHOLD:
             return hit, None
         hint = hit  # weak (below threshold) or None
+
+        if hint is None and not names_id and self._follows_confidential_reply(context):
+            return self._meta("meta.self_disclosure", "Follow-up to a refused question about the assistant's rules."), None
 
         if hint is None and not names_id and _any(WEAK_META_PATTERNS, ql):
             return self._meta("meta.weak", "Meta/system wording with no warehouse question.", 0.9), None
@@ -378,6 +408,12 @@ class IntentClassifier:
         return bool(label_words & set(_WORD.findall(q.lower())))
 
     @staticmethod
+    def _follows_confidential_reply(context: Optional[dict]) -> bool:
+        """The assistant's last answer in this conversation refused to describe its own rules."""
+        replies = [t for t in (context or {}).get("history") or [] if t.get("role") == "assistant"]
+        return bool(replies) and CONFIDENTIAL_REPLY_MARKER in str(replies[-1].get("content", ""))
+
+    @staticmethod
     def _context_follow_up(q: str, context: Optional[dict]) -> Optional[IntentResult]:
         """A follow-up to an inventory answer: points back ("it", "and…"), a bare pick, or an inventory opener."""
         if not context or context.get("last_domain") != "INVENTORY":
@@ -390,9 +426,11 @@ class IntentClassifier:
     # ── LLM (only when no rule decided) ─────────────────────────────────────
 
     def _consult_llm(self, query: str, context: Optional[dict], hint: Optional[IntentResult]) -> IntentResult:
-        prompt = f"""{COORDINATOR_SYSTEM_PROMPT}
-{self._history_block(context)}
-User warehouse query: "{query}"
+        # Instructions travel as the system instruction; the user's text and the history are tagged data
+        system = f"{COORDINATOR_SYSTEM_PROMPT}\n{UNTRUSTED_DATA_RULE}"
+        data = f"""{self._history_block(context)}<user_query>
+{fence_untrusted(query)}
+</user_query>
 
 Analyze the query and return ONLY a valid JSON object:
 """
@@ -400,12 +438,13 @@ Analyze the query and return ONLY a valid JSON object:
         def ask() -> str:
             client = self.client
             if hasattr(client, "models") and hasattr(client.models, "generate_content"):
-                response = client.models.generate_content(model=llm_config.GEMINI_MODEL, contents=prompt)
+                response = client.models.generate_content(model=llm_config.GEMINI_MODEL, contents=data,
+                                                          config=system_config(system))
                 return str(getattr(response, "text", "") or "")
             if callable(client):
-                return str(client(prompt))
+                return str(client(f"{system}\n{data}"))
             if hasattr(client, "generate"):
-                return str(client.generate(prompt))
+                return str(client.generate(f"{system}\n{data}"))
             return ""
 
         available = self._llm is not None or bool(llm_config.gemini_key)
@@ -457,7 +496,11 @@ Analyze the query and return ONLY a valid JSON object:
             confidence = min(1.0, max(0.0, float(parsed["confidence"])))
         except (TypeError, ValueError):
             return None
-        return domain, confidence, str(parsed.get("reasoning") or "LLM classified intent")[:300]
+        reasoning = str(parsed.get("reasoning") or "LLM classified intent")[:300]
+        # The reasoning is shown in the API response: never pass on prompt fragments or abusive wording
+        if screen_output(reasoning):
+            reasoning = "LLM classified intent"
+        return domain, confidence, reasoning
 
     @staticmethod
     def _history_block(context: Optional[dict]) -> str:
@@ -469,11 +512,16 @@ Analyze the query and return ONLY a valid JSON object:
             who = turn.get("role", "user")
             if turn.get("agent"):
                 who += f" ({turn['agent']})"
-            lines.append(f"- {who}: {str(turn.get('content', ''))[:200]}")
+            lines.append(f"- {who}: {fence_untrusted(turn.get('content', ''), 200)}")
+        note = ""
         if context.get("last_domain"):
-            lines.append(f"The previous answer was handled by the {context['last_domain']} domain. If the new "
-                         f"query is a follow-up about the same item, keep that domain.")
-        return ("Recent conversation (oldest first):\n" + "\n".join(lines) + "\n") if lines else ""
+            note = (f"The previous answer was handled by the {context['last_domain']} domain. If the new "
+                    f"query is a follow-up about the same item, keep that domain.\n")
+        if not lines:
+            return note
+        # Earlier turns (including retrieved text echoed in answers) are data, never instructions
+        return ("Recent conversation (oldest first):\n<conversation_history>\n" + "\n".join(lines)
+                + "\n</conversation_history>\n" + note)
 
     def _extract_json(self, text: str) -> str:
         """Strips markdown code fences and returns clean JSON string."""

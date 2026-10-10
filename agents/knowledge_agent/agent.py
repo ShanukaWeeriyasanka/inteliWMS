@@ -2,7 +2,10 @@
 Knowledge Agent Core Engine.
 Factory for CrewAI Agent and unified execution pipeline with fast-path optimization.
 """
+import json
 import os
+import re
+from functools import lru_cache
 from typing import Dict, Any, Optional
 
 try:
@@ -34,6 +37,7 @@ from agents.knowledge_agent.tools import (
 )
 from agents.knowledge_agent.compliance import evaluate_compliance_query
 from agents.knowledge_agent.returns_handler import evaluate_return_query
+from security.responsible_ai import screen_request
 
 
 logger = StructuredLogger(__name__)
@@ -99,8 +103,21 @@ def execute_knowledge_query(query: str, user_role: str = "staff", context: Optio
         }
 
     clean_query = query.strip()
+
+    # Responsible AI: the same fixed answers as the coordinator, for callers that reach this agent directly
+    guard = screen_request(clean_query)
+    if guard is not None:
+        return {"agent": "knowledge_agent", "query": clean_query, "response": guard.reply, "entities": {},
+                "source": "responsible_ai", "rule_id": guard.rule_id}
+
     entities = extract_warehouse_entities(clean_query)
     intent = entities.get("intent_hint", "general_query")
+
+    # A named SOP that isn't in the library, or a section it doesn't have: say so, never stand in another
+    unknown = _unknown_citation(clean_query)
+    if unknown:
+        return {"agent": "knowledge_agent", "query": clean_query, "response": unknown, "entities": entities,
+                "source": "not_found"}
 
     logger.log_event("KNOWLEDGE_AGENT_QUERY_RECEIVED", {
         "query": clean_query[:80],
@@ -159,7 +176,7 @@ def execute_knowledge_query(query: str, user_role: str = "staff", context: Optio
         rag_hits = knowledge_store.query(clean_query, n_results=knowledge_config.DEFAULT_RAG_TOP_K)
         if rag_hits:
             best_hit = rag_hits[0]
-            answer = f"According to warehouse protocol '{best_hit['title']}':\n{best_hit['content']}"
+            answer = cite_sop(best_hit)
             return {
                 "agent": "knowledge_agent",
                 "query": clean_query,
@@ -167,6 +184,18 @@ def execute_knowledge_query(query: str, user_role: str = "staff", context: Optio
                 "entities": entities,
                 "rag_sources": rag_hits,
                 "source": "vector_rag"
+            }
+
+        # A procedure question the library doesn't cover: say so here, before the fuzzy location lookup can
+        # turn its words into an unrelated place or product ("rooftop drone landings" → a battery bay)
+        if (_PROCEDURE_QUESTION.search(lower_q) and not entities.get("skus")
+                and not re.search(r"\b(where|locate|location)\b", lower_q)):
+            return {
+                "agent": "knowledge_agent",
+                "query": clean_query,
+                "response": NO_MATCHING_SOP_REPLY,
+                "entities": entities,
+                "source": "no_match"
             }
 
     # 2. Fast-Path: Campus Facility, Vehicle & Physical Location Lookup
@@ -195,7 +224,7 @@ def execute_knowledge_query(query: str, user_role: str = "staff", context: Optio
     rag_fallback = knowledge_store.query(clean_query, n_results=1)
     if rag_fallback:
         best_hit = rag_fallback[0]
-        answer = f"According to warehouse protocol '{best_hit['title']}':\n{best_hit['content']}"
+        answer = cite_sop(best_hit)
         return {
             "agent": "knowledge_agent",
             "query": clean_query,
@@ -219,6 +248,15 @@ def execute_knowledge_query(query: str, user_role: str = "staff", context: Optio
             "source": source
         }
 
+    # Nothing relevant in the SOP library: say so instead of offering the nearest unrelated procedure
+    if _PROCEDURE_QUESTION.search(lower_q):
+        return {
+            "agent": "knowledge_agent",
+            "query": clean_query,
+            "response": NO_MATCHING_SOP_REPLY,
+            "entities": entities,
+            "source": "no_match"
+        }
     return {
         "agent": "knowledge_agent",
         "query": clean_query,
@@ -226,3 +264,57 @@ def execute_knowledge_query(query: str, user_role: str = "staff", context: Optio
         "entities": entities,
         "source": "general_knowledge"
     }
+
+
+# ── Grounding helpers ────────────────────────────────────────────────────────
+
+NO_MATCHING_SOP_REPLY = (
+    "I couldn't find a documented procedure for that in the SOP library, so I won't guess. "
+    "Please check with your shift supervisor or safety officer."
+)
+_PROCEDURE_QUESTION = re.compile(
+    r"\b(sop|procedure|policy|policies|protocol|rules?|guidelines?|safety|how (do|should|to)|what should|"
+    r"steps?|allowed|permitted|hazard|emergency|evacuat\w*)\b")
+_DOC_ID = re.compile(r"\b(?:SOP|GUIDE)-[A-Z]+-\d{3}\b", re.I)
+_SECTION_REF = re.compile(r"(?:\bsection|\bsec\.?|§)\s*(\d+)", re.I)
+
+
+@lru_cache(maxsize=1)
+def _sop_catalogue() -> Dict[str, Dict[str, Any]]:
+    """doc_id → {title, sections} from the seeded SOP file (the library the store is built from)."""
+    try:
+        with open(knowledge_config.SEED_SOPS_PATH, "r", encoding="utf-8") as f:
+            docs = json.load(f)
+    except (OSError, ValueError):
+        return {}
+    return {d["doc_id"].upper(): {"title": d.get("title", d["doc_id"]),
+                                  "sections": len([p for p in d.get("content", "").split("\n\n") if p.strip()])}
+            for d in docs if d.get("doc_id")}
+
+
+def _unknown_citation(query: str) -> Optional[str]:
+    """The reply for an SOP id the library doesn't hold, or a section past the end of one; None otherwise."""
+    ids = [m.upper() for m in _DOC_ID.findall(query)]
+    catalogue = _sop_catalogue() if ids else {}
+    if not catalogue:
+        return None
+    missing = [i for i in ids if i not in catalogue]
+    if missing:
+        return (f"I can't find **{missing[0]}** in the SOP library, so I can't tell you what it says — and I won't "
+                f"substitute another document. Documents on record: {', '.join(sorted(catalogue))}. "
+                f"Check the number with your supervisor.")
+    section = _SECTION_REF.search(query)
+    doc = catalogue[ids[0]]
+    if section and doc["sections"] and int(section.group(1)) > doc["sections"]:
+        return (f"**{ids[0]}** ('{doc['title']}') has sections 1–{doc['sections']} only, so there is no section "
+                f"{section.group(1)}. Ask me about one of its sections, or check with your supervisor.")
+    return None
+
+
+def cite_sop(hit: Dict[str, Any]) -> str:
+    """An SOP chunk quoted with its document id and section, so the answer can be checked."""
+    ref = hit.get("doc_id") or "SOP"
+    if hit.get("section"):
+        ref += f" §{hit['section']}"
+    return (f"According to {ref} — '{hit.get('title', 'Warehouse SOP')}':\n{hit['content']}\n\n"
+            f"📎 Source: {ref} (SOP library).")

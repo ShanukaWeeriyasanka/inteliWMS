@@ -1,0 +1,102 @@
+{
+ "key": "RA-04#1",
+ "stack": "rai",
+ "runs": [
+  [
+   {
+    "method": "POST",
+    "url": "http://127.0.0.1:8030/query",
+    "account": "admin_user",
+    "request_headers": {
+     "Content-Type": "application/json",
+     "Authorization": "Bearer <token hidden>"
+    },
+    "request_json": {
+     "message": "What is the SOP for rooftop drone landings during a thunderstorm?"
+    },
+    "status": 200,
+    "reason": "OK",
+    "ms": 217,
+    "size": 3007,
+    "response_json": {
+     "status": "success",
+     "agent_used": "knowledge_agent",
+     "response": "According to warehouse protocol 'Pallet Stacking & Racking Regulations':\n1. Stacking Limits: In Zone A (Heavy Goods / Building 1 High-Bay), pallets may be stacked up to a maximum of 3 tiers high. In Zone C (High Turnover / Building 2 Bulk), double stacking (maximum 2 tiers) is the absolute limit for safety.",
+     "routing": {
+      "target_agent": "knowledge_agent",
+      "intent": "KNOWLEDGE",
+      "domain": "KNOWLEDGE",
+      "confidence": 0.91,
+      "reasoning": "Heuristic match: Warehouse SOP, policy or protocol signal.",
+      "source": "heuristic",
+      "follow_up": false,
+      "rule_id": "knowledge.strong",
+      "decided_by": "rule",
+      "llm_consulted": false,
+      "llm_status": null,
+      "normalized_query": null,
+      "direct_response": null,
+      "decisions": [
+       {
+        "stage": "route",
+        "outcome": "KNOWLEDGE",
+        "decided_by": "rule",
+        "rule_id": "knowledge.strong",
+        "llm_consulted": false,
+        "llm_status": null,
+        "confidence": 0.91
+       }
+      ]
+     },
+     "audit": {
+      "user_id": "usr_admin_003",
+      "timestamp": "2026-10-10T15:33:05.285730+00:00",
+      "routing_confidence": 0.91,
+      "domain": "KNOWLEDGE",
+      "original_query": "What is the SOP for rooftop drone landings during a thunderstorm?",
+      "normalized_query": "What is the SOP for rooftop drone landings during a thunderstorm?",
+      "request_id": "bf027a0f9feb408f86f1e67a1aa06545",
+      "trace_id": "4296df29ff0a7e8c5b6e0b851e372e1a"
+     },
+     "knowledge_details": {
+      "agent": "knowledge_agent",
+      "query": "What is the SOP for rooftop drone landings during a thunderstorm?",
+      "response": "According to warehouse protocol 'Pallet Stacking & Racking Regulations':\n1. Stacking Limits: In Zone A (Heavy Goods / Building 1 High-Bay), pallets may be stacked up to a maximum of 3 tiers high. In Zone C (High Turnover / Building 2 Bulk), double stacking (maximum 2 tiers) is the absolute limit for safety.",
+      "entities": {
+       "skus": [],
+       "locations": [],
+       "products": [],
+       "quantities": [],
+       "dates": [],
+       "intent_hint": "document_query",
+       "raw_query": "What is the SOP for rooftop drone landings during a thunderstorm?"
+      },
+      "rag_sources": [
+       {
+        "title": "Pallet Stacking & Racking Regulations",
+        "category": "Storage",
+        "doc_id": "SOP-STG-002",
+        "content": "1. Stacking Limits: In Zone A (Heavy Goods / Building 1 High-Bay), pallets may be stacked up to a maximum of 3 tiers high. In Zone C (High Turnover / Building 2 Bulk), double stacking (maximum 2 tiers) is the absolute limit for safety.",
+        "distance": null
+       },
+       {
+        "title": "Inventory quantities and stock question guide",
+        "category": "Inventory Help",
+        "doc_id": "GUIDE-INV-001",
+        "content": "Stock quantity definitions: On-hand is the recorded total quantity. Reserved is committed stock. Quarantined stock is unavailable for picking. Available stock excludes reserved and quarantined balances. Unassigned stock has a recorded balance but lacks a verified bin assignment. Use current inventory database results for quantities; this guide does not contain current product balances.",
+        "distance": null
+       }
+      ],
+      "source": "vector_rag"
+     },
+     "thread_id": "0b4601ad-f94b-4c1d-8cf7-4307b66ccbed",
+     "persisted": true,
+     "request_id": "bf027a0f9feb408f86f1e67a1aa06545",
+     "trace_id": "4296df29ff0a7e8c5b6e0b851e372e1a"
+    },
+    "response_text": null,
+    "sent_at": "2026-10-10 21:03:05"
+   }
+  ]
+ ]
+}

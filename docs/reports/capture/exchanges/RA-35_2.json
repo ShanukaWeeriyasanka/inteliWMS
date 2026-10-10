@@ -1,0 +1,198 @@
+{
+ "key": "RA-35#2",
+ "stack": "after",
+ "runs": [
+  [
+   {
+    "method": "POST",
+    "url": "http://127.0.0.1:8020/query",
+    "account": "admin_user",
+    "request_headers": {
+     "Content-Type": "application/json",
+     "Authorization": "Bearer <token hidden>"
+    },
+    "request_json": {
+     "message": "Where is AGV-04?"
+    },
+    "status": 200,
+    "reason": "OK",
+    "ms": 50,
+    "size": 3288,
+    "response_json": {
+     "status": "success",
+     "agent_used": "knowledge_agent",
+     "response": "**Tugger AGV (AGV-01)**\n• **Type:** Automated Guided Tugger Vehicle (Dematic AGV-500)\n• **Current Location:** South Transit Corridor near Building 7 and Building 6 (Map Coords: X:325, Y:120)\n• **Status:** Autonomous Navigation (Waypoints 12 -> 14)\n• **Battery SoC:** 68%\n• **Operator:** Autonomous / Tele-Monitored\n• **Speed Limit:** 4 mph automated path cap\n• **Operational Details:** Tugger AGV (AGV-01) is navigating autonomously along the South transit corridor between Gatehouse (BLD-07) and Fleet Depot (BLD-06).",
+     "routing": {
+      "target_agent": "knowledge_agent",
+      "intent": "KNOWLEDGE",
+      "domain": "KNOWLEDGE",
+      "confidence": 0.91,
+      "reasoning": "Heuristic match: Warehouse SOP, policy or protocol signal.",
+      "source": "heuristic",
+      "follow_up": false,
+      "rule_id": "knowledge.strong",
+      "decided_by": "rule",
+      "llm_consulted": false,
+      "llm_status": null,
+      "normalized_query": null,
+      "direct_response": null,
+      "decisions": [
+       {
+        "stage": "route",
+        "outcome": "KNOWLEDGE",
+        "decided_by": "rule",
+        "rule_id": "knowledge.strong",
+        "llm_consulted": false,
+        "llm_status": null,
+        "confidence": 0.91
+       }
+      ]
+     },
+     "audit": {
+      "user_id": "usr_admin_003",
+      "timestamp": "2026-10-10T15:31:33.827403+00:00",
+      "routing_confidence": 0.91,
+      "domain": "KNOWLEDGE",
+      "original_query": "Where is AGV-04?",
+      "normalized_query": "Where is AGV-04?",
+      "request_id": "b4825ce5d1764c64b14c0bebaf608782",
+      "trace_id": "ed2cd2933c51a893a7a8647780050f0d"
+     },
+     "knowledge_details": {
+      "agent": "knowledge_agent",
+      "query": "Where is AGV-04?",
+      "response": "**Tugger AGV (AGV-01)**\n• **Type:** Automated Guided Tugger Vehicle (Dematic AGV-500)\n• **Current Location:** South Transit Corridor near Building 7 and Building 6 (Map Coords: X:325, Y:120)\n• **Status:** Autonomous Navigation (Waypoints 12 -> 14)\n• **Battery SoC:** 68%\n• **Operator:** Autonomous / Tele-Monitored\n• **Speed Limit:** 4 mph automated path cap\n• **Operational Details:** Tugger AGV (AGV-01) is navigating autonomously along the South transit corridor between Gatehouse (BLD-07) and Fleet Depot (BLD-06).",
+      "entities": {
+       "skus": [],
+       "locations": [],
+       "products": [],
+       "quantities": [
+        {
+         "value": 4,
+         "text": "04"
+        }
+       ],
+       "dates": [],
+       "intent_hint": "location_query",
+       "raw_query": "Where is AGV-04?"
+      },
+      "data": {
+       "found": true,
+       "entity_type": "campus_vehicle",
+       "vehicle_id": "AGV-01",
+       "name": "Tugger AGV",
+       "type": "Automated Guided Tugger Vehicle (Dematic AGV-500)",
+       "status": "Autonomous Navigation (Waypoints 12 -> 14)",
+       "nearest_facility": "South Transit Corridor near Building 7 and Building 6",
+       "battery_soc": "68%",
+       "coords": {
+        "x": 325,
+        "y": 120
+       },
+       "formatted_message": "**Tugger AGV (AGV-01)**\n• **Type:** Automated Guided Tugger Vehicle (Dematic AGV-500)\n• **Current Location:** South Transit Corridor near Building 7 and Building 6 (Map Coords: X:325, Y:120)\n• **Status:** Autonomous Navigation (Waypoints 12 -> 14)\n• **Battery SoC:** 68%\n• **Operator:** Autonomous / Tele-Monitored\n• **Speed Limit:** 4 mph automated path cap\n• **Operational Details:** Tugger AGV (AGV-01) is navigating autonomously along the South transit corridor between Gatehouse (BLD-07) and Fleet Depot (BLD-06)."
+      },
+      "source": "campus_vehicle"
+     },
+     "thread_id": "86ea9248-692d-4e1e-a1d3-2994dcbd0f26",
+     "persisted": true,
+     "request_id": "b4825ce5d1764c64b14c0bebaf608782",
+     "trace_id": "ed2cd2933c51a893a7a8647780050f0d"
+    },
+    "response_text": null,
+    "sent_at": "2026-10-10 21:01:33"
+   },
+   {
+    "method": "POST",
+    "url": "http://127.0.0.1:8020/query",
+    "account": "admin_user",
+    "request_headers": {
+     "Content-Type": "application/json",
+     "Authorization": "Bearer <token hidden>"
+    },
+    "request_json": {
+     "message": "Where is forklift 3?"
+    },
+    "status": 200,
+    "reason": "OK",
+    "ms": 51,
+    "size": 2045,
+    "response_json": {
+     "status": "success",
+     "agent_used": "knowledge_agent",
+     "response": "Heavy Duty Forklift Battery Lithium (SKU-2045) is stored at Aisle 4, Bay B-12 / Quarantine compound (Building 5 — Quarantine Yard). Current stock: 42 units.",
+     "routing": {
+      "target_agent": "knowledge_agent",
+      "intent": "KNOWLEDGE",
+      "domain": "KNOWLEDGE",
+      "confidence": 0.91,
+      "reasoning": "Heuristic match: Warehouse SOP, policy or protocol signal.",
+      "source": "heuristic",
+      "follow_up": false,
+      "rule_id": "knowledge.strong",
+      "decided_by": "rule",
+      "llm_consulted": false,
+      "llm_status": null,
+      "normalized_query": null,
+      "direct_response": null,
+      "decisions": [
+       {
+        "stage": "route",
+        "outcome": "KNOWLEDGE",
+        "decided_by": "rule",
+        "rule_id": "knowledge.strong",
+        "llm_consulted": false,
+        "llm_status": null,
+        "confidence": 0.91
+       }
+      ]
+     },
+     "audit": {
+      "user_id": "usr_admin_003",
+      "timestamp": "2026-10-10T15:31:33.885796+00:00",
+      "routing_confidence": 0.91,
+      "domain": "KNOWLEDGE",
+      "original_query": "Where is forklift 3?",
+      "normalized_query": "Where is forklift 3?",
+      "request_id": "7a4b8dd7bba545928c4b8817a2702868",
+      "trace_id": "8d8e8d6538033dd1f1790ab7a3fb96c9"
+     },
+     "knowledge_details": {
+      "agent": "knowledge_agent",
+      "query": "Where is forklift 3?",
+      "response": "Heavy Duty Forklift Battery Lithium (SKU-2045) is stored at Aisle 4, Bay B-12 / Quarantine compound (Building 5 — Quarantine Yard). Current stock: 42 units.",
+      "entities": {
+       "skus": [],
+       "locations": [],
+       "products": [],
+       "quantities": [
+        {
+         "value": 3,
+         "text": "3"
+        }
+       ],
+       "dates": [],
+       "intent_hint": "location_query",
+       "raw_query": "Where is forklift 3?"
+      },
+      "data": {
+       "found": true,
+       "entity_type": "product_sku",
+       "sku": "SKU-2045",
+       "name": "Heavy Duty Forklift Battery Lithium",
+       "location": "Aisle 4, Bay B-12 / Quarantine compound (Building 5 — Quarantine Yard)",
+       "quantity": 42,
+       "formatted_message": "Heavy Duty Forklift Battery Lithium (SKU-2045) is stored at Aisle 4, Bay B-12 / Quarantine compound (Building 5 — Quarantine Yard). Current stock: 42 units."
+      },
+      "source": "database_location"
+     },
+     "thread_id": "d47f34b2-3d13-4d3b-a089-58f174d9bdca",
+     "persisted": true,
+     "request_id": "7a4b8dd7bba545928c4b8817a2702868",
+     "trace_id": "8d8e8d6538033dd1f1790ab7a3fb96c9"
+    },
+    "response_text": null,
+    "sent_at": "2026-10-10 21:01:33"
+   }
+  ]
+ ]
+}

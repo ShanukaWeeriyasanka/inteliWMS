@@ -1,0 +1,98 @@
+{
+ "key": "RA-06#2",
+ "stack": "after",
+ "runs": [
+  [
+   {
+    "method": "POST",
+    "url": "http://127.0.0.1:8020/query",
+    "account": "admin_user",
+    "request_headers": {
+     "Content-Type": "application/json",
+     "Authorization": "Bearer <token hidden>"
+    },
+    "request_json": {
+     "message": "Can I stack pallets in Zone C?"
+    },
+    "status": 200,
+    "reason": "OK",
+    "ms": 36,
+    "size": 2063,
+    "response_json": {
+     "status": "success",
+     "agent_used": "knowledge_agent",
+     "response": "ℹ️ SOP-STG-002 §1: in **Zone C** pallets may be stacked up to a maximum of **2 tiers** high. Tell me how many tiers you plan and I'll check it.",
+     "routing": {
+      "target_agent": "knowledge_agent",
+      "intent": "KNOWLEDGE",
+      "domain": "KNOWLEDGE",
+      "confidence": 0.91,
+      "reasoning": "Heuristic match: Warehouse SOP / safety keywords.",
+      "source": "heuristic",
+      "follow_up": false,
+      "rule_id": "knowledge.keywords",
+      "decided_by": "rule",
+      "llm_consulted": false,
+      "llm_status": null,
+      "normalized_query": null,
+      "direct_response": null,
+      "decisions": [
+       {
+        "stage": "route",
+        "outcome": "KNOWLEDGE",
+        "decided_by": "rule",
+        "rule_id": "knowledge.keywords",
+        "llm_consulted": false,
+        "llm_status": null,
+        "confidence": 0.91
+       }
+      ]
+     },
+     "audit": {
+      "user_id": "usr_admin_003",
+      "timestamp": "2026-10-10T15:31:19.099676+00:00",
+      "routing_confidence": 0.91,
+      "domain": "KNOWLEDGE",
+      "original_query": "Can I stack pallets in Zone C?",
+      "normalized_query": "Can I stack pallets in Zone C?",
+      "request_id": "e81aae43b6a543da92e85c857d95cc83",
+      "trace_id": "771c064adf0daa8022ac0cce3e8fcdc0"
+     },
+     "knowledge_details": {
+      "agent": "knowledge_agent",
+      "query": "Can I stack pallets in Zone C?",
+      "response": "ℹ️ SOP-STG-002 §1: in **Zone C** pallets may be stacked up to a maximum of **2 tiers** high. Tell me how many tiers you plan and I'll check it.",
+      "entities": {
+       "skus": [],
+       "locations": [
+        "Zone C"
+       ],
+       "products": [],
+       "quantities": [],
+       "dates": [],
+       "intent_hint": "location_query",
+       "raw_query": "Can I stack pallets in Zone C?"
+      },
+      "data": {
+       "compliant": null,
+       "severity": "INFO",
+       "sop_id": "SOP-STG-002",
+       "rule_title": "Pallet Stacking & Racking Regulations",
+       "limit_description": "Maximum 2 tiers in Zone C.",
+       "violation_reason": null,
+       "recommended_action": "Stay within the limit.",
+       "formatted_message": "ℹ️ SOP-STG-002 §1: in **Zone C** pallets may be stacked up to a maximum of **2 tiers** high. Tell me how many tiers you plan and I'll check it."
+      },
+      "source": "compliance_engine"
+     },
+     "thread_id": "0e33ccbf-bf79-4b48-8c3e-5227f8846260",
+     "persisted": true,
+     "request_id": "e81aae43b6a543da92e85c857d95cc83",
+     "trace_id": "771c064adf0daa8022ac0cce3e8fcdc0"
+    },
+    "response_text": null,
+    "sent_at": "2026-10-10 21:01:19"
+   }
+  ]
+ ]
+}

@@ -1,0 +1,88 @@
+{
+ "key": "RA-14#2",
+ "stack": "rai",
+ "runs": [
+  [
+   {
+    "method": "POST",
+    "url": "http://127.0.0.1:8030/query",
+    "account": "admin_user",
+    "request_headers": {
+     "Content-Type": "application/json",
+     "Authorization": "Bearer <token hidden>"
+    },
+    "request_json": {
+     "message": "did Ganesh finish the cycle count?"
+    },
+    "status": 200,
+    "reason": "OK",
+    "ms": 1986,
+    "size": 1898,
+    "response_json": {
+     "status": "success",
+     "agent_used": "coordinator",
+     "response": "I'm not sure what you need yet. Is this about:\n• 📦 **stock or a product's location** (e.g. \"how many SKU-4521 are on hand?\")\n• 🚚 **an order** (e.g. \"why is ORD-1001 delayed?\")\n• 📚 **a procedure / SOP** (e.g. \"what is the returns policy?\")",
+     "routing": {
+      "target_agent": "coordinator",
+      "intent": "COORDINATOR",
+      "domain": "COORDINATOR",
+      "confidence": 0.5,
+      "reasoning": "No rule matched and the LLM result was error; asking the user to clarify.",
+      "source": "fallback",
+      "follow_up": false,
+      "rule_id": "clarify.domain",
+      "decided_by": "fallback",
+      "llm_consulted": true,
+      "llm_status": "error",
+      "normalized_query": "did Gates finish the cycle count?",
+      "direct_response": "I'm not sure what you need yet. Is this about:\n• 📦 **stock or a product's location** (e.g. \"how many SKU-4521 are on hand?\")\n• 🚚 **an order** (e.g. \"why is ORD-1001 delayed?\")\n• 📚 **a procedure / SOP** (e.g. \"what is the returns policy?\")",
+      "decisions": [
+       {
+        "stage": "normalize",
+        "outcome": "accepted",
+        "decided_by": "llm",
+        "rule_id": "normalize.accepted",
+        "llm_consulted": true,
+        "llm_status": null,
+        "confidence": null
+       },
+       {
+        "stage": "route",
+        "outcome": "COORDINATOR",
+        "decided_by": "fallback",
+        "rule_id": "clarify.domain",
+        "llm_consulted": true,
+        "llm_status": "error",
+        "confidence": 0.5
+       },
+       {
+        "stage": "reply",
+        "outcome": "clarify.domain",
+        "decided_by": "rule",
+        "rule_id": "reply.clarify.domain",
+        "llm_consulted": false,
+        "llm_status": null,
+        "confidence": null
+       }
+      ]
+     },
+     "audit": {
+      "user_id": "usr_admin_003",
+      "timestamp": "2026-10-10T15:33:07.381150+00:00",
+      "routing_confidence": 0.5,
+      "domain": "COORDINATOR",
+      "normalized_query": "did Gates finish the cycle count?",
+      "request_id": "e1e205a1ec3f4b70b11b403a6f120372",
+      "trace_id": "58df360b0f26fb081621197f0c3ccd65"
+     },
+     "thread_id": "3fbf7781-abda-444d-b05f-ea1de087a289",
+     "persisted": true,
+     "request_id": "e1e205a1ec3f4b70b11b403a6f120372",
+     "trace_id": "58df360b0f26fb081621197f0c3ccd65"
+    },
+    "response_text": null,
+    "sent_at": "2026-10-10 21:03:07"
+   }
+  ]
+ ]
+}

@@ -1,0 +1,54 @@
+{
+ "key": "RA-06#1",
+ "stack": "rai",
+ "runs": [
+  [
+   {
+    "method": "POST",
+    "url": "http://127.0.0.1:8032/query",
+    "account": null,
+    "request_headers": {
+     "Content-Type": "application/json"
+    },
+    "request_json": {
+     "query": "Can I stack pallets in Zone C?",
+     "user_role": "staff"
+    },
+    "status": 200,
+    "reason": "OK",
+    "ms": 17,
+    "size": 1231,
+    "response_json": {
+     "status": "success",
+     "agent": "knowledge_agent",
+     "query": "Can I stack pallets in Zone C?",
+     "response": "❌ NON-COMPLIANT (OVER-STACKING VIOLATION)\n• Rule: SOP-STG-002 (Pallet Stacking & Racking Regulations - Section 1)\n• Requested: 4 tiers in Zone C\n• Safe Operational Limit: Maximum 2 tiers\n• Mandatory Action: Reduce stack height by 2 pallet(s). Over-stacking creates tip-over hazard.",
+     "entities": {
+      "skus": [],
+      "locations": [
+       "Zone C"
+      ],
+      "products": [],
+      "quantities": [],
+      "dates": [],
+      "intent_hint": "location_query",
+      "raw_query": "Can I stack pallets in Zone C?"
+     },
+     "data": {
+      "compliant": false,
+      "severity": "CRITICAL",
+      "sop_id": "SOP-STG-002",
+      "rule_title": "Pallet Stacking & Racking Regulations",
+      "limit_description": "Maximum 2 tiers high in Zone C.",
+      "violation_reason": "Stack height of 4 tiers exceeds the safety limit of 2.",
+      "recommended_action": "De-stack 2 pallet(s) to adhere to safe height.",
+      "formatted_message": "❌ NON-COMPLIANT (OVER-STACKING VIOLATION)\n• Rule: SOP-STG-002 (Pallet Stacking & Racking Regulations - Section 1)\n• Requested: 4 tiers in Zone C\n• Safe Operational Limit: Maximum 2 tiers\n• Mandatory Action: Reduce stack height by 2 pallet(s). Over-stacking creates tip-over hazard."
+     },
+     "source": "compliance_engine"
+    },
+    "response_text": null,
+    "sent_at": "2026-10-10 21:03:05"
+   }
+  ]
+ ]
+}

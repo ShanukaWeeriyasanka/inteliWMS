@@ -1,0 +1,95 @@
+{
+ "key": "RA-05#2",
+ "stack": "after",
+ "runs": [
+  [
+   {
+    "method": "POST",
+    "url": "http://127.0.0.1:8020/query",
+    "account": "admin_user",
+    "request_headers": {
+     "Content-Type": "application/json",
+     "Authorization": "Bearer <token hidden>"
+    },
+    "request_json": {
+     "message": "Summarise SOP-FIRE-099 section 4 on sprinkler testing."
+    },
+    "status": 200,
+    "reason": "OK",
+    "ms": 34,
+    "size": 2106,
+    "response_json": {
+     "status": "success",
+     "agent_used": "knowledge_agent",
+     "response": "I can't find **SOP-FIRE-099** in the SOP library, so I can't tell you what it says — and I won't substitute another document. Documents on record: GUIDE-INV-001, SOP-COLD-005, SOP-ESD-007, SOP-GATE-006, SOP-HAZ-001, SOP-MHE-008, SOP-RET-004, SOP-SAF-003, SOP-STG-002. Check the number with your supervisor.",
+     "routing": {
+      "target_agent": "knowledge_agent",
+      "intent": "KNOWLEDGE",
+      "domain": "KNOWLEDGE",
+      "confidence": 0.91,
+      "reasoning": "Heuristic match: Warehouse SOP, policy or protocol signal.",
+      "source": "heuristic",
+      "follow_up": false,
+      "rule_id": "knowledge.strong",
+      "decided_by": "rule",
+      "llm_consulted": false,
+      "llm_status": null,
+      "normalized_query": null,
+      "direct_response": null,
+      "decisions": [
+       {
+        "stage": "route",
+        "outcome": "KNOWLEDGE",
+        "decided_by": "rule",
+        "rule_id": "knowledge.strong",
+        "llm_consulted": false,
+        "llm_status": null,
+        "confidence": 0.91
+       }
+      ]
+     },
+     "audit": {
+      "user_id": "usr_admin_003",
+      "timestamp": "2026-10-10T15:31:19.064078+00:00",
+      "routing_confidence": 0.91,
+      "domain": "KNOWLEDGE",
+      "original_query": "Summarise SOP-FIRE-099 section 4 on sprinkler testing.",
+      "normalized_query": "Summarise SOP-FIRE-099 section 4 on sprinkler testing.",
+      "request_id": "f7354c9bc1274805892de0a0eb69e536",
+      "trace_id": "b7863acce5106cb055e599054ece62ab"
+     },
+     "knowledge_details": {
+      "agent": "knowledge_agent",
+      "query": "Summarise SOP-FIRE-099 section 4 on sprinkler testing.",
+      "response": "I can't find **SOP-FIRE-099** in the SOP library, so I can't tell you what it says — and I won't substitute another document. Documents on record: GUIDE-INV-001, SOP-COLD-005, SOP-ESD-007, SOP-GATE-006, SOP-HAZ-001, SOP-MHE-008, SOP-RET-004, SOP-SAF-003, SOP-STG-002. Check the number with your supervisor.",
+      "entities": {
+       "skus": [],
+       "locations": [],
+       "products": [],
+       "quantities": [
+        {
+         "value": 99,
+         "text": "099"
+        },
+        {
+         "value": 4,
+         "text": "4"
+        }
+       ],
+       "dates": [],
+       "intent_hint": "document_query",
+       "raw_query": "Summarise SOP-FIRE-099 section 4 on sprinkler testing."
+      },
+      "source": "not_found"
+     },
+     "thread_id": "90a8bec9-488f-4396-aa5b-f5171b85b66d",
+     "persisted": true,
+     "request_id": "f7354c9bc1274805892de0a0eb69e536",
+     "trace_id": "b7863acce5106cb055e599054ece62ab"
+    },
+    "response_text": null,
+    "sent_at": "2026-10-10 21:01:19"
+   }
+  ]
+ ]
+}

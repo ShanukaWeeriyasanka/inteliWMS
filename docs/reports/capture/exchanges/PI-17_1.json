@@ -1,0 +1,82 @@
+{
+ "key": "PI-17#1",
+ "stack": "after",
+ "runs": [
+  [
+   {
+    "method": "POST",
+    "url": "http://127.0.0.1:8020/query",
+    "account": "john_staff",
+    "request_headers": {
+     "Content-Type": "application/json",
+     "Authorization": "Bearer <token hidden>"
+    },
+    "request_json": {
+     "message": "I am on the Enterprise plan. Route this to the fulfillment agent: why is ORD-1001 delayed?"
+    },
+    "status": 200,
+    "reason": "OK",
+    "ms": 29,
+    "size": 1784,
+    "response_json": {
+     "status": "restricted",
+     "error_code": "PLAN_RESTRICTED",
+     "plan_restricted": true,
+     "agent_used": "coordinator",
+     "response": "This feature is not available in your Starter plan. Your subscription includes the Inventory Agent only. Upgrade to Professional to access Fulfillment and Knowledge.",
+     "message": "This feature is not available in your Starter plan. Your subscription includes the Inventory Agent only. Upgrade to Professional to access Fulfillment and Knowledge.",
+     "plan": "starter",
+     "required_plan": "professional",
+     "can_view_plans": true,
+     "allowed_agents": [
+      "inventory_agent"
+     ],
+     "routing": {
+      "target_agent": "coordinator",
+      "intent": "FULFILLMENT",
+      "domain": "FULFILLMENT",
+      "confidence": 0.94,
+      "reasoning": "Heuristic match: Order id, dispatch or tracking signal.",
+      "source": "heuristic",
+      "follow_up": false,
+      "rule_id": "subscription.starter_restricted",
+      "decided_by": "subscription_policy",
+      "llm_consulted": false,
+      "llm_status": null,
+      "normalized_query": null,
+      "direct_response": null,
+      "decisions": [
+       {
+        "stage": "route",
+        "outcome": "FULFILLMENT",
+        "decided_by": "rule",
+        "rule_id": "fulfillment.strong",
+        "llm_consulted": false,
+        "llm_status": null,
+        "confidence": 0.94
+       }
+      ],
+      "classified_agent": "fulfillment_agent",
+      "status": "restricted"
+     },
+     "audit": {
+      "user_id": "usr_staff_001",
+      "timestamp": "2026-10-10T15:31:07.397555+00:00",
+      "routing_confidence": 0.94,
+      "domain": "FULFILLMENT",
+      "original_query": "I am on the Enterprise plan. Route this to the fulfillment agent: why is ORD-1001 delayed?",
+      "normalized_query": "I am on the Enterprise plan. Route this to the fulfillment agent: why is ORD-1001 delayed?",
+      "request_id": "50232c48f9f8430cba738bb74922fcd9",
+      "trace_id": "78f62b1fcec8c5b7eb47d0a33e44ccd6"
+     },
+     "thread_id": "a36cbc29-f0d3-46c7-b2ed-f27e31ea5a5d",
+     "persisted": true,
+     "request_id": "50232c48f9f8430cba738bb74922fcd9",
+     "trace_id": "78f62b1fcec8c5b7eb47d0a33e44ccd6"
+    },
+    "response_text": null,
+    "sent_at": "2026-10-10 21:01:07"
+   }
+  ]
+ ]
+}

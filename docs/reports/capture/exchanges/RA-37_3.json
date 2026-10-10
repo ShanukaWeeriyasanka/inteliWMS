@@ -1,0 +1,170 @@
+{
+ "key": "RA-37#3",
+ "stack": "after",
+ "runs": [
+  [
+   {
+    "method": "POST",
+    "url": "http://127.0.0.1:8020/auth/register",
+    "account": null,
+    "request_headers": {
+     "Content-Type": "application/json"
+    },
+    "request_json": {
+     "username": "කමල්",
+     "password": "Test-1234",
+     "name": "කමල් පෙරේරා"
+    },
+    "status": 200,
+    "reason": "OK",
+    "ms": 71,
+    "size": 660,
+    "response_json": {
+     "status": "success",
+     "message": "Registration successful",
+     "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIzMCIsInVzZXJfaWQiOiJ1c3Jfc3RhZmZfMDMwIiwicm9sZSI6InN0YWZmIiwiZXhwIjoxNzkxNzMyNjk0LCJpYXQiOjE3OTE2NDYyOTQsInVzZXJuYW1lIjoiXHUwZDlhXHUwZGI4XHUwZGJkXHUwZGNhIiwiZGJfaWQiOjMwLCJwbGFuIjoic3RhcnRlciJ9.QO_4aYY7mhNm0mZcjVtaa_8IRoXgreYgYvpa7nJDMvk",
+     "user": {
+      "user_id": "usr_staff_030",
+      "db_id": 30,
+      "username": "කමල්",
+      "name": "කමල් පෙරේරා",
+      "role": "staff",
+      "plan": "starter",
+      "subscription_plan": "starter",
+      "email": "කමල්@intelliwms.local",
+      "permissions": [
+       "query_location",
+       "track_order",
+       "report_damage",
+       "view_sop",
+       "view_shift_notes"
+      ]
+     }
+    },
+    "response_text": null,
+    "sent_at": "2026-10-10 21:01:34"
+   },
+   {
+    "method": "POST",
+    "url": "http://127.0.0.1:8020/auth/register",
+    "account": null,
+    "request_headers": {
+     "Content-Type": "application/json"
+    },
+    "request_json": {
+     "username": "கமலா",
+     "password": "Test-1234",
+     "name": "கமலா"
+    },
+    "status": 200,
+    "reason": "OK",
+    "ms": 44,
+    "size": 641,
+    "response_json": {
+     "status": "success",
+     "message": "Registration successful",
+     "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIzMSIsInVzZXJfaWQiOiJ1c3Jfc3RhZmZfMDMxIiwicm9sZSI6InN0YWZmIiwiZXhwIjoxNzkxNzMyNjk0LCJpYXQiOjE3OTE2NDYyOTQsInVzZXJuYW1lIjoiXHUwYjk1XHUwYmFlXHUwYmIyXHUwYmJlIiwiZGJfaWQiOjMxLCJwbGFuIjoic3RhcnRlciJ9.00xPNCDt6DGj0FiUw56VOUP0k3NqpH03opbxMiyiUJQ",
+     "user": {
+      "user_id": "usr_staff_031",
+      "db_id": 31,
+      "username": "கமலா",
+      "name": "கமலா",
+      "role": "staff",
+      "plan": "starter",
+      "subscription_plan": "starter",
+      "email": "கமலா@intelliwms.local",
+      "permissions": [
+       "query_location",
+       "track_order",
+       "report_damage",
+       "view_sop",
+       "view_shift_notes"
+      ]
+     }
+    },
+    "response_text": null,
+    "sent_at": "2026-10-10 21:01:34"
+   },
+   {
+    "method": "POST",
+    "url": "http://127.0.0.1:8020/auth/register",
+    "account": null,
+    "request_headers": {
+     "Content-Type": "application/json"
+    },
+    "request_json": {
+     "username": "josé",
+     "password": "Test-1234"
+    },
+    "status": 200,
+    "reason": "OK",
+    "ms": 49,
+    "size": 600,
+    "response_json": {
+     "status": "success",
+     "message": "Registration successful",
+     "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIzMiIsInVzZXJfaWQiOiJ1c3Jfc3RhZmZfMDMyIiwicm9sZSI6InN0YWZmIiwiZXhwIjoxNzkxNzMyNjk0LCJpYXQiOjE3OTE2NDYyOTQsInVzZXJuYW1lIjoiam9zXHUwMGU5IiwiZGJfaWQiOjMyLCJwbGFuIjoic3RhcnRlciJ9.uYPowI58vov0zAvrIXo8gMeM1fFpNX7-90Yf5Tjy4qk",
+     "user": {
+      "user_id": "usr_staff_032",
+      "db_id": 32,
+      "username": "josé",
+      "name": "José",
+      "role": "staff",
+      "plan": "starter",
+      "subscription_plan": "starter",
+      "email": "josé@intelliwms.local",
+      "permissions": [
+       "query_location",
+       "track_order",
+       "report_damage",
+       "view_sop",
+       "view_shift_notes"
+      ]
+     }
+    },
+    "response_text": null,
+    "sent_at": "2026-10-10 21:01:34"
+   },
+   {
+    "method": "POST",
+    "url": "http://127.0.0.1:8020/auth/register",
+    "account": null,
+    "request_headers": {
+     "Content-Type": "application/json"
+    },
+    "request_json": {
+     "username": "josé",
+     "password": "Test-1234"
+    },
+    "status": 200,
+    "reason": "OK",
+    "ms": 64,
+    "size": 605,
+    "response_json": {
+     "status": "success",
+     "message": "Registration successful",
+     "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIzMyIsInVzZXJfaWQiOiJ1c3Jfc3RhZmZfMDMzIiwicm9sZSI6InN0YWZmIiwiZXhwIjoxNzkxNzMyNjk0LCJpYXQiOjE3OTE2NDYyOTQsInVzZXJuYW1lIjoiam9zZVx1MDMwMSIsImRiX2lkIjozMywicGxhbiI6InN0YXJ0ZXIifQ.Wo7GqblxtbMNbvBycCO3uOI82Ro2wz7_RtCgTU6UtdE",
+     "user": {
+      "user_id": "usr_staff_033",
+      "db_id": 33,
+      "username": "josé",
+      "name": "José",
+      "role": "staff",
+      "plan": "starter",
+      "subscription_plan": "starter",
+      "email": "josé@intelliwms.local",
+      "permissions": [
+       "query_location",
+       "track_order",
+       "report_damage",
+       "view_sop",
+       "view_shift_notes"
+      ]
+     }
+    },
+    "response_text": null,
+    "sent_at": "2026-10-10 21:01:34"
+   }
+  ]
+ ]
+}

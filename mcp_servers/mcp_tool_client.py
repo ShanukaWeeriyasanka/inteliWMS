@@ -74,6 +74,10 @@ FAILURE_STATUSES = frozenset({
 })
 RETRYABLE = frozenset({ToolStatus.TIMEOUT, ToolStatus.UNAVAILABLE})
 
+# Whole-catalogue reads make many twin-database round trips; INVENTORY_MCP_TIMEOUT_S is sized for
+# single-item lookups. Kept under the agent's request budget (INVENTORY_TIMEOUT_SEC, default 15).
+_MIN_TIMEOUT_S: Dict[str, float] = {"query_inventory": 12.0}
+
 
 @dataclass
 class ToolResult:
@@ -178,6 +182,11 @@ class _Trap:
 
     async def handler(self, message: Any) -> None:
         if isinstance(message, Exception):
+            if _is_stale_response(message):
+                # The late answer to an attempt that already timed out — the transport is fine,
+                # so it must not cancel the retry that is in flight now
+                logger.log_event("MCP_STALE_RESPONSE_IGNORED", {}, level="INFO")
+                return
             self.error = message
             if self._scope is not None:
                 self._scope.cancel()
@@ -195,6 +204,10 @@ class _Trap:
         if result is self._UNSET:
             raise _TransportFailure(self.error or ConnectionError("MCP transport closed"))
         return result
+
+
+def _is_stale_response(exc: BaseException) -> bool:
+    return isinstance(exc, RuntimeError) and "unknown request id" in str(exc).lower()
 
 
 def _leaves(exc: BaseException) -> Iterable[BaseException]:
@@ -255,8 +268,9 @@ class ToolSession:
                    *, timeout_s: Optional[float] = None) -> ToolResult:
         server = self.gateway.server_name
         start = time.perf_counter()
+        timeout_s = max(timeout_s or self.settings.timeout_s, _MIN_TIMEOUT_S.get(tool, 0.0))
         with span("mcp.tool", server=server, tool=tool, agent=self.agent, transport=self.transport) as sp:
-            result = await self._call(tool, arguments or {}, timeout_s or self.settings.timeout_s)
+            result = await self._call(tool, arguments or {}, timeout_s)
             result.duration_ms = round((time.perf_counter() - start) * 1000, 2)
             sp.set(status="error" if result.failed else "ok", outcome=result.status.value,
                    attempts=result.attempts, error_code=result.error_code)
@@ -308,7 +322,9 @@ class ToolSession:
 
     async def _attempt(self, tool: str, args: Dict[str, Any], timeout_s: float) -> ToolResult:
         try:
-            raw = await self.trap.run(lambda: self.client.call_tool(tool, args), timeout_s)
+            raw = await self.trap.run(
+                lambda: self.client.call_tool(tool, args, read_timeout_seconds=timedelta(seconds=timeout_s)),
+                timeout_s)
         except TimeoutError:
             MCP_TOOL_TIMEOUTS.inc(server=self.gateway.server_name, tool=tool)
             return ToolResult(tool, ToolStatus.TIMEOUT, error_code="MCP_TIMEOUT")

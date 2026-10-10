@@ -255,7 +255,8 @@ def test_compliance_stacking_limits():
     damaged_res = check_compliance(category="stacking", pallet_condition="cracked")
     assert damaged_res["compliant"] is False
     assert "RED TAG" in damaged_res["formatted_message"]
-    assert "Bay 9" in damaged_res["formatted_message"]
+    # The location must match SOP-STG-002 §2 (Building 5 Bay 11), the document the answer cites
+    assert "Building 5 Bay 11" in damaged_res["formatted_message"]
 
 
 def test_compliance_speed_limits():

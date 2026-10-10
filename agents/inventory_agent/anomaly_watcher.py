@@ -54,7 +54,9 @@ _DEMO_ANOMALIES = [
             "Multiple negative manual inventory adjustments recorded by Shift 2 "
             "operator within 48 hours without supervisory sign-off."
         ),
-        "action": "Escalate to Loss Prevention and freeze manual adjustment privileges for operator ID #OP-882.",
+        # Accountability: the system flags records, a person decides; no sanction against an individual here
+        "action": ("Supervisor to review the unapproved adjustments with Loss Prevention; require supervisory "
+                   "sign-off for further manual adjustments on this SKU until the review is done."),
     },
     {
         "sku": "SKU-2045",

@@ -1,0 +1,111 @@
+{
+ "key": "RA-05#1",
+ "stack": "rai",
+ "runs": [
+  [
+   {
+    "method": "POST",
+    "url": "http://127.0.0.1:8030/query",
+    "account": "admin_user",
+    "request_headers": {
+     "Content-Type": "application/json",
+     "Authorization": "Bearer <token hidden>"
+    },
+    "request_json": {
+     "message": "Summarise SOP-FIRE-099 section 4 on sprinkler testing."
+    },
+    "status": 200,
+    "reason": "OK",
+    "ms": 55,
+    "size": 2421,
+    "response_json": {
+     "status": "success",
+     "agent_used": "knowledge_agent",
+     "response": "According to warehouse protocol 'Pallet Stacking & Racking Regulations':\n3. Overhang Rules: Product overhang must not exceed 2 inches on any side of standard 48x40 inch GMA pallets.",
+     "routing": {
+      "target_agent": "knowledge_agent",
+      "intent": "KNOWLEDGE",
+      "domain": "KNOWLEDGE",
+      "confidence": 0.91,
+      "reasoning": "Heuristic match: Warehouse SOP, policy or protocol signal.",
+      "source": "heuristic",
+      "follow_up": false,
+      "rule_id": "knowledge.strong",
+      "decided_by": "rule",
+      "llm_consulted": false,
+      "llm_status": null,
+      "normalized_query": null,
+      "direct_response": null,
+      "decisions": [
+       {
+        "stage": "route",
+        "outcome": "KNOWLEDGE",
+        "decided_by": "rule",
+        "rule_id": "knowledge.strong",
+        "llm_consulted": false,
+        "llm_status": null,
+        "confidence": 0.91
+       }
+      ]
+     },
+     "audit": {
+      "user_id": "usr_admin_003",
+      "timestamp": "2026-10-10T15:33:05.331587+00:00",
+      "routing_confidence": 0.91,
+      "domain": "KNOWLEDGE",
+      "original_query": "Summarise SOP-FIRE-099 section 4 on sprinkler testing.",
+      "normalized_query": "Summarise SOP-FIRE-099 section 4 on sprinkler testing.",
+      "request_id": "19005aeebde1451aa406b96cf3c89614",
+      "trace_id": "5d0d9f7ded1105612d384c37c27948e8"
+     },
+     "knowledge_details": {
+      "agent": "knowledge_agent",
+      "query": "Summarise SOP-FIRE-099 section 4 on sprinkler testing.",
+      "response": "According to warehouse protocol 'Pallet Stacking & Racking Regulations':\n3. Overhang Rules: Product overhang must not exceed 2 inches on any side of standard 48x40 inch GMA pallets.",
+      "entities": {
+       "skus": [],
+       "locations": [],
+       "products": [],
+       "quantities": [
+        {
+         "value": 99,
+         "text": "099"
+        },
+        {
+         "value": 4,
+         "text": "4"
+        }
+       ],
+       "dates": [],
+       "intent_hint": "document_query",
+       "raw_query": "Summarise SOP-FIRE-099 section 4 on sprinkler testing."
+      },
+      "rag_sources": [
+       {
+        "title": "Pallet Stacking & Racking Regulations",
+        "category": "Storage",
+        "doc_id": "SOP-STG-002",
+        "content": "3. Overhang Rules: Product overhang must not exceed 2 inches on any side of standard 48x40 inch GMA pallets.",
+        "distance": null
+       },
+       {
+        "title": "Cold-Chain Vault (Building 4) Storage & Temperature Excursion SOP",
+        "category": "Cold-Chain",
+        "doc_id": "SOP-COLD-005",
+        "content": "1. Target Storage Envelope: All pharmaceutical products, vaccines, and biologics in Building 4 Cold Vault must be maintained continuously between 2.0°C and 4.0°C.",
+        "distance": null
+       }
+      ],
+      "source": "vector_rag"
+     },
+     "thread_id": "e6c844e1-1d4c-40dd-a980-1ca67ff68115",
+     "persisted": true,
+     "request_id": "19005aeebde1451aa406b96cf3c89614",
+     "trace_id": "5d0d9f7ded1105612d384c37c27948e8"
+    },
+    "response_text": null,
+    "sent_at": "2026-10-10 21:03:05"
+   }
+  ]
+ ]
+}

@@ -26,9 +26,12 @@ from config.prompts import (
     COORDINATOR_BYE_REPLY,
     COORDINATOR_CAPABILITY_REPLY,
     COORDINATOR_CLARIFY_DOMAIN_REPLY,
+    COORDINATOR_CONFIDENTIAL_REPLY,
     COORDINATOR_GREETING_REPLY,
     COORDINATOR_UNKNOWN_REPLY,
 )
+from security.responsible_ai import explain_sources, is_guard_rule, screen_output, screen_request
+from security.sanitizer import fence_untrusted
 from utils.decisions import FALLBACK, LLM, RULE, record_decision
 from utils.logger import StructuredLogger
 from utils.metrics import ROUTING_DECISIONS
@@ -52,6 +55,7 @@ REPLY_BY_RULE = {
     "meta.capability": COORDINATOR_CAPABILITY_REPLY,
     "meta.help": COORDINATOR_CAPABILITY_REPLY,
     "meta.weak": COORDINATOR_CAPABILITY_REPLY,
+    "meta.self_disclosure": COORDINATOR_CONFIDENTIAL_REPLY,
     "social.ack": COORDINATOR_ACK_REPLY,
     "social.bye": COORDINATOR_BYE_REPLY,
     "clarify.domain": COORDINATOR_CLARIFY_DOMAIN_REPLY,
@@ -74,26 +78,40 @@ def route_to_agent(intent: str) -> str:
     return INTENT_TO_AGENT_MAP.get(normalized, DEFAULT_FALLBACK_AGENT)
 
 
-def select_coordinator_reply(query: str, result: Optional[IntentResult] = None) -> Tuple[str, str, str, Optional[str]]:
+def select_coordinator_reply(query: str, result: Optional[IntentResult] = None,
+                             context: Optional[Dict[str, Any]] = None) -> Tuple[str, str, str, Optional[str]]:
     """
     Reply text for a COORDINATOR decision → (text, reply_rule, decided_by, llm_status).
     Fixed text for every rule; LLM wording only when the LLM itself classified the message.
     """
     rule_id = getattr(result, "rule_id", None)
     if rule_id is None and getattr(result, "decided_by", None) != LLM:
-        matched = intent_classifier.match_rules(query)
+        matched = intent_classifier.match_rules(query, context)
         rule_id = matched.rule_id if matched is not None else None
     if rule_id in REPLY_BY_RULE:
         return REPLY_BY_RULE[rule_id], f"reply.{rule_id}", RULE, None
+    if rule_id == "transparency.source":
+        return explain_sources((context or {}).get("history")), f"reply.{rule_id}", RULE, None
+    if is_guard_rule(rule_id):
+        guard = screen_request(query)
+        if guard is not None:
+            return guard.reply, f"reply.{guard.rule_id}", RULE, None
 
     if getattr(result, "decided_by", None) == LLM:
         from config.llm_config import llm_config
-        from config.prompts import COORDINATOR_DIRECT_REPLY_PROMPT
+        from config.prompts import COORDINATOR_DIRECT_REPLY_SYSTEM, COORDINATOR_DIRECT_REPLY_USER
         status, text = call_llm("reply", lambda: llm_config.hybrid_complete(
-            prompt=COORDINATOR_DIRECT_REPLY_PROMPT.format(query=query), max_tokens=200),
+            prompt=COORDINATOR_DIRECT_REPLY_USER.format(query=fence_untrusted(query)),
+            system=COORDINATOR_DIRECT_REPLY_SYSTEM, max_tokens=200),
             available=bool(llm_config.gemini_key or llm_config.groq_key))
         if status == OK and len(str(text).strip()) > 1:
-            return str(text).strip()[:_REPLY_MAX_CHARS], "reply.llm_small_talk", LLM, status
+            text = str(text).strip()[:_REPLY_MAX_CHARS]
+            blocked = screen_output(text)
+            if blocked:
+                # Output moderation: the LLM's wording is replaced, never shown
+                logger.log_event("LLM_REPLY_BLOCKED", {"reason": blocked})
+                return COORDINATOR_UNKNOWN_REPLY, f"reply.blocked_{blocked}", FALLBACK, status
+            return text, "reply.llm_small_talk", LLM, status
         return COORDINATOR_UNKNOWN_REPLY, "reply.unknown", FALLBACK, status
 
     return COORDINATOR_UNKNOWN_REPLY, "reply.unknown", RULE, None
@@ -166,7 +184,7 @@ def decide_route(query: str, classifier: Optional[IntentClassifier] = None,
     direct_response = None
     if domain == "COORDINATOR":
         with span("routing.reply") as rsp:
-            direct_response, reply_rule, reply_by, reply_status = select_coordinator_reply(query, result)
+            direct_response, reply_rule, reply_by, reply_status = select_coordinator_reply(query, result, context)
             rsp.set(rule_id=reply_rule, decided_by=reply_by)
         decisions.append(record_decision("reply", reply_rule.split(".", 1)[1], reply_by, reply_rule,
                                          llm_consulted=reply_status is not None, llm_status=reply_status))

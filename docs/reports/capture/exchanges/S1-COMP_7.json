@@ -1,0 +1,253 @@
+{
+ "key": "S1-COMP#7",
+ "stack": "after",
+ "runs": [
+  [
+   {
+    "method": "GET",
+    "url": "http://127.0.0.1:8020/twin/route?to_id=WH1-F3-Z01-R03&prefer=lift",
+    "account": "admin_user",
+    "request_headers": {
+     "Authorization": "Bearer <token hidden>"
+    },
+    "request_json": null,
+    "status": 200,
+    "reason": "OK",
+    "ms": 1290,
+    "size": 3187,
+    "response_json": {
+     "to_id": "WH1-F3-Z01-R03",
+     "from_id": null,
+     "from_node": "WH1-F1-N001",
+     "to_node": "WH1-F3-N010",
+     "prefer": "lift",
+     "prefer_used": "lift",
+     "path": [
+      {
+       "seq": 1,
+       "node_id": "WH1-F1-N001",
+       "floor_id": "WH1-F1",
+       "floor_level": 1,
+       "x": 2.0,
+       "y": 15.0,
+       "node_type": "entrance",
+       "label": "Main entrance",
+       "via": null,
+       "segment_m": 0.0,
+       "total_m": 0.0,
+       "total_s": 0.0
+      },
+      {
+       "seq": 2,
+       "node_id": "WH1-F1-N020",
+       "floor_id": "WH1-F1",
+       "floor_level": 1,
+       "x": 2.0,
+       "y": 9.0,
+       "node_type": "lift",
+       "label": "Lift A",
+       "via": "walk",
+       "segment_m": 6.0,
+       "total_m": 6.0,
+       "total_s": 5.0
+      },
+      {
+       "seq": 3,
+       "node_id": "WH1-F2-N020",
+       "floor_id": "WH1-F2",
+       "floor_level": 2,
+       "x": 2.0,
+       "y": 9.0,
+       "node_type": "lift",
+       "label": "Lift A",
+       "via": "lift",
+       "segment_m": 0.0,
+       "total_m": 6.0,
+       "total_s": 30.0
+      },
+      {
+       "seq": 4,
+       "node_id": "WH1-F3-N020",
+       "floor_id": "WH1-F3",
+       "floor_level": 3,
+       "x": 2.0,
+       "y": 9.0,
+       "node_type": "lift",
+       "label": "Lift A",
+       "via": "lift",
+       "segment_m": 0.0,
+       "total_m": 6.0,
+       "total_s": 55.0
+      },
+      {
+       "seq": 5,
+       "node_id": "WH1-F3-N001",
+       "floor_id": "WH1-F3",
+       "floor_level": 3,
+       "x": 2.0,
+       "y": 15.0,
+       "node_type": "aisle",
+       "label": "Lift lobby",
+       "via": "walk",
+       "segment_m": 6.0,
+       "total_m": 12.0,
+       "total_s": 60.0
+      },
+      {
+       "seq": 6,
+       "node_id": "WH1-F3-N003",
+       "floor_id": "WH1-F3",
+       "floor_level": 3,
+       "x": 10.0,
+       "y": 15.0,
+       "node_type": "intersection",
+       "label": null,
+       "via": "walk",
+       "segment_m": 8.0,
+       "total_m": 20.0,
+       "total_s": 67.0
+      },
+      {
+       "seq": 7,
+       "node_id": "WH1-F3-N004",
+       "floor_id": "WH1-F3",
+       "floor_level": 3,
+       "x": 24.0,
+       "y": 15.0,
+       "node_type": "intersection",
+       "label": null,
+       "via": "walk",
+       "segment_m": 14.0,
+       "total_m": 34.0,
+       "total_s": 78.0
+      },
+      {
+       "seq": 8,
+       "node_id": "WH1-F3-N005",
+       "floor_id": "WH1-F3",
+       "floor_level": 3,
+       "x": 38.0,
+       "y": 15.0,
+       "node_type": "intersection",
+       "label": null,
+       "via": "walk",
+       "segment_m": 14.0,
+       "total_m": 48.0,
+       "total_s": 90.0
+      },
+      {
+       "seq": 9,
+       "node_id": "WH1-F3-N010",
+       "floor_id": "WH1-F3",
+       "floor_level": 3,
+       "x": 38.0,
+       "y": 11.0,
+       "node_type": "rack_access",
+       "label": null,
+       "via": "walk",
+       "segment_m": 4.0,
+       "total_m": 52.0,
+       "total_s": 93.0
+      }
+     ],
+     "directions": [
+      {
+       "step": 1,
+       "kind": "start",
+       "floor_id": "WH1-F1",
+       "floor_name": "Floor 1",
+       "instruction": "Start at Main entrance on Floor 1.",
+       "distance_m": 0.0,
+       "total_s": 0.0,
+       "node_ids": [
+        "WH1-F1-N001"
+       ]
+      },
+      {
+       "step": 2,
+       "kind": "walk",
+       "floor_id": "WH1-F1",
+       "floor_name": "Floor 1",
+       "instruction": "Walk 6 m to Lift A.",
+       "distance_m": 6.0,
+       "total_s": 5.0,
+       "node_ids": [
+        "WH1-F1-N001",
+        "WH1-F1-N020"
+       ]
+      },
+      {
+       "step": 3,
+       "kind": "floor_change",
+       "floor_id": "WH1-F3",
+       "floor_name": "Floor 3",
+       "instruction": "Take Lift A up to Floor 3.",
+       "distance_m": 0.0,
+       "total_s": 55.0,
+       "node_ids": [
+        "WH1-F1-N020",
+        "WH1-F2-N020",
+        "WH1-F3-N020"
+       ]
+      },
+      {
+       "step": 4,
+       "kind": "walk",
+       "floor_id": "WH1-F3",
+       "floor_name": "Floor 3",
+       "instruction": "Walk 6 m to Lift lobby, then turn left.",
+       "distance_m": 6.0,
+       "total_s": 60.0,
+       "node_ids": [
+        "WH1-F3-N020",
+        "WH1-F3-N001"
+       ]
+      },
+      {
+       "step": 5,
+       "kind": "walk",
+       "floor_id": "WH1-F3",
+       "floor_name": "Floor 3",
+       "instruction": "Walk 36 m, then turn left.",
+       "distance_m": 36.0,
+       "total_s": 90.0,
+       "node_ids": [
+        "WH1-F3-N001",
+        "WH1-F3-N003",
+        "WH1-F3-N004",
+        "WH1-F3-N005"
+       ]
+      },
+      {
+       "step": 6,
+       "kind": "walk",
+       "floor_id": "WH1-F3",
+       "floor_name": "Floor 3",
+       "instruction": "Walk 4 m to Cold 3.",
+       "distance_m": 4.0,
+       "total_s": 93.0,
+       "node_ids": [
+        "WH1-F3-N005",
+        "WH1-F3-N010"
+       ]
+      },
+      {
+       "step": 7,
+       "kind": "arrive",
+       "floor_id": "WH1-F3",
+       "floor_name": "Floor 3",
+       "instruction": "You have arrived. Cold 3 (Zone A — Cold storage, Floor 3) is straight ahead.",
+       "distance_m": 0.0,
+       "total_s": 93.0,
+       "node_ids": [
+        "WH1-F3-N010"
+       ]
+      }
+     ]
+    },
+    "response_text": null,
+    "sent_at": "2026-10-10 21:05:25"
+   }
+  ]
+ ]
+}

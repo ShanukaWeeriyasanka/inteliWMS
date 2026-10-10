@@ -1,0 +1,54 @@
+{
+ "key": "S3-COMP#3",
+ "stack": "after",
+ "runs": [
+  [
+   {
+    "method": "POST",
+    "url": "http://127.0.0.1:8020/auth/login",
+    "account": null,
+    "request_headers": {
+     "Content-Type": "application/json"
+    },
+    "request_json": {
+     "username": "admin_user",
+     "password": "admin123"
+    },
+    "status": 200,
+    "reason": "OK",
+    "ms": 38,
+    "size": 739,
+    "response_json": {
+     "status": "success",
+     "message": "Authentication successful",
+     "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIzIiwidXNlcl9pZCI6InVzcl9hZG1pbl8wMDMiLCJyb2xlIjoiYWRtaW4iLCJleHAiOjE3OTE3MzI2OTQsImlhdCI6MTc5MTY0NjI5NCwidXNlcm5hbWUiOiJhZG1pbl91c2VyIiwiZGJfaWQiOjMsInBsYW4iOiJlbnRlcnByaXNlIn0.bqKYveA1_BKhEDs1Q8DbHNJaWxE6rQdOWxiG8iCGui0",
+     "user": {
+      "user_id": "usr_admin_003",
+      "db_id": 3,
+      "username": "admin_user",
+      "name": "Alex Vance (Admin)",
+      "role": "admin",
+      "plan": "enterprise",
+      "subscription_plan": "enterprise",
+      "email": "admin@warehouse.com",
+      "permissions": [
+       "query_location",
+       "track_order",
+       "report_damage",
+       "view_sop",
+       "view_shift_notes",
+       "approve_restock",
+       "view_analytics",
+       "view_vendor_performance",
+       "view_audit_logs",
+       "delete_records",
+       "change_settings"
+      ]
+     }
+    },
+    "response_text": null,
+    "sent_at": "2026-10-10 21:01:34"
+   }
+  ]
+ ]
+}

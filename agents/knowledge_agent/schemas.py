@@ -117,7 +117,7 @@ class ComplianceCheckRequest(BaseModel):
     has_ppe: Optional[bool] = Field(True, description="Whether required safety PPE is equipped")
 
 class ComplianceCheckResponse(BaseModel):
-    compliant: bool
+    compliant: Optional[bool] = Field(None, description="None when no SOP rule decides it")
     severity: str = Field(..., description="'COMPLIANT', 'WARNING', or 'CRITICAL'")
     sop_id: str
     rule_title: str

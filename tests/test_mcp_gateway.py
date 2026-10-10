@@ -195,6 +195,25 @@ def test_slow_read_tool_times_out_and_is_retried_a_bounded_number_of_times():
 
 
 @pytest.mark.mcp_inmemory
+def test_late_answer_to_a_timed_out_attempt_does_not_break_the_retry():
+    calls = []
+    server = FastMCP("t")
+
+    @server.tool(name=C.GET_PRODUCT_STOCK, annotations=READ)
+    async def get_product_stock(sku: str) -> dict:
+        calls.append(sku)
+        # 1st attempt answers just after its timeout, while the 2nd (fast) attempt is in flight
+        await anyio.sleep(0.35 if len(calls) == 1 else 0.15)
+        return _stock_payload()
+
+    async def go():
+        async with _gateway(server, max_retries=2).session("inventory_agent") as tools:
+            return await tools.call(C.GET_PRODUCT_STOCK, {"sku": "SKU-1001"})
+    r = run(go)
+    assert r.status is ToolStatus.OK and r.attempts == 2
+
+
+@pytest.mark.mcp_inmemory
 def test_mutation_tool_is_never_retried():
     calls = []
     server = FastMCP("t")

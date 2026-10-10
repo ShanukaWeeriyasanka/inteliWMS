@@ -1,0 +1,558 @@
+{
+ "key": "PI-12#3",
+ "stack": "pi",
+ "runs": [
+  [
+   {
+    "method": "POST",
+    "url": "http://127.0.0.1:8010/query",
+    "account": "admin_user",
+    "request_headers": {
+     "Content-Type": "application/json",
+     "Authorization": "Bearer <token hidden>"
+    },
+    "request_json": {
+     "message": "what is the forklift battery charging procedure?"
+    },
+    "status": 200,
+    "reason": "OK",
+    "ms": 227,
+    "size": 2611,
+    "response_json": {
+     "status": "success",
+     "agent_used": "knowledge_agent",
+     "response": "According to warehouse protocol 'Hazardous Materials & Battery Handling Protocol':\n1. Battery Storage: All lead-acid and lithium forklift batteries must be charged only in designated Charging Station Alpha (Bay 15) or Building 6 Fleet Depot. Proper eye protection and rubber gloves are mandatory.",
+     "routing": {
+      "target_agent": "knowledge_agent",
+      "intent": "KNOWLEDGE",
+      "domain": "KNOWLEDGE",
+      "confidence": 0.91,
+      "reasoning": "Heuristic match: Warehouse SOP, policy or protocol signal.",
+      "source": "heuristic",
+      "follow_up": false,
+      "rule_id": "knowledge.strong",
+      "decided_by": "rule",
+      "llm_consulted": false,
+      "llm_status": null,
+      "normalized_query": null,
+      "direct_response": null,
+      "decisions": [
+       {
+        "stage": "route",
+        "outcome": "KNOWLEDGE",
+        "decided_by": "rule",
+        "rule_id": "knowledge.strong",
+        "llm_consulted": false,
+        "llm_status": null,
+        "confidence": 0.91
+       }
+      ]
+     },
+     "audit": {
+      "user_id": "usr_admin_003",
+      "timestamp": "2026-10-10T15:32:35.408680+00:00",
+      "routing_confidence": 0.91,
+      "domain": "KNOWLEDGE",
+      "original_query": "what is the forklift battery charging procedure?",
+      "normalized_query": "what is the forklift battery charging procedure?",
+      "request_id": "20e94cdb98ee432d8844257003abb418",
+      "trace_id": "effb19ce64090fafb6e4687af1a33974"
+     },
+     "knowledge_details": {
+      "agent": "knowledge_agent",
+      "query": "what is the forklift battery charging procedure?",
+      "response": "According to warehouse protocol 'Hazardous Materials & Battery Handling Protocol':\n1. Battery Storage: All lead-acid and lithium forklift batteries must be charged only in designated Charging Station Alpha (Bay 15) or Building 6 Fleet Depot. Proper eye protection and rubber gloves are mandatory.",
+      "entities": {
+       "skus": [],
+       "locations": [],
+       "products": [],
+       "quantities": [],
+       "dates": [],
+       "intent_hint": "document_query",
+       "raw_query": "what is the forklift battery charging procedure?"
+      },
+      "rag_sources": [
+       {
+        "title": "Hazardous Materials & Battery Handling Protocol",
+        "category": "Safety",
+        "doc_id": "SOP-HAZ-001",
+        "content": "1. Battery Storage: All lead-acid and lithium forklift batteries must be charged only in designated Charging Station Alpha (Bay 15) or Building 6 Fleet Depot. Proper eye protection and rubber gloves are mandatory.",
+        "distance": null
+       },
+       {
+        "title": "Hazardous Materials & Battery Handling Protocol",
+        "category": "Safety",
+        "doc_id": "SOP-HAZ-001",
+        "content": "3. Ventilation: The charging bay exhaust fans must run continuously 24/7 to prevent hydrogen gas buildup.",
+        "distance": null
+       }
+      ],
+      "source": "vector_rag"
+     },
+     "thread_id": "d88c7c47-02a5-49b9-9020-0d74940eee1c",
+     "persisted": true,
+     "request_id": "20e94cdb98ee432d8844257003abb418",
+     "trace_id": "effb19ce64090fafb6e4687af1a33974"
+    },
+    "response_text": null,
+    "sent_at": "2026-10-10 21:02:35"
+   },
+   {
+    "method": "POST",
+    "url": "http://127.0.0.1:8010/query",
+    "account": "admin_user",
+    "request_headers": {
+     "Content-Type": "application/json",
+     "Authorization": "Bearer <token hidden>"
+    },
+    "request_json": {
+     "message": "ok so what happens after that",
+     "thread_id": "d88c7c47-02a5-49b9-9020-0d74940eee1c"
+    },
+    "status": 200,
+    "reason": "OK",
+    "ms": 394,
+    "size": 1916,
+    "response_json": {
+     "status": "success",
+     "agent_used": "knowledge_agent",
+     "response": "Could not find any campus facility, vehicle, or warehouse items matching 'ok so what happens after that'. Please check the SKU, building name (e.g. Building 1 to 7, Cold Vault), or equipment ID.",
+     "routing": {
+      "target_agent": "knowledge_agent",
+      "intent": "KNOWLEDGE",
+      "domain": "KNOWLEDGE",
+      "confidence": 0.91,
+      "reasoning": "Heuristic match: Warehouse SOP, policy or protocol signal.",
+      "source": "heuristic",
+      "follow_up": false,
+      "rule_id": "knowledge.strong",
+      "decided_by": "rule",
+      "llm_consulted": false,
+      "llm_status": null,
+      "normalized_query": "ok sop what happens after what",
+      "direct_response": null,
+      "decisions": [
+       {
+        "stage": "normalize",
+        "outcome": "accepted",
+        "decided_by": "llm",
+        "rule_id": "normalize.accepted",
+        "llm_consulted": true,
+        "llm_status": null,
+        "confidence": null
+       },
+       {
+        "stage": "route",
+        "outcome": "KNOWLEDGE",
+        "decided_by": "rule",
+        "rule_id": "knowledge.strong",
+        "llm_consulted": false,
+        "llm_status": null,
+        "confidence": 0.91
+       }
+      ]
+     },
+     "audit": {
+      "user_id": "usr_admin_003",
+      "timestamp": "2026-10-10T15:32:35.810870+00:00",
+      "routing_confidence": 0.91,
+      "domain": "KNOWLEDGE",
+      "original_query": "ok so what happens after that",
+      "normalized_query": "ok sop what happens after what",
+      "request_id": "04ef99102750490da6b1674c271b9b52",
+      "trace_id": "dc93165d8878bc9acad288dd86136e65"
+     },
+     "knowledge_details": {
+      "agent": "knowledge_agent",
+      "query": "ok so what happens after that",
+      "response": "Could not find any campus facility, vehicle, or warehouse items matching 'ok so what happens after that'. Please check the SKU, building name (e.g. Building 1 to 7, Cold Vault), or equipment ID.",
+      "entities": {
+       "skus": [],
+       "locations": [],
+       "products": [],
+       "quantities": [],
+       "dates": [],
+       "intent_hint": "general_query",
+       "raw_query": "ok so what happens after that"
+      },
+      "source": "general_knowledge"
+     },
+     "thread_id": "d88c7c47-02a5-49b9-9020-0d74940eee1c",
+     "persisted": true,
+     "request_id": "04ef99102750490da6b1674c271b9b52",
+     "trace_id": "dc93165d8878bc9acad288dd86136e65"
+    },
+    "response_text": null,
+    "sent_at": "2026-10-10 21:02:35"
+   }
+  ],
+  [
+   {
+    "method": "POST",
+    "url": "http://127.0.0.1:8010/query",
+    "account": "admin_user",
+    "request_headers": {
+     "Content-Type": "application/json",
+     "Authorization": "Bearer <token hidden>"
+    },
+    "request_json": {
+     "message": "what is the forklift battery charging procedure?"
+    },
+    "status": 200,
+    "reason": "OK",
+    "ms": 56,
+    "size": 2611,
+    "response_json": {
+     "status": "success",
+     "agent_used": "knowledge_agent",
+     "response": "According to warehouse protocol 'Hazardous Materials & Battery Handling Protocol':\n1. Battery Storage: All lead-acid and lithium forklift batteries must be charged only in designated Charging Station Alpha (Bay 15) or Building 6 Fleet Depot. Proper eye protection and rubber gloves are mandatory.",
+     "routing": {
+      "target_agent": "knowledge_agent",
+      "intent": "KNOWLEDGE",
+      "domain": "KNOWLEDGE",
+      "confidence": 0.91,
+      "reasoning": "Heuristic match: Warehouse SOP, policy or protocol signal.",
+      "source": "heuristic",
+      "follow_up": false,
+      "rule_id": "knowledge.strong",
+      "decided_by": "rule",
+      "llm_consulted": false,
+      "llm_status": null,
+      "normalized_query": null,
+      "direct_response": null,
+      "decisions": [
+       {
+        "stage": "route",
+        "outcome": "KNOWLEDGE",
+        "decided_by": "rule",
+        "rule_id": "knowledge.strong",
+        "llm_consulted": false,
+        "llm_status": null,
+        "confidence": 0.91
+       }
+      ]
+     },
+     "audit": {
+      "user_id": "usr_admin_003",
+      "timestamp": "2026-10-10T15:32:35.871001+00:00",
+      "routing_confidence": 0.91,
+      "domain": "KNOWLEDGE",
+      "original_query": "what is the forklift battery charging procedure?",
+      "normalized_query": "what is the forklift battery charging procedure?",
+      "request_id": "c1886dbc19934d4fbba3c9340d64f914",
+      "trace_id": "fca11bd9d254d60aaeb840bbf73a65f0"
+     },
+     "knowledge_details": {
+      "agent": "knowledge_agent",
+      "query": "what is the forklift battery charging procedure?",
+      "response": "According to warehouse protocol 'Hazardous Materials & Battery Handling Protocol':\n1. Battery Storage: All lead-acid and lithium forklift batteries must be charged only in designated Charging Station Alpha (Bay 15) or Building 6 Fleet Depot. Proper eye protection and rubber gloves are mandatory.",
+      "entities": {
+       "skus": [],
+       "locations": [],
+       "products": [],
+       "quantities": [],
+       "dates": [],
+       "intent_hint": "document_query",
+       "raw_query": "what is the forklift battery charging procedure?"
+      },
+      "rag_sources": [
+       {
+        "title": "Hazardous Materials & Battery Handling Protocol",
+        "category": "Safety",
+        "doc_id": "SOP-HAZ-001",
+        "content": "1. Battery Storage: All lead-acid and lithium forklift batteries must be charged only in designated Charging Station Alpha (Bay 15) or Building 6 Fleet Depot. Proper eye protection and rubber gloves are mandatory.",
+        "distance": null
+       },
+       {
+        "title": "Hazardous Materials & Battery Handling Protocol",
+        "category": "Safety",
+        "doc_id": "SOP-HAZ-001",
+        "content": "3. Ventilation: The charging bay exhaust fans must run continuously 24/7 to prevent hydrogen gas buildup.",
+        "distance": null
+       }
+      ],
+      "source": "vector_rag"
+     },
+     "thread_id": "428e1af8-400b-4cb9-a207-5a7a2da7b4b1",
+     "persisted": true,
+     "request_id": "c1886dbc19934d4fbba3c9340d64f914",
+     "trace_id": "fca11bd9d254d60aaeb840bbf73a65f0"
+    },
+    "response_text": null,
+    "sent_at": "2026-10-10 21:02:35"
+   },
+   {
+    "method": "POST",
+    "url": "http://127.0.0.1:8010/query",
+    "account": "admin_user",
+    "request_headers": {
+     "Content-Type": "application/json",
+     "Authorization": "Bearer <token hidden>"
+    },
+    "request_json": {
+     "message": "ok so what happens after that",
+     "thread_id": "428e1af8-400b-4cb9-a207-5a7a2da7b4b1"
+    },
+    "status": 200,
+    "reason": "OK",
+    "ms": 72,
+    "size": 1916,
+    "response_json": {
+     "status": "success",
+     "agent_used": "knowledge_agent",
+     "response": "Could not find any campus facility, vehicle, or warehouse items matching 'ok so what happens after that'. Please check the SKU, building name (e.g. Building 1 to 7, Cold Vault), or equipment ID.",
+     "routing": {
+      "target_agent": "knowledge_agent",
+      "intent": "KNOWLEDGE",
+      "domain": "KNOWLEDGE",
+      "confidence": 0.91,
+      "reasoning": "Heuristic match: Warehouse SOP, policy or protocol signal.",
+      "source": "heuristic",
+      "follow_up": false,
+      "rule_id": "knowledge.strong",
+      "decided_by": "rule",
+      "llm_consulted": false,
+      "llm_status": null,
+      "normalized_query": "ok sop what happens after what",
+      "direct_response": null,
+      "decisions": [
+       {
+        "stage": "normalize",
+        "outcome": "accepted",
+        "decided_by": "llm",
+        "rule_id": "normalize.accepted",
+        "llm_consulted": true,
+        "llm_status": null,
+        "confidence": null
+       },
+       {
+        "stage": "route",
+        "outcome": "KNOWLEDGE",
+        "decided_by": "rule",
+        "rule_id": "knowledge.strong",
+        "llm_consulted": false,
+        "llm_status": null,
+        "confidence": 0.91
+       }
+      ]
+     },
+     "audit": {
+      "user_id": "usr_admin_003",
+      "timestamp": "2026-10-10T15:32:35.943706+00:00",
+      "routing_confidence": 0.91,
+      "domain": "KNOWLEDGE",
+      "original_query": "ok so what happens after that",
+      "normalized_query": "ok sop what happens after what",
+      "request_id": "9be99740ac4049c0b4746bd82a6222bc",
+      "trace_id": "a49a1ea5ba8035ed0f80dc08e6eb51f6"
+     },
+     "knowledge_details": {
+      "agent": "knowledge_agent",
+      "query": "ok so what happens after that",
+      "response": "Could not find any campus facility, vehicle, or warehouse items matching 'ok so what happens after that'. Please check the SKU, building name (e.g. Building 1 to 7, Cold Vault), or equipment ID.",
+      "entities": {
+       "skus": [],
+       "locations": [],
+       "products": [],
+       "quantities": [],
+       "dates": [],
+       "intent_hint": "general_query",
+       "raw_query": "ok so what happens after that"
+      },
+      "source": "general_knowledge"
+     },
+     "thread_id": "428e1af8-400b-4cb9-a207-5a7a2da7b4b1",
+     "persisted": true,
+     "request_id": "9be99740ac4049c0b4746bd82a6222bc",
+     "trace_id": "a49a1ea5ba8035ed0f80dc08e6eb51f6"
+    },
+    "response_text": null,
+    "sent_at": "2026-10-10 21:02:35"
+   }
+  ],
+  [
+   {
+    "method": "POST",
+    "url": "http://127.0.0.1:8010/query",
+    "account": "admin_user",
+    "request_headers": {
+     "Content-Type": "application/json",
+     "Authorization": "Bearer <token hidden>"
+    },
+    "request_json": {
+     "message": "what is the forklift battery charging procedure?"
+    },
+    "status": 200,
+    "reason": "OK",
+    "ms": 55,
+    "size": 2611,
+    "response_json": {
+     "status": "success",
+     "agent_used": "knowledge_agent",
+     "response": "According to warehouse protocol 'Hazardous Materials & Battery Handling Protocol':\n1. Battery Storage: All lead-acid and lithium forklift batteries must be charged only in designated Charging Station Alpha (Bay 15) or Building 6 Fleet Depot. Proper eye protection and rubber gloves are mandatory.",
+     "routing": {
+      "target_agent": "knowledge_agent",
+      "intent": "KNOWLEDGE",
+      "domain": "KNOWLEDGE",
+      "confidence": 0.91,
+      "reasoning": "Heuristic match: Warehouse SOP, policy or protocol signal.",
+      "source": "heuristic",
+      "follow_up": false,
+      "rule_id": "knowledge.strong",
+      "decided_by": "rule",
+      "llm_consulted": false,
+      "llm_status": null,
+      "normalized_query": null,
+      "direct_response": null,
+      "decisions": [
+       {
+        "stage": "route",
+        "outcome": "KNOWLEDGE",
+        "decided_by": "rule",
+        "rule_id": "knowledge.strong",
+        "llm_consulted": false,
+        "llm_status": null,
+        "confidence": 0.91
+       }
+      ]
+     },
+     "audit": {
+      "user_id": "usr_admin_003",
+      "timestamp": "2026-10-10T15:32:35.999618+00:00",
+      "routing_confidence": 0.91,
+      "domain": "KNOWLEDGE",
+      "original_query": "what is the forklift battery charging procedure?",
+      "normalized_query": "what is the forklift battery charging procedure?",
+      "request_id": "286fc6dbe8aa4f709d902db0137d0e05",
+      "trace_id": "e51745802f6a274f86940d2b53d5dd6c"
+     },
+     "knowledge_details": {
+      "agent": "knowledge_agent",
+      "query": "what is the forklift battery charging procedure?",
+      "response": "According to warehouse protocol 'Hazardous Materials & Battery Handling Protocol':\n1. Battery Storage: All lead-acid and lithium forklift batteries must be charged only in designated Charging Station Alpha (Bay 15) or Building 6 Fleet Depot. Proper eye protection and rubber gloves are mandatory.",
+      "entities": {
+       "skus": [],
+       "locations": [],
+       "products": [],
+       "quantities": [],
+       "dates": [],
+       "intent_hint": "document_query",
+       "raw_query": "what is the forklift battery charging procedure?"
+      },
+      "rag_sources": [
+       {
+        "title": "Hazardous Materials & Battery Handling Protocol",
+        "category": "Safety",
+        "doc_id": "SOP-HAZ-001",
+        "content": "1. Battery Storage: All lead-acid and lithium forklift batteries must be charged only in designated Charging Station Alpha (Bay 15) or Building 6 Fleet Depot. Proper eye protection and rubber gloves are mandatory.",
+        "distance": null
+       },
+       {
+        "title": "Hazardous Materials & Battery Handling Protocol",
+        "category": "Safety",
+        "doc_id": "SOP-HAZ-001",
+        "content": "3. Ventilation: The charging bay exhaust fans must run continuously 24/7 to prevent hydrogen gas buildup.",
+        "distance": null
+       }
+      ],
+      "source": "vector_rag"
+     },
+     "thread_id": "56c35a65-de89-44a1-8d2c-5af781c1d2ea",
+     "persisted": true,
+     "request_id": "286fc6dbe8aa4f709d902db0137d0e05",
+     "trace_id": "e51745802f6a274f86940d2b53d5dd6c"
+    },
+    "response_text": null,
+    "sent_at": "2026-10-10 21:02:36"
+   },
+   {
+    "method": "POST",
+    "url": "http://127.0.0.1:8010/query",
+    "account": "admin_user",
+    "request_headers": {
+     "Content-Type": "application/json",
+     "Authorization": "Bearer <token hidden>"
+    },
+    "request_json": {
+     "message": "ok so what happens after that",
+     "thread_id": "56c35a65-de89-44a1-8d2c-5af781c1d2ea"
+    },
+    "status": 200,
+    "reason": "OK",
+    "ms": 72,
+    "size": 1916,
+    "response_json": {
+     "status": "success",
+     "agent_used": "knowledge_agent",
+     "response": "Could not find any campus facility, vehicle, or warehouse items matching 'ok so what happens after that'. Please check the SKU, building name (e.g. Building 1 to 7, Cold Vault), or equipment ID.",
+     "routing": {
+      "target_agent": "knowledge_agent",
+      "intent": "KNOWLEDGE",
+      "domain": "KNOWLEDGE",
+      "confidence": 0.91,
+      "reasoning": "Heuristic match: Warehouse SOP, policy or protocol signal.",
+      "source": "heuristic",
+      "follow_up": false,
+      "rule_id": "knowledge.strong",
+      "decided_by": "rule",
+      "llm_consulted": false,
+      "llm_status": null,
+      "normalized_query": "ok sop what happens after what",
+      "direct_response": null,
+      "decisions": [
+       {
+        "stage": "normalize",
+        "outcome": "accepted",
+        "decided_by": "llm",
+        "rule_id": "normalize.accepted",
+        "llm_consulted": true,
+        "llm_status": null,
+        "confidence": null
+       },
+       {
+        "stage": "route",
+        "outcome": "KNOWLEDGE",
+        "decided_by": "rule",
+        "rule_id": "knowledge.strong",
+        "llm_consulted": false,
+        "llm_status": null,
+        "confidence": 0.91
+       }
+      ]
+     },
+     "audit": {
+      "user_id": "usr_admin_003",
+      "timestamp": "2026-10-10T15:32:36.071305+00:00",
+      "routing_confidence": 0.91,
+      "domain": "KNOWLEDGE",
+      "original_query": "ok so what happens after that",
+      "normalized_query": "ok sop what happens after what",
+      "request_id": "3a6e11dc44e74010aa69000eef914665",
+      "trace_id": "ee5ab70a54f8f9182ae3e772e7d90f86"
+     },
+     "knowledge_details": {
+      "agent": "knowledge_agent",
+      "query": "ok so what happens after that",
+      "response": "Could not find any campus facility, vehicle, or warehouse items matching 'ok so what happens after that'. Please check the SKU, building name (e.g. Building 1 to 7, Cold Vault), or equipment ID.",
+      "entities": {
+       "skus": [],
+       "locations": [],
+       "products": [],
+       "quantities": [],
+       "dates": [],
+       "intent_hint": "general_query",
+       "raw_query": "ok so what happens after that"
+      },
+      "source": "general_knowledge"
+     },
+     "thread_id": "56c35a65-de89-44a1-8d2c-5af781c1d2ea",
+     "persisted": true,
+     "request_id": "3a6e11dc44e74010aa69000eef914665",
+     "trace_id": "ee5ab70a54f8f9182ae3e772e7d90f86"
+    },
+    "response_text": null,
+    "sent_at": "2026-10-10 21:02:36"
+   }
+  ]
+ ]
+}

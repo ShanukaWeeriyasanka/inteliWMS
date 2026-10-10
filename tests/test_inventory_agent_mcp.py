@@ -42,8 +42,10 @@ def test_stock_answer_matches_the_database_row(inventory_server):
     assert item["available_quantity"] == row["quantity"] - row["reserved_quantity"] == 13
     assert item["status"] == "LOW_STOCK"  # 15 <= reorder point 20
     assert "**15** units on hand" in r["response"] and "13 available" in r["response"]
-    # No number in the answer that isn't from the row (quantities, thresholds, location digits)
-    allowed = {15, 13, 2, 20, 10, 5, 1, 2, 45, 21, 0} | numbers(row["location"]) | numbers("SKU-1001")
+    # No number in the answer that isn't from the row (quantities, thresholds, reorder batch, location digits,
+    # and the record's own last-updated time)
+    allowed = ({15, 13, 2, 20, 10, 5, 1, 2, 45, 21, 0, row["reorder_quantity"]} | numbers(row["location"])
+               | numbers("SKU-1001") | numbers(responder._stamp(item["updated_at"]) or ""))
     assert numbers(r["response"]) <= allowed
 
 

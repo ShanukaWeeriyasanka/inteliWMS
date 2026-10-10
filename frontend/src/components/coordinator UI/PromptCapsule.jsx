@@ -580,6 +580,12 @@ export default function PromptCapsule({
           )
         })}
       </div>}
+
+      {/* AI disclosure: always visible under the composer */}
+      <p className="ai-disclosure-note" role="note">
+        IntelliWMS is an AI assistant and can make mistakes. Answers come from the warehouse database and SOP
+        library — check safety-critical steps with the cited SOP or your shift supervisor.
+      </p>
     </div>
   )
 }

@@ -1,0 +1,48 @@
+{
+ "key": "S3-COMP#4",
+ "stack": "after",
+ "runs": [
+  [
+   {
+    "method": "GET",
+    "url": "http://127.0.0.1:8020/auth/me",
+    "account": "admin_user",
+    "request_headers": {
+     "Authorization": "Bearer <token hidden>"
+    },
+    "request_json": null,
+    "status": 200,
+    "reason": "OK",
+    "ms": 8,
+    "size": 428,
+    "response_json": {
+     "user_id": "usr_admin_003",
+     "db_id": 3,
+     "username": "admin_user",
+     "name": "Alex Vance (Admin)",
+     "email": "admin@warehouse.com",
+     "role": "admin",
+     "plan": "enterprise",
+     "subscription_plan": "enterprise",
+     "permissions": [
+      "query_location",
+      "track_order",
+      "report_damage",
+      "view_sop",
+      "view_shift_notes",
+      "approve_restock",
+      "view_analytics",
+      "view_vendor_performance",
+      "view_audit_logs",
+      "delete_records",
+      "change_settings"
+     ],
+     "exp": 1791732603,
+     "iat": 1791646203
+    },
+    "response_text": null,
+    "sent_at": "2026-10-10 21:01:34"
+   }
+  ]
+ ]
+}

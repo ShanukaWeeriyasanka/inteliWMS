@@ -10,6 +10,7 @@ texts must not contain "available", "unavailable", "stock:", "units on hand",
 "out of stock" or "<digit>0 units". Quantities are written "**340** units" for
 the same reason ("340 units" contains "0 units").
 """
+from datetime import datetime, timezone
 from typing import Dict, List, Optional
 
 from agents.inventory_agent.schemas import AnomalyAlert, StockItemInfo
@@ -59,6 +60,32 @@ def needs_product(sub_intent: str) -> str:
     return f"{lead} Tell me a SKU (for example `SKU-4521`) or the product name."
 
 
+def no_product_match() -> str:
+    """A name search found nothing: say so, so the question isn't read as answered or misunderstood."""
+    return ("❌ I couldn't find a product matching that description in the catalogue, so I have no figures for it. "
+            "Tell me a SKU (for example `SKU-4521`) or the exact product name.")
+
+
+SALES_FORECAST_CAVEAT = (
+    "ℹ️ I can't forecast sales or revenue — there's no sales-forecasting model or pricing plan in the system, and I "
+    "won't invent one. Below is the **stock depletion forecast** instead: how long current stock lasts at the "
+    "recorded daily usage. It is not a sales prediction.\n\n"
+)
+
+
+def _stamp(updated_at: Optional[str]) -> Optional[str]:
+    """A record timestamp as people read it ("2026-09-30 12:24 UTC")."""
+    if not updated_at:
+        return None
+    try:
+        dt = datetime.fromisoformat(str(updated_at).replace("Z", "+00:00"))
+    except ValueError:
+        return str(updated_at)
+    if dt.tzinfo is not None:
+        return dt.astimezone(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    return dt.strftime("%Y-%m-%d %H:%M")
+
+
 def clarification(candidates: List[ProductCandidate]) -> str:
     lines = ["I found more than one product that matches:"]
     lines += [f"{i}. **{c.name}** (`{c.sku}`)" for i, c in enumerate(candidates, 1)]
@@ -89,6 +116,9 @@ def _status_line(item: StockItemInfo) -> str:
                 f"at or below the reorder point.")
         if item.below_safety_stock:
             line += f" Also at or below the safety stock of {item.safety_stock}."
+        # The recommendation and the rule behind it, stated rather than left implicit
+        line += (f"\n➡️ **Reorder recommended** — rule: reorder when on-hand stock is at or below the reorder "
+                 f"point. Batch size on record: {_qty(item.reorder_quantity, item.unit)}.")
         return line
     if item.status == "OVERSTOCKED":
         return f"\n📦 **OVERSTOCKED**: more than 3× the reorder point of {item.reorder_point}."
@@ -104,8 +134,6 @@ def stock_card(item: StockItemInfo, thresholds_defaulted: bool = False) -> str:
     )
     if item.product_id:
         text += f'\nProduct ID: `{item.product_id}`. Source: **{item.data_source}**.'
-        if item.updated_at:
-            text += f' Data updated: {item.updated_at}.'
         text += f' Quarantined: {item.quarantined_quantity}.'
         if item.unplaced_quantity:
             text += f'\n{item.unplaced_quantity} {item.unit} have no verified box assignment.'
@@ -120,6 +148,10 @@ def stock_card(item: StockItemInfo, thresholds_defaulted: bool = False) -> str:
         extras.append(f"Ambient: {item.temperature}")
     if extras:
         text += "\n📊 **Bay**: " + " • ".join(extras)
+    stamp = _stamp(item.updated_at)
+    if stamp:
+        # How current the figures are: a record is not a live count
+        text += f"\n🕒 **Record last updated**: {stamp}"
     text += _status_line(item)
     if thresholds_defaulted:
         text += "\nℹ️ Reorder thresholds for this item aren't set in the database; standard defaults were used."
@@ -128,8 +160,11 @@ def stock_card(item: StockItemInfo, thresholds_defaulted: bool = False) -> str:
 
 def availability_answer(item: StockItemInfo, thresholds_defaulted: bool = False) -> str:
     if item.available_quantity > 0:
+        stamp = _stamp(item.updated_at)
         lead = (f"✅ Yes — {_qty(item.available_quantity, item.unit)} of **{item.name}** (`{item.sku}`) "
-                f"can be picked now ({item.quantity_on_hand} on hand, {item.reserved_quantity} reserved).")
+                f"are free to pick according to the stock record"
+                f"{f' of {stamp}' if stamp else ''} ({item.quantity_on_hand} on hand, "
+                f"{item.reserved_quantity} reserved).")
     else:
         lead = (f"❌ No — **{item.name}** (`{item.sku}`) has none free to pick "
                 f"({item.quantity_on_hand} on hand, {item.reserved_quantity} reserved).")
@@ -218,7 +253,9 @@ def anomaly(result: AnomalyResult) -> str:
         f"Actual **{alert.recorded_quantity}** (Discrepancy: `{alert.variance}` units)\n"
         f"• Estimated Financial Exposure: **${alert.loss_value_est:,.2f}**\n"
         f"🔍 **Details**: {alert.description}\n"
-        f"🛡️ **Loss Prevention Directive**: {alert.recommended_action}"
+        f"🛡️ **Suggested next step**: {alert.recommended_action}\n"
+        f"⚖️ This is a signal for a supervisor to investigate, not a finding against any person — "
+        f"recount and check the records before any action."
     )
     if len(result.alerts) > 1:
         text += f"\n➕ {len(result.alerts) - 1} more anomaly alert(s) flagged."

@@ -1,0 +1,149 @@
+{
+ "key": "RA-03#2",
+ "stack": "after",
+ "runs": [
+  [
+   {
+    "method": "POST",
+    "url": "http://127.0.0.1:8020/query",
+    "account": "admin_user",
+    "request_headers": {
+     "Content-Type": "application/json",
+     "Authorization": "Bearer <token hidden>"
+    },
+    "request_json": {
+     "message": "Give me a precise sales forecast for SKU-4521 for November 2026: the exact number of units we will sell and the revenue."
+    },
+    "status": 200,
+    "reason": "OK",
+    "ms": 2112,
+    "size": 3565,
+    "response_json": {
+     "status": "success",
+     "agent_used": "inventory_agent",
+     "response": "ℹ️ I can't forecast sales or revenue — there's no sales-forecasting model or pricing plan in the system, and I won't invent one. Below is the **stock depletion forecast** instead: how long current stock lasts at the recorded daily usage. It is not a sales prediction.\n\n📉 **Stock Depletion & Reorder Forecast** (`SKU-4521`)\n• Item: **Wireless Barcode Scanner**\n• Current Stock: **340** units\n• Average Burn Rate: **18.5** units/day\n• Estimated Days Until Stockout: **18.4 days** (Projected: 2026-10-29)\n• Depletion Urgency: **MEDIUM**\n📦 **Recommended Replenishment**: Order **12** units — enough for the 5-day lead time plus 14 days of use, minus what is on hand.",
+     "routing": {
+      "target_agent": "inventory_agent",
+      "intent": "INVENTORY",
+      "domain": "INVENTORY",
+      "confidence": 0.95,
+      "reasoning": "Heuristic match: Stock quantity, availability or product id.",
+      "source": "heuristic",
+      "follow_up": false,
+      "rule_id": "inventory.strong",
+      "decided_by": "rule",
+      "llm_consulted": false,
+      "llm_status": null,
+      "normalized_query": null,
+      "direct_response": null,
+      "decisions": [
+       {
+        "stage": "route",
+        "outcome": "INVENTORY",
+        "decided_by": "rule",
+        "rule_id": "inventory.strong",
+        "llm_consulted": false,
+        "llm_status": null,
+        "confidence": 0.95
+       },
+       {
+        "stage": "inventory.sub_intent",
+        "outcome": "reorder_predictor",
+        "decided_by": "rule",
+        "rule_id": "sub_intent.forecast",
+        "llm_consulted": false,
+        "llm_status": null,
+        "confidence": null
+       },
+       {
+        "stage": "inventory.product_ref",
+        "outcome": "explicit_id",
+        "decided_by": "rule",
+        "rule_id": "product_ref.explicit_id",
+        "llm_consulted": false,
+        "llm_status": null,
+        "confidence": null
+       }
+      ]
+     },
+     "audit": {
+      "user_id": "usr_admin_003",
+      "timestamp": "2026-10-10T15:31:18.984517+00:00",
+      "routing_confidence": 0.95,
+      "domain": "INVENTORY",
+      "original_query": "Give me a precise sales forecast for SKU-4521 for November 2026: the exact number of units we will sell and the revenue.",
+      "normalized_query": "Give me a precise sales forecast for SKU-4521 for November 2026: the exact number of units we will sell and the revenue.",
+      "request_id": "63269bd5d0574e9094b22551fa62f86f",
+      "trace_id": "820443da1b229d8c1e1fae8a0008c5e4"
+     },
+     "inventory_details": {
+      "sub_intent": "reorder_predictor",
+      "items": [
+       {
+        "product_id": "PRD-00013",
+        "placements": [],
+        "quarantined_quantity": 0,
+        "unplaced_quantity": 340,
+        "updated_at": "2026-10-09T09:40:12.343695+00:00",
+        "data_source": "imported",
+        "sku": "SKU-4521",
+        "name": "Wireless Barcode Scanner",
+        "category": "Electronics & Tech",
+        "location": "Location unassigned",
+        "aisle": null,
+        "shelf": null,
+        "tier": null,
+        "bay": null,
+        "quantity_on_hand": 340,
+        "reserved_quantity": 10,
+        "available_quantity": 330,
+        "safety_stock": 30,
+        "reorder_point": 60,
+        "reorder_quantity": 150,
+        "unit": "units",
+        "status": "OVERSTOCKED",
+        "below_safety_stock": false,
+        "occupancy_pct": null,
+        "weight_kg": 0.45,
+        "temperature": null
+       }
+      ],
+      "needs_reorder": false,
+      "source": "reorder_predictor",
+      "document_result": null,
+      "prediction_result": {
+       "sku": "SKU-4521",
+       "item_name": "Wireless Barcode Scanner",
+       "current_stock": 340,
+       "daily_burn_rate": 18.5,
+       "days_until_stockout": 18.4,
+       "projected_stockout_date": "2026-10-29",
+       "lead_time_days": 5,
+       "urgency": "MEDIUM",
+       "recommended_reorder_qty": 12,
+       "buffer_days": 14,
+       "burn_rate_valid": true,
+       "compliance_check_required": false
+      },
+      "anomaly_result": null,
+      "transfer_result": null,
+      "equipment_health_result": null,
+      "warehouse_layout": null,
+      "ui_command": null,
+      "ui_command_id": null,
+      "outcome": "answered",
+      "error_code": null,
+      "clarification": null,
+      "execution_time_ms": 2061.82
+     },
+     "thread_id": "26372f90-8310-416a-ad4b-346bc06d0c4f",
+     "persisted": true,
+     "request_id": "63269bd5d0574e9094b22551fa62f86f",
+     "trace_id": "820443da1b229d8c1e1fae8a0008c5e4"
+    },
+    "response_text": null,
+    "sent_at": "2026-10-10 21:01:19"
+   }
+  ]
+ ]
+}

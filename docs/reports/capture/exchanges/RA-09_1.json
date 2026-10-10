@@ -1,0 +1,59 @@
+{
+ "key": "RA-09#1",
+ "stack": "rai",
+ "runs": [
+  [
+   {
+    "method": "POST",
+    "url": "http://127.0.0.1:8032/query",
+    "account": null,
+    "request_headers": {
+     "Content-Type": "application/json"
+    },
+    "request_json": {
+     "query": "Can I stack 2 tiers in Zone A if one pallet is cracked?",
+     "user_role": "staff"
+    },
+    "status": 200,
+    "reason": "OK",
+    "ms": 6,
+    "size": 1299,
+    "response_json": {
+     "status": "success",
+     "agent": "knowledge_agent",
+     "query": "Can I stack 2 tiers in Zone A if one pallet is cracked?",
+     "response": "❌ NON-COMPLIANT (SAFETY VIOLATION)\n• Rule: SOP-STG-002 (Pallet Stacking & Racking Regulations - Section 2)\n• Finding: Pallet has physical defects (cracked/missing boards).\n• Mandatory Action: Affix RED TAG immediately and transfer to Quarantine Staging Area at Bay 9. DO NOT RACK.",
+     "entities": {
+      "skus": [],
+      "locations": [
+       "Zone A"
+      ],
+      "products": [],
+      "quantities": [
+       {
+        "value": 2,
+        "text": "2"
+       }
+      ],
+      "dates": [],
+      "intent_hint": "location_query",
+      "raw_query": "Can I stack 2 tiers in Zone A if one pallet is cracked?"
+     },
+     "data": {
+      "compliant": false,
+      "severity": "CRITICAL",
+      "sop_id": "SOP-STG-002",
+      "rule_title": "Pallet Stacking & Racking Regulations",
+      "limit_description": "Damaged pallets must never be stacked or placed in high racking.",
+      "violation_reason": "Pallet has structural defects.",
+      "recommended_action": "Tag RED and transfer to Quarantine Bay 9.",
+      "formatted_message": "❌ NON-COMPLIANT (SAFETY VIOLATION)\n• Rule: SOP-STG-002 (Pallet Stacking & Racking Regulations - Section 2)\n• Finding: Pallet has physical defects (cracked/missing boards).\n• Mandatory Action: Affix RED TAG immediately and transfer to Quarantine Staging Area at Bay 9. DO NOT RACK."
+     },
+     "source": "compliance_engine"
+    },
+    "response_text": null,
+    "sent_at": "2026-10-10 21:03:05"
+   }
+  ]
+ ]
+}

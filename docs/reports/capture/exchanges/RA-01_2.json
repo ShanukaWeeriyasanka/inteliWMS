@@ -1,0 +1,155 @@
+{
+ "key": "RA-01#2",
+ "stack": "after",
+ "runs": [
+  [
+   {
+    "method": "POST",
+    "url": "http://127.0.0.1:8020/query",
+    "account": "admin_user",
+    "request_headers": {
+     "Content-Type": "application/json",
+     "Authorization": "Bearer <token hidden>"
+    },
+    "request_json": {
+     "message": "How many units of SKU-7788 do we have in stock?"
+    },
+    "status": 200,
+    "reason": "OK",
+    "ms": 1061,
+    "size": 4796,
+    "response_json": {
+     "status": "success",
+     "agent_used": "inventory_agent",
+     "response": "✅ Yes — **13** units of **Thermal Label Printer** (`SKU-7788`) are free to pick according to the stock record of 2026-10-09 09:40 UTC (15 on hand, 2 reserved).\n\n⚠️ **Thermal Label Printer** (`SKU-7788`)\n📍 **Location**: `Location unassigned` (Dispatch Equipment)\n📦 **Stock**: **15** units on hand (13 available, 2 reserved)\nProduct ID: `PRD-00014`. Source: **imported**. Quarantined: 0.\n15 units have no verified box assignment.\n🕒 **Record last updated**: 2026-10-09 09:40 UTC\n⚠️ **LOW STOCK**: 15 on hand, reorder point 20 — at or below the reorder point.\n➡️ **Reorder recommended** — rule: reorder when on-hand stock is at or below the reorder point. Batch size on record: **50** units.",
+     "routing": {
+      "target_agent": "inventory_agent",
+      "intent": "INVENTORY",
+      "domain": "INVENTORY",
+      "confidence": 0.95,
+      "reasoning": "Heuristic match: Stock quantity, availability or product id.",
+      "source": "heuristic",
+      "follow_up": false,
+      "rule_id": "inventory.strong",
+      "decided_by": "rule",
+      "llm_consulted": false,
+      "llm_status": null,
+      "normalized_query": null,
+      "direct_response": null,
+      "decisions": [
+       {
+        "stage": "route",
+        "outcome": "INVENTORY",
+        "decided_by": "rule",
+        "rule_id": "inventory.strong",
+        "llm_consulted": false,
+        "llm_status": null,
+        "confidence": 0.95
+       },
+       {
+        "stage": "inventory.sub_intent",
+        "outcome": "availability",
+        "decided_by": "rule",
+        "rule_id": "sub_intent.availability",
+        "llm_consulted": false,
+        "llm_status": null,
+        "confidence": null
+       },
+       {
+        "stage": "inventory.product_ref",
+        "outcome": "explicit_id",
+        "decided_by": "rule",
+        "rule_id": "product_ref.explicit_id",
+        "llm_consulted": false,
+        "llm_status": null,
+        "confidence": null
+       }
+      ]
+     },
+     "audit": {
+      "user_id": "usr_admin_003",
+      "timestamp": "2026-10-10T15:31:14.327563+00:00",
+      "routing_confidence": 0.95,
+      "domain": "INVENTORY",
+      "original_query": "How many units of SKU-7788 do we have in stock?",
+      "normalized_query": "How many units of SKU-7788 do we have in stock?",
+      "request_id": "c3a9a0961cf64ea582d01bf1de9eb29c",
+      "trace_id": "11ab5dbf0286d1ca6e24c4863bbe9b85"
+     },
+     "inventory_details": {
+      "sub_intent": "availability",
+      "items": [
+       {
+        "product_id": "PRD-00014",
+        "placements": [],
+        "quarantined_quantity": 0,
+        "unplaced_quantity": 15,
+        "updated_at": "2026-10-09T09:40:12.343695+00:00",
+        "data_source": "imported",
+        "sku": "SKU-7788",
+        "name": "Thermal Label Printer",
+        "category": "Dispatch Equipment",
+        "location": "Location unassigned",
+        "aisle": null,
+        "shelf": null,
+        "tier": null,
+        "bay": null,
+        "quantity_on_hand": 15,
+        "reserved_quantity": 2,
+        "available_quantity": 13,
+        "safety_stock": 10,
+        "reorder_point": 20,
+        "reorder_quantity": 50,
+        "unit": "units",
+        "status": "LOW_STOCK",
+        "below_safety_stock": false,
+        "occupancy_pct": null,
+        "weight_kg": 3.8,
+        "temperature": null
+       }
+      ],
+      "needs_reorder": true,
+      "source": "database",
+      "document_result": null,
+      "prediction_result": null,
+      "anomaly_result": null,
+      "transfer_result": null,
+      "equipment_health_result": null,
+      "warehouse_layout": null,
+      "ui_command": {
+       "version": "1.1",
+       "action": "locate_product",
+       "product_ids": [
+        "PRD-00014"
+       ],
+       "answer_text": "✅ Yes — **13** units of **Thermal Label Printer** (`SKU-7788`) are free to pick according to the stock record of 2026-10-09 09:40 UTC (15 on hand, 2 reserved).\n\n⚠️ **Thermal Label Printer** (`SKU-7788`)\n📍 **Location**: `Location unassigned` (Dispatch Equipment)\n📦 **Stock**: **15** units on hand (13 available, 2 reserved)\nProduct ID: `PRD-00014`. Source: **imported**. Quarantined: 0.\n15 units have no verified box assignment.\n🕒 **Record last updated**: 2026-10-09 09:40 UTC\n⚠️ **LOW STOCK**: 15 on hand, reorder point 20 — at or below the reorder point.\n➡️ **Reorder recommended** — rule: reorder when on-hand stock is at or below the reorder point. Batch size on record: **50** units."
+      },
+      "ui_command_id": null,
+      "outcome": "answered",
+      "error_code": null,
+      "clarification": null,
+      "execution_time_ms": 1007.78
+     },
+     "ui_command": {
+      "id": null,
+      "session_id": null,
+      "payload": {
+       "version": "1.1",
+       "action": "locate_product",
+       "product_ids": [
+        "PRD-00014"
+       ],
+       "answer_text": "✅ Yes — **13** units of **Thermal Label Printer** (`SKU-7788`) are free to pick according to the stock record of 2026-10-09 09:40 UTC (15 on hand, 2 reserved).\n\n⚠️ **Thermal Label Printer** (`SKU-7788`)\n📍 **Location**: `Location unassigned` (Dispatch Equipment)\n📦 **Stock**: **15** units on hand (13 available, 2 reserved)\nProduct ID: `PRD-00014`. Source: **imported**. Quarantined: 0.\n15 units have no verified box assignment.\n🕒 **Record last updated**: 2026-10-09 09:40 UTC\n⚠️ **LOW STOCK**: 15 on hand, reorder point 20 — at or below the reorder point.\n➡️ **Reorder recommended** — rule: reorder when on-hand stock is at or below the reorder point. Batch size on record: **50** units."
+      }
+     },
+     "thread_id": "adc212b3-a719-483f-9618-117bebd9304a",
+     "persisted": true,
+     "request_id": "c3a9a0961cf64ea582d01bf1de9eb29c",
+     "trace_id": "11ab5dbf0286d1ca6e24c4863bbe9b85"
+    },
+    "response_text": null,
+    "sent_at": "2026-10-10 21:01:14"
+   }
+  ]
+ ]
+}

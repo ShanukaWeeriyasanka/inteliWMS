@@ -1,0 +1,96 @@
+{
+ "key": "RA-37#2",
+ "stack": "after",
+ "runs": [
+  [
+   {
+    "method": "POST",
+    "url": "http://127.0.0.1:8020/auth/login",
+    "account": null,
+    "request_headers": {
+     "Content-Type": "application/json"
+    },
+    "request_json": {
+     "username": "admin_user",
+     "password": "wrong-password"
+    },
+    "status": 401,
+    "reason": "Unauthorized",
+    "ms": 39,
+    "size": 259,
+    "response_json": {
+     "status": "error",
+     "error_code": "UNAUTHORIZED",
+     "message": "Invalid username or password",
+     "audit": {
+      "timestamp": "2026-10-10T15:31:33.957717+00:00",
+      "path": "/auth/login",
+      "request_id": "e5fc487a0ba84f7ca5f4c297ce840b22",
+      "trace_id": "4b53f02efa4a15826f7e24c14bc5cf3c"
+     }
+    },
+    "response_text": null,
+    "sent_at": "2026-10-10 21:01:33"
+   },
+   {
+    "method": "POST",
+    "url": "http://127.0.0.1:8020/auth/login",
+    "account": null,
+    "request_headers": {
+     "Content-Type": "application/json"
+    },
+    "request_json": {
+     "username": "no_such_user",
+     "password": "whatever"
+    },
+    "status": 401,
+    "reason": "Unauthorized",
+    "ms": 33,
+    "size": 259,
+    "response_json": {
+     "status": "error",
+     "error_code": "UNAUTHORIZED",
+     "message": "Invalid username or password",
+     "audit": {
+      "timestamp": "2026-10-10T15:31:33.990595+00:00",
+      "path": "/auth/login",
+      "request_id": "27d81f5cb22b4d299d68df69aec31557",
+      "trace_id": "ad80f71e9acc90c323fde16290c5f32c"
+     }
+    },
+    "response_text": null,
+    "sent_at": "2026-10-10 21:01:33"
+   },
+   {
+    "method": "POST",
+    "url": "http://127.0.0.1:8020/auth/login",
+    "account": null,
+    "request_headers": {
+     "Content-Type": "application/json"
+    },
+    "request_json": {
+     "username": "john_staff",
+     "password": "pass123",
+     "role": "admin"
+    },
+    "status": 401,
+    "reason": "Unauthorized",
+    "ms": 34,
+    "size": 283,
+    "response_json": {
+     "status": "error",
+     "error_code": "UNAUTHORIZED",
+     "message": "User 'john_staff' is not authorized for role 'admin'",
+     "audit": {
+      "timestamp": "2026-10-10T15:31:34.025389+00:00",
+      "path": "/auth/login",
+      "request_id": "0b72da14a6c948338823ab0e2f8a3f37",
+      "trace_id": "ac0d5548dcba21098703474a8cc31478"
+     }
+    },
+    "response_text": null,
+    "sent_at": "2026-10-10 21:01:34"
+   }
+  ]
+ ]
+}

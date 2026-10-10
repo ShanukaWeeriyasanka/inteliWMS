@@ -144,9 +144,10 @@ class CoordinatorMCPClient:
         except Exception as e:
             logger.log_event("KNOWLEDGE_INTEGRATION_ERROR", {"error": str(e)})
 
+        # Honest failure: no answer was produced, so none is implied (no invented manual or procedure)
         return (
-            "Knowledge Agent: Consulted InteliWMS Operational Manual v2.4. "
-            "Standard floor procedures apply. Contact shift supervisor for specialized exception handling.",
+            "⚠️ The Knowledge Agent couldn't answer just now, so I have no procedure to give you. "
+            "Please try again, or check with your shift supervisor.",
             None
         )
 

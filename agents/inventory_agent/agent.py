@@ -17,6 +17,7 @@ tools. Answers are built from successful tool results only: no default SKUs, no
 made-up quantities. When the product is unclear the agent asks which one; when a
 tool fails it says so instead of guessing.
 """
+import re
 import time
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
@@ -37,6 +38,7 @@ from agents.inventory_agent.intents import (
 from agents.inventory_agent.schemas import InventoryQueryRequest, InventoryQueryResponse, StockItemInfo
 from agents.inventory_agent.warehouse_map import get_full_warehouse_layout
 from security.rbac import rbac_manager
+from security.responsible_ai import screen_request
 from utils.async_bridge import run_sync
 from utils.decisions import RULE, LLM, record_decision
 from utils.logger import StructuredLogger
@@ -55,6 +57,8 @@ _PLACE_WORDS = {"rack", "crate", "cold", "freezer", "floor", "shelf", "bin", "zo
 # ("Heavy Duty Pallet Wrap"), so a question also naming other product words is a product question
 _RACK_KIND_WORDS = _PLACE_WORDS | {"pallet", "cabinet", "fridge", "shelve", "shelving", "unit", "grid", "storage"}
 _MAX_TRANSFER_QUANTITY = 100_000
+# A forecast question about sales or money, which the depletion forecast doesn't answer
+_SALES_QUESTION = re.compile(r"\b(sales?|sell|selling|sold|revenue|turnover|income|profit|earnings?)\b", re.I)
 
 
 class _ToolFailed(Exception):
@@ -102,6 +106,8 @@ class _Turn:
         self.ref_source: str = "not_required"
         # After a pick from a clarification: the question the options were offered for
         self.pending_query: Optional[str] = None
+        # A product name search ran and matched nothing (the answer must say so, not just ask again)
+        self.search_missed: bool = False
 
     async def call(self, tool: str, **arguments: Any):
         """Tool call that must succeed (a failure ends the turn with an honest error)."""
@@ -216,6 +222,14 @@ class InventoryAgent:
             return turn.respond(R.FAILURE_TEXT["unauthorized"], source="error", outcome="error",
                                 error_code="FORBIDDEN_ROLE")
 
+        # Responsible AI: requests to write abuse, hide records, pass off recalled stock or choose by a personal
+        # characteristic get the same fixed answer as at the coordinator — never a stock card, never a tool call
+        guard = screen_request(turn.query)
+        if guard is not None:
+            turn.ref_source = "responsible_ai"
+            record_decision("inventory.responsible_ai", guard.rule_id, RULE, guard.rule_id)
+            return turn.respond(guard.reply, source="responsible_ai", outcome="invalid_request", needs_reorder=False)
+
         if (sub in ('stock_check','availability') and not turn.collection_intent and not turn.entities.skus
                 and not turn.entities.product_ids and collection_language_candidate(turn.query)):
             return turn.respond('Which inventory comparison would you like: equal quantities, highest/lowest stock, '
@@ -305,7 +319,8 @@ class InventoryAgent:
                                        allow_short=not meaningful_terms(turn.query))
                 if not fu.any:
                     turn.ref_source = "none"
-                    return turn.respond(R.needs_product(sub), source="database", outcome="needs_product")
+                    text = R.no_product_match() if turn.search_missed else R.needs_product(sub)
+                    return turn.respond(text, source="database", outcome="needs_product")
                 ref = _Ref(skus=fu.skus, product_ids=fu.product_ids, assumed=True)
                 turn.assumed_label = (fu.skus or fu.product_ids)[0]
                 turn.ref_source = "short_follow_up"
@@ -359,6 +374,7 @@ class InventoryAgent:
             return turn.respond(R.clarification(r.data.candidates), source="database",
                                 outcome="clarification_needed", items=r.data.items, pending=pending,
                                 needs_reorder=False)
+        turn.search_missed = True
         return None
 
     # ── Answers ─────────────────────────────────────────────────────────────
@@ -419,7 +435,11 @@ class InventoryAgent:
         stock = await turn.call(C.GET_PRODUCT_STOCK, sku=sku)
         items = [stock.data.item] if stock.data.item else []
         pred = r.data.prediction
-        return turn.respond(R.depletion(r.data), source="reorder_predictor", items=items, skus=[sku],
+        text = R.depletion(r.data)
+        if _SALES_QUESTION.search(turn.query):
+            # Asked for sales or revenue: say this is a different forecast instead of letting it pass for one
+            text = R.SALES_FORECAST_CAVEAT + text
+        return turn.respond(text, source="reorder_predictor", items=items, skus=[sku],
                             prediction_result=pred, needs_reorder=pred.urgency in ("CRITICAL", "HIGH"))
 
     async def _transfer(self, turn: _Turn, sku: str) -> InventoryQueryResponse:

@@ -91,6 +91,8 @@ def product_to_item(p: Product) -> Tuple[StockItemInfo, bool]:
         occupancy_pct=occupancy,
         weight_kg=weight,
         temperature=temperature,
+        # When the record last changed, so answers can say how current the figures are
+        updated_at=p.updated_at.isoformat() if getattr(p, "updated_at", None) else None,
     )
     return item, (d1 or d2 or d3)
 

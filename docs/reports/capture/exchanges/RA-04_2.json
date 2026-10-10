@@ -1,0 +1,86 @@
+{
+ "key": "RA-04#2",
+ "stack": "after",
+ "runs": [
+  [
+   {
+    "method": "POST",
+    "url": "http://127.0.0.1:8020/query",
+    "account": "admin_user",
+    "request_headers": {
+     "Content-Type": "application/json",
+     "Authorization": "Bearer <token hidden>"
+    },
+    "request_json": {
+     "message": "What is the SOP for rooftop drone landings during a thunderstorm?"
+    },
+    "status": 200,
+    "reason": "OK",
+    "ms": 38,
+    "size": 1773,
+    "response_json": {
+     "status": "success",
+     "agent_used": "knowledge_agent",
+     "response": "I couldn't find a documented procedure for that in the SOP library, so I won't guess. Please check with your shift supervisor or safety officer.",
+     "routing": {
+      "target_agent": "knowledge_agent",
+      "intent": "KNOWLEDGE",
+      "domain": "KNOWLEDGE",
+      "confidence": 0.91,
+      "reasoning": "Heuristic match: Warehouse SOP, policy or protocol signal.",
+      "source": "heuristic",
+      "follow_up": false,
+      "rule_id": "knowledge.strong",
+      "decided_by": "rule",
+      "llm_consulted": false,
+      "llm_status": null,
+      "normalized_query": null,
+      "direct_response": null,
+      "decisions": [
+       {
+        "stage": "route",
+        "outcome": "KNOWLEDGE",
+        "decided_by": "rule",
+        "rule_id": "knowledge.strong",
+        "llm_consulted": false,
+        "llm_status": null,
+        "confidence": 0.91
+       }
+      ]
+     },
+     "audit": {
+      "user_id": "usr_admin_003",
+      "timestamp": "2026-10-10T15:31:19.026042+00:00",
+      "routing_confidence": 0.91,
+      "domain": "KNOWLEDGE",
+      "original_query": "What is the SOP for rooftop drone landings during a thunderstorm?",
+      "normalized_query": "What is the SOP for rooftop drone landings during a thunderstorm?",
+      "request_id": "eea2e416dd0d4214ad155392c4414a47",
+      "trace_id": "792f4e0c5cc12a2268cd12b29b06c337"
+     },
+     "knowledge_details": {
+      "agent": "knowledge_agent",
+      "query": "What is the SOP for rooftop drone landings during a thunderstorm?",
+      "response": "I couldn't find a documented procedure for that in the SOP library, so I won't guess. Please check with your shift supervisor or safety officer.",
+      "entities": {
+       "skus": [],
+       "locations": [],
+       "products": [],
+       "quantities": [],
+       "dates": [],
+       "intent_hint": "document_query",
+       "raw_query": "What is the SOP for rooftop drone landings during a thunderstorm?"
+      },
+      "source": "no_match"
+     },
+     "thread_id": "1d3ad610-6fa7-4c40-a1ba-590a22e944d3",
+     "persisted": true,
+     "request_id": "eea2e416dd0d4214ad155392c4414a47",
+     "trace_id": "792f4e0c5cc12a2268cd12b29b06c337"
+    },
+    "response_text": null,
+    "sent_at": "2026-10-10 21:01:19"
+   }
+  ]
+ ]
+}

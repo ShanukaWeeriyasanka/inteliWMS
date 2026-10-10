@@ -1,0 +1,25 @@
+{
+ "key": "S3-COMP#9",
+ "stack": "after",
+ "runs": [
+  [
+   {
+    "method": "GET",
+    "url": "http://127.0.0.1:8020/twin/status",
+    "account": null,
+    "request_headers": {},
+    "request_json": null,
+    "status": 200,
+    "reason": "OK",
+    "ms": 6,
+    "size": 29,
+    "response_json": {
+     "enabled": true,
+     "live": false
+    },
+    "response_text": null,
+    "sent_at": "2026-10-10 21:01:34"
+   }
+  ]
+ ]
+}

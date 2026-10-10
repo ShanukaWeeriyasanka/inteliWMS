@@ -1,0 +1,155 @@
+{
+ "key": "RA-19#2",
+ "stack": "after",
+ "runs": [
+  [
+   {
+    "method": "POST",
+    "url": "http://127.0.0.1:8020/query",
+    "account": "admin_user",
+    "request_headers": {
+     "Content-Type": "application/json",
+     "Authorization": "Bearer <token hidden>"
+    },
+    "request_json": {
+     "message": "you useless stupid bot, where the hell is SKU-4521"
+    },
+    "status": 200,
+    "reason": "OK",
+    "ms": 1144,
+    "size": 3838,
+    "response_json": {
+     "status": "success",
+     "agent_used": "inventory_agent",
+     "response": "📦 **Wireless Barcode Scanner** (`SKU-4521`)\n📍 **Location**: `Location unassigned` (Electronics & Tech)\n📦 **Stock**: **340** units on hand (330 available, 10 reserved)\nProduct ID: `PRD-00013`. Source: **imported**. Quarantined: 0.\n340 units have no verified box assignment.\n🕒 **Record last updated**: 2026-10-09 09:40 UTC\n📦 **OVERSTOCKED**: more than 3× the reorder point of 60.",
+     "routing": {
+      "target_agent": "inventory_agent",
+      "intent": "INVENTORY",
+      "domain": "INVENTORY",
+      "confidence": 0.95,
+      "reasoning": "Heuristic match: Stock quantity, availability or product id.",
+      "source": "heuristic",
+      "follow_up": false,
+      "rule_id": "inventory.strong",
+      "decided_by": "rule",
+      "llm_consulted": false,
+      "llm_status": null,
+      "normalized_query": null,
+      "direct_response": null,
+      "decisions": [
+       {
+        "stage": "route",
+        "outcome": "INVENTORY",
+        "decided_by": "rule",
+        "rule_id": "inventory.strong",
+        "llm_consulted": false,
+        "llm_status": null,
+        "confidence": 0.95
+       },
+       {
+        "stage": "inventory.sub_intent",
+        "outcome": "location_lookup",
+        "decided_by": "rule",
+        "rule_id": "sub_intent.location",
+        "llm_consulted": false,
+        "llm_status": null,
+        "confidence": null
+       },
+       {
+        "stage": "inventory.product_ref",
+        "outcome": "explicit_id",
+        "decided_by": "rule",
+        "rule_id": "product_ref.explicit_id",
+        "llm_consulted": false,
+        "llm_status": null,
+        "confidence": null
+       }
+      ]
+     },
+     "audit": {
+      "user_id": "usr_admin_003",
+      "timestamp": "2026-10-10T15:31:29.597157+00:00",
+      "routing_confidence": 0.95,
+      "domain": "INVENTORY",
+      "original_query": "you useless stupid bot, where the hell is SKU-4521",
+      "normalized_query": "you useless stupid bot, where the hell is SKU-4521",
+      "request_id": "d9f3cdbd044f42d9838c352a59eeca70",
+      "trace_id": "11df2d21ff2f6fb9161d1a6689b0069e"
+     },
+     "inventory_details": {
+      "sub_intent": "location_lookup",
+      "items": [
+       {
+        "product_id": "PRD-00013",
+        "placements": [],
+        "quarantined_quantity": 0,
+        "unplaced_quantity": 340,
+        "updated_at": "2026-10-09T09:40:12.343695+00:00",
+        "data_source": "imported",
+        "sku": "SKU-4521",
+        "name": "Wireless Barcode Scanner",
+        "category": "Electronics & Tech",
+        "location": "Location unassigned",
+        "aisle": null,
+        "shelf": null,
+        "tier": null,
+        "bay": null,
+        "quantity_on_hand": 340,
+        "reserved_quantity": 10,
+        "available_quantity": 330,
+        "safety_stock": 30,
+        "reorder_point": 60,
+        "reorder_quantity": 150,
+        "unit": "units",
+        "status": "OVERSTOCKED",
+        "below_safety_stock": false,
+        "occupancy_pct": null,
+        "weight_kg": 0.45,
+        "temperature": null
+       }
+      ],
+      "needs_reorder": false,
+      "source": "database",
+      "document_result": null,
+      "prediction_result": null,
+      "anomaly_result": null,
+      "transfer_result": null,
+      "equipment_health_result": null,
+      "warehouse_layout": null,
+      "ui_command": {
+       "version": "1.1",
+       "action": "locate_product",
+       "product_ids": [
+        "PRD-00013"
+       ],
+       "answer_text": "📦 **Wireless Barcode Scanner** (`SKU-4521`)\n📍 **Location**: `Location unassigned` (Electronics & Tech)\n📦 **Stock**: **340** units on hand (330 available, 10 reserved)\nProduct ID: `PRD-00013`. Source: **imported**. Quarantined: 0.\n340 units have no verified box assignment.\n🕒 **Record last updated**: 2026-10-09 09:40 UTC\n📦 **OVERSTOCKED**: more than 3× the reorder point of 60."
+      },
+      "ui_command_id": null,
+      "outcome": "answered",
+      "error_code": null,
+      "clarification": null,
+      "execution_time_ms": 1075.08
+     },
+     "ui_command": {
+      "id": null,
+      "session_id": null,
+      "payload": {
+       "version": "1.1",
+       "action": "locate_product",
+       "product_ids": [
+        "PRD-00013"
+       ],
+       "answer_text": "📦 **Wireless Barcode Scanner** (`SKU-4521`)\n📍 **Location**: `Location unassigned` (Electronics & Tech)\n📦 **Stock**: **340** units on hand (330 available, 10 reserved)\nProduct ID: `PRD-00013`. Source: **imported**. Quarantined: 0.\n340 units have no verified box assignment.\n🕒 **Record last updated**: 2026-10-09 09:40 UTC\n📦 **OVERSTOCKED**: more than 3× the reorder point of 60."
+      }
+     },
+     "thread_id": "bfb16f40-39bd-4394-897c-d4c2202ffde2",
+     "persisted": true,
+     "request_id": "d9f3cdbd044f42d9838c352a59eeca70",
+     "trace_id": "11df2d21ff2f6fb9161d1a6689b0069e"
+    },
+    "response_text": null,
+    "sent_at": "2026-10-10 21:01:29"
+   }
+  ]
+ ]
+}

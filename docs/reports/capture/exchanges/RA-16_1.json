@@ -1,0 +1,999 @@
+{
+ "key": "RA-16#1",
+ "stack": "after",
+ "runs": [
+  [
+   {
+    "method": "POST",
+    "url": "http://127.0.0.1:8020/query",
+    "account": "admin_user",
+    "request_headers": {
+     "Content-Type": "application/json",
+     "Authorization": "Bearer <token hidden>"
+    },
+    "request_json": {
+     "message": "What protective equipment do I need when charging forklift batteries?"
+    },
+    "status": 200,
+    "reason": "OK",
+    "ms": 42,
+    "size": 2592,
+    "response_json": {
+     "status": "success",
+     "agent_used": "knowledge_agent",
+     "response": "Heavy Duty Forklift Battery Lithium (SKU-2045) is stored in **Building 5 — Quarantine Yard** at Aisle 4, Bay B-12 / Quarantine compound (Building 5 — Quarantine Yard). Current stock: 42 units (19.0 °C (Hazmat Thermal Guarded)).",
+     "routing": {
+      "target_agent": "knowledge_agent",
+      "intent": "KNOWLEDGE",
+      "domain": "KNOWLEDGE",
+      "confidence": 0.91,
+      "reasoning": "Heuristic match: Warehouse SOP / safety keywords.",
+      "source": "heuristic",
+      "follow_up": false,
+      "rule_id": "knowledge.keywords",
+      "decided_by": "rule",
+      "llm_consulted": false,
+      "llm_status": null,
+      "normalized_query": null,
+      "direct_response": null,
+      "decisions": [
+       {
+        "stage": "route",
+        "outcome": "KNOWLEDGE",
+        "decided_by": "rule",
+        "rule_id": "knowledge.keywords",
+        "llm_consulted": false,
+        "llm_status": null,
+        "confidence": 0.91
+       }
+      ]
+     },
+     "audit": {
+      "user_id": "usr_admin_003",
+      "timestamp": "2026-10-10T15:31:19.549078+00:00",
+      "routing_confidence": 0.91,
+      "domain": "KNOWLEDGE",
+      "original_query": "What protective equipment do I need when charging forklift batteries?",
+      "normalized_query": "What protective equipment do I need when charging forklift batteries?",
+      "request_id": "ccc657250fd64908acf67a0b3403115b",
+      "trace_id": "b27b9ac8b0147ec7ca70571836243968"
+     },
+     "knowledge_details": {
+      "agent": "knowledge_agent",
+      "query": "What protective equipment do I need when charging forklift batteries?",
+      "response": "Heavy Duty Forklift Battery Lithium (SKU-2045) is stored in **Building 5 — Quarantine Yard** at Aisle 4, Bay B-12 / Quarantine compound (Building 5 — Quarantine Yard). Current stock: 42 units (19.0 °C (Hazmat Thermal Guarded)).",
+      "entities": {
+       "skus": [],
+       "locations": [],
+       "products": [],
+       "quantities": [],
+       "dates": [],
+       "intent_hint": "location_query",
+       "raw_query": "What protective equipment do I need when charging forklift batteries?"
+      },
+      "data": {
+       "found": true,
+       "entity_type": "product_sku",
+       "sku": "SKU-2045",
+       "name": "Heavy Duty Forklift Battery Lithium",
+       "building_id": "BLD-05",
+       "building_name": "Building 5 — Quarantine Yard",
+       "location": "Aisle 4, Bay B-12 / Quarantine compound (Building 5 — Quarantine Yard)",
+       "quantity": 42,
+       "category": "Heavy Hazmat / Power",
+       "temperature": "19.0 °C (Hazmat Thermal Guarded)",
+       "formatted_message": "Heavy Duty Forklift Battery Lithium (SKU-2045) is stored in **Building 5 — Quarantine Yard** at Aisle 4, Bay B-12 / Quarantine compound (Building 5 — Quarantine Yard). Current stock: 42 units (19.0 °C (Hazmat Thermal Guarded))."
+      },
+      "source": "database_location"
+     },
+     "thread_id": "d5bf443a-6ec6-4114-af0b-461fb6443749",
+     "persisted": true,
+     "request_id": "ccc657250fd64908acf67a0b3403115b",
+     "trace_id": "b27b9ac8b0147ec7ca70571836243968"
+    },
+    "response_text": null,
+    "sent_at": "2026-10-10 21:01:19"
+   },
+   {
+    "method": "POST",
+    "url": "http://127.0.0.1:8020/query",
+    "account": "admin_user",
+    "request_headers": {
+     "Content-Type": "application/json",
+     "Authorization": "Bearer <token hidden>"
+    },
+    "request_json": {
+     "message": "ෆෝක්ලිෆ්ට් බැටරි චාජ් කරනකොට මට මොන ආරක්ෂක උපකරණ ඕනෙද?"
+    },
+    "status": 200,
+    "reason": "OK",
+    "ms": 1316,
+    "size": 1928,
+    "response_json": {
+     "status": "success",
+     "agent_used": "coordinator",
+     "response": "I'm not sure what you need yet. Is this about:\n• 📦 **stock or a product's location** (e.g. \"how many SKU-4521 are on hand?\")\n• 🚚 **an order** (e.g. \"why is ORD-1001 delayed?\")\n• 📚 **a procedure / SOP** (e.g. \"what is the returns policy?\")",
+     "routing": {
+      "target_agent": "coordinator",
+      "intent": "COORDINATOR",
+      "domain": "COORDINATOR",
+      "confidence": 0.5,
+      "reasoning": "No rule matched and the LLM result was error; asking the user to clarify.",
+      "source": "fallback",
+      "follow_up": false,
+      "rule_id": "clarify.domain",
+      "decided_by": "fallback",
+      "llm_consulted": true,
+      "llm_status": "error",
+      "normalized_query": "ෝ්ි්් ැි ා් ො  ො ්  ෙ?",
+      "direct_response": "I'm not sure what you need yet. Is this about:\n• 📦 **stock or a product's location** (e.g. \"how many SKU-4521 are on hand?\")\n• 🚚 **an order** (e.g. \"why is ORD-1001 delayed?\")\n• 📚 **a procedure / SOP** (e.g. \"what is the returns policy?\")",
+      "decisions": [
+       {
+        "stage": "normalize",
+        "outcome": "accepted",
+        "decided_by": "llm",
+        "rule_id": "normalize.accepted",
+        "llm_consulted": true,
+        "llm_status": null,
+        "confidence": null
+       },
+       {
+        "stage": "route",
+        "outcome": "COORDINATOR",
+        "decided_by": "fallback",
+        "rule_id": "clarify.domain",
+        "llm_consulted": true,
+        "llm_status": "error",
+        "confidence": 0.5
+       },
+       {
+        "stage": "reply",
+        "outcome": "clarify.domain",
+        "decided_by": "rule",
+        "rule_id": "reply.clarify.domain",
+        "llm_consulted": false,
+        "llm_status": null,
+        "confidence": null
+       }
+      ]
+     },
+     "audit": {
+      "user_id": "usr_admin_003",
+      "timestamp": "2026-10-10T15:31:20.867662+00:00",
+      "routing_confidence": 0.5,
+      "domain": "COORDINATOR",
+      "normalized_query": "ෝ්ි්් ැි ා් ො  ො ්  ෙ?",
+      "request_id": "74ca4cb223f14b18888d49515af0bd95",
+      "trace_id": "48b25047e4e16b664a513b64567b42ff"
+     },
+     "thread_id": "be542080-7b3c-4f90-a9e2-aeaafe4ca797",
+     "persisted": true,
+     "request_id": "74ca4cb223f14b18888d49515af0bd95",
+     "trace_id": "48b25047e4e16b664a513b64567b42ff"
+    },
+    "response_text": null,
+    "sent_at": "2026-10-10 21:01:20"
+   },
+   {
+    "method": "POST",
+    "url": "http://127.0.0.1:8020/query",
+    "account": "admin_user",
+    "request_headers": {
+     "Content-Type": "application/json",
+     "Authorization": "Bearer <token hidden>"
+    },
+    "request_json": {
+     "message": "ஃபோர்க்லிஃப்ட் பேட்டரிகளை சார்ஜ் செய்யும்போது எனக்கு என்ன பாதுகாப்பு உபகரணங்கள் தேவை?"
+    },
+    "status": 200,
+    "reason": "OK",
+    "ms": 1442,
+    "size": 2036,
+    "response_json": {
+     "status": "success",
+     "agent_used": "coordinator",
+     "response": "I'm not sure what you need yet. Is this about:\n• 📦 **stock or a product's location** (e.g. \"how many SKU-4521 are on hand?\")\n• 🚚 **an order** (e.g. \"why is ORD-1001 delayed?\")\n• 📚 **a procedure / SOP** (e.g. \"what is the returns policy?\")",
+     "routing": {
+      "target_agent": "coordinator",
+      "intent": "COORDINATOR",
+      "domain": "COORDINATOR",
+      "confidence": 0.5,
+      "reasoning": "No rule matched and the LLM result was error; asking the user to clarify.",
+      "source": "fallback",
+      "follow_up": false,
+      "rule_id": "clarify.domain",
+      "decided_by": "fallback",
+      "llm_consulted": true,
+      "llm_status": "error",
+      "normalized_query": "ோ்்ி்் ே்ிை ா்் ெ்ு்ோு ்ு ் ாுா்ு ்் ேை?",
+      "direct_response": "I'm not sure what you need yet. Is this about:\n• 📦 **stock or a product's location** (e.g. \"how many SKU-4521 are on hand?\")\n• 🚚 **an order** (e.g. \"why is ORD-1001 delayed?\")\n• 📚 **a procedure / SOP** (e.g. \"what is the returns policy?\")",
+      "decisions": [
+       {
+        "stage": "normalize",
+        "outcome": "accepted",
+        "decided_by": "llm",
+        "rule_id": "normalize.accepted",
+        "llm_consulted": true,
+        "llm_status": null,
+        "confidence": null
+       },
+       {
+        "stage": "route",
+        "outcome": "COORDINATOR",
+        "decided_by": "fallback",
+        "rule_id": "clarify.domain",
+        "llm_consulted": true,
+        "llm_status": "error",
+        "confidence": 0.5
+       },
+       {
+        "stage": "reply",
+        "outcome": "clarify.domain",
+        "decided_by": "rule",
+        "rule_id": "reply.clarify.domain",
+        "llm_consulted": false,
+        "llm_status": null,
+        "confidence": null
+       }
+      ]
+     },
+     "audit": {
+      "user_id": "usr_admin_003",
+      "timestamp": "2026-10-10T15:31:22.309622+00:00",
+      "routing_confidence": 0.5,
+      "domain": "COORDINATOR",
+      "normalized_query": "ோ்்ி்் ே்ிை ா்் ெ்ு்ோு ்ு ் ாுா்ு ்் ேை?",
+      "request_id": "11462ea0296d4e4f87060f386655fd66",
+      "trace_id": "2aee2841cfaa5f751b4590b9fb934a68"
+     },
+     "thread_id": "1af4819f-c4b8-4c91-9a56-cd97e1eb360e",
+     "persisted": true,
+     "request_id": "11462ea0296d4e4f87060f386655fd66",
+     "trace_id": "2aee2841cfaa5f751b4590b9fb934a68"
+    },
+    "response_text": null,
+    "sent_at": "2026-10-10 21:01:22"
+   },
+   {
+    "method": "POST",
+    "url": "http://127.0.0.1:8020/query",
+    "account": "admin_user",
+    "request_headers": {
+     "Content-Type": "application/json",
+     "Authorization": "Bearer <token hidden>"
+    },
+    "request_json": {
+     "message": "forklift battery charge karaddi mona safety gear da ona?"
+    },
+    "status": 200,
+    "reason": "OK",
+    "ms": 37,
+    "size": 1732,
+    "response_json": {
+     "status": "success",
+     "agent_used": "knowledge_agent",
+     "response": "I couldn't find a documented procedure for that in the SOP library, so I won't guess. Please check with your shift supervisor or safety officer.",
+     "routing": {
+      "target_agent": "knowledge_agent",
+      "intent": "KNOWLEDGE",
+      "domain": "KNOWLEDGE",
+      "confidence": 0.91,
+      "reasoning": "Heuristic match: Warehouse SOP / safety keywords.",
+      "source": "heuristic",
+      "follow_up": false,
+      "rule_id": "knowledge.keywords",
+      "decided_by": "rule",
+      "llm_consulted": false,
+      "llm_status": null,
+      "normalized_query": null,
+      "direct_response": null,
+      "decisions": [
+       {
+        "stage": "route",
+        "outcome": "KNOWLEDGE",
+        "decided_by": "rule",
+        "rule_id": "knowledge.keywords",
+        "llm_consulted": false,
+        "llm_status": null,
+        "confidence": 0.91
+       }
+      ]
+     },
+     "audit": {
+      "user_id": "usr_admin_003",
+      "timestamp": "2026-10-10T15:31:22.349032+00:00",
+      "routing_confidence": 0.91,
+      "domain": "KNOWLEDGE",
+      "original_query": "forklift battery charge karaddi mona safety gear da ona?",
+      "normalized_query": "forklift battery charge karaddi mona safety gear da ona?",
+      "request_id": "105814bceed84be6a37f35993c2e78ed",
+      "trace_id": "6bccd57decd9580d243ab6f082929ac1"
+     },
+     "knowledge_details": {
+      "agent": "knowledge_agent",
+      "query": "forklift battery charge karaddi mona safety gear da ona?",
+      "response": "I couldn't find a documented procedure for that in the SOP library, so I won't guess. Please check with your shift supervisor or safety officer.",
+      "entities": {
+       "skus": [],
+       "locations": [],
+       "products": [],
+       "quantities": [],
+       "dates": [],
+       "intent_hint": "location_query",
+       "raw_query": "forklift battery charge karaddi mona safety gear da ona?"
+      },
+      "source": "no_match"
+     },
+     "thread_id": "e9a14b9d-5349-4a1e-8fc6-f8a803936cd3",
+     "persisted": true,
+     "request_id": "105814bceed84be6a37f35993c2e78ed",
+     "trace_id": "6bccd57decd9580d243ab6f082929ac1"
+    },
+    "response_text": null,
+    "sent_at": "2026-10-10 21:01:22"
+   }
+  ],
+  [
+   {
+    "method": "POST",
+    "url": "http://127.0.0.1:8020/query",
+    "account": "admin_user",
+    "request_headers": {
+     "Content-Type": "application/json",
+     "Authorization": "Bearer <token hidden>"
+    },
+    "request_json": {
+     "message": "What protective equipment do I need when charging forklift batteries?"
+    },
+    "status": 200,
+    "reason": "OK",
+    "ms": 38,
+    "size": 2592,
+    "response_json": {
+     "status": "success",
+     "agent_used": "knowledge_agent",
+     "response": "Heavy Duty Forklift Battery Lithium (SKU-2045) is stored in **Building 5 — Quarantine Yard** at Aisle 4, Bay B-12 / Quarantine compound (Building 5 — Quarantine Yard). Current stock: 42 units (19.0 °C (Hazmat Thermal Guarded)).",
+     "routing": {
+      "target_agent": "knowledge_agent",
+      "intent": "KNOWLEDGE",
+      "domain": "KNOWLEDGE",
+      "confidence": 0.91,
+      "reasoning": "Heuristic match: Warehouse SOP / safety keywords.",
+      "source": "heuristic",
+      "follow_up": false,
+      "rule_id": "knowledge.keywords",
+      "decided_by": "rule",
+      "llm_consulted": false,
+      "llm_status": null,
+      "normalized_query": null,
+      "direct_response": null,
+      "decisions": [
+       {
+        "stage": "route",
+        "outcome": "KNOWLEDGE",
+        "decided_by": "rule",
+        "rule_id": "knowledge.keywords",
+        "llm_consulted": false,
+        "llm_status": null,
+        "confidence": 0.91
+       }
+      ]
+     },
+     "audit": {
+      "user_id": "usr_admin_003",
+      "timestamp": "2026-10-10T15:31:22.385873+00:00",
+      "routing_confidence": 0.91,
+      "domain": "KNOWLEDGE",
+      "original_query": "What protective equipment do I need when charging forklift batteries?",
+      "normalized_query": "What protective equipment do I need when charging forklift batteries?",
+      "request_id": "4b15c5051ad74dc08083e7b479127065",
+      "trace_id": "42a78342f632b468f513602fa0152e0e"
+     },
+     "knowledge_details": {
+      "agent": "knowledge_agent",
+      "query": "What protective equipment do I need when charging forklift batteries?",
+      "response": "Heavy Duty Forklift Battery Lithium (SKU-2045) is stored in **Building 5 — Quarantine Yard** at Aisle 4, Bay B-12 / Quarantine compound (Building 5 — Quarantine Yard). Current stock: 42 units (19.0 °C (Hazmat Thermal Guarded)).",
+      "entities": {
+       "skus": [],
+       "locations": [],
+       "products": [],
+       "quantities": [],
+       "dates": [],
+       "intent_hint": "location_query",
+       "raw_query": "What protective equipment do I need when charging forklift batteries?"
+      },
+      "data": {
+       "found": true,
+       "entity_type": "product_sku",
+       "sku": "SKU-2045",
+       "name": "Heavy Duty Forklift Battery Lithium",
+       "building_id": "BLD-05",
+       "building_name": "Building 5 — Quarantine Yard",
+       "location": "Aisle 4, Bay B-12 / Quarantine compound (Building 5 — Quarantine Yard)",
+       "quantity": 42,
+       "category": "Heavy Hazmat / Power",
+       "temperature": "19.0 °C (Hazmat Thermal Guarded)",
+       "formatted_message": "Heavy Duty Forklift Battery Lithium (SKU-2045) is stored in **Building 5 — Quarantine Yard** at Aisle 4, Bay B-12 / Quarantine compound (Building 5 — Quarantine Yard). Current stock: 42 units (19.0 °C (Hazmat Thermal Guarded))."
+      },
+      "source": "database_location"
+     },
+     "thread_id": "91783bf8-6669-4ded-8453-d25ff433a71e",
+     "persisted": true,
+     "request_id": "4b15c5051ad74dc08083e7b479127065",
+     "trace_id": "42a78342f632b468f513602fa0152e0e"
+    },
+    "response_text": null,
+    "sent_at": "2026-10-10 21:01:22"
+   },
+   {
+    "method": "POST",
+    "url": "http://127.0.0.1:8020/query",
+    "account": "admin_user",
+    "request_headers": {
+     "Content-Type": "application/json",
+     "Authorization": "Bearer <token hidden>"
+    },
+    "request_json": {
+     "message": "ෆෝක්ලිෆ්ට් බැටරි චාජ් කරනකොට මට මොන ආරක්ෂක උපකරණ ඕනෙද?"
+    },
+    "status": 200,
+    "reason": "OK",
+    "ms": 1476,
+    "size": 1928,
+    "response_json": {
+     "status": "success",
+     "agent_used": "coordinator",
+     "response": "I'm not sure what you need yet. Is this about:\n• 📦 **stock or a product's location** (e.g. \"how many SKU-4521 are on hand?\")\n• 🚚 **an order** (e.g. \"why is ORD-1001 delayed?\")\n• 📚 **a procedure / SOP** (e.g. \"what is the returns policy?\")",
+     "routing": {
+      "target_agent": "coordinator",
+      "intent": "COORDINATOR",
+      "domain": "COORDINATOR",
+      "confidence": 0.5,
+      "reasoning": "No rule matched and the LLM result was error; asking the user to clarify.",
+      "source": "fallback",
+      "follow_up": false,
+      "rule_id": "clarify.domain",
+      "decided_by": "fallback",
+      "llm_consulted": true,
+      "llm_status": "error",
+      "normalized_query": "ෝ්ි්් ැි ා් ො  ො ්  ෙ?",
+      "direct_response": "I'm not sure what you need yet. Is this about:\n• 📦 **stock or a product's location** (e.g. \"how many SKU-4521 are on hand?\")\n• 🚚 **an order** (e.g. \"why is ORD-1001 delayed?\")\n• 📚 **a procedure / SOP** (e.g. \"what is the returns policy?\")",
+      "decisions": [
+       {
+        "stage": "normalize",
+        "outcome": "accepted",
+        "decided_by": "llm",
+        "rule_id": "normalize.accepted",
+        "llm_consulted": true,
+        "llm_status": null,
+        "confidence": null
+       },
+       {
+        "stage": "route",
+        "outcome": "COORDINATOR",
+        "decided_by": "fallback",
+        "rule_id": "clarify.domain",
+        "llm_consulted": true,
+        "llm_status": "error",
+        "confidence": 0.5
+       },
+       {
+        "stage": "reply",
+        "outcome": "clarify.domain",
+        "decided_by": "rule",
+        "rule_id": "reply.clarify.domain",
+        "llm_consulted": false,
+        "llm_status": null,
+        "confidence": null
+       }
+      ]
+     },
+     "audit": {
+      "user_id": "usr_admin_003",
+      "timestamp": "2026-10-10T15:31:23.862937+00:00",
+      "routing_confidence": 0.5,
+      "domain": "COORDINATOR",
+      "normalized_query": "ෝ්ි්් ැි ා් ො  ො ්  ෙ?",
+      "request_id": "09bcc0f1f87e4747b8869b4697d5cfdd",
+      "trace_id": "ca605678e954337ea89ea24d6a58c8df"
+     },
+     "thread_id": "d5745e7f-3abd-4526-9f9f-398c6e0cf33d",
+     "persisted": true,
+     "request_id": "09bcc0f1f87e4747b8869b4697d5cfdd",
+     "trace_id": "ca605678e954337ea89ea24d6a58c8df"
+    },
+    "response_text": null,
+    "sent_at": "2026-10-10 21:01:23"
+   },
+   {
+    "method": "POST",
+    "url": "http://127.0.0.1:8020/query",
+    "account": "admin_user",
+    "request_headers": {
+     "Content-Type": "application/json",
+     "Authorization": "Bearer <token hidden>"
+    },
+    "request_json": {
+     "message": "ஃபோர்க்லிஃப்ட் பேட்டரிகளை சார்ஜ் செய்யும்போது எனக்கு என்ன பாதுகாப்பு உபகரணங்கள் தேவை?"
+    },
+    "status": 200,
+    "reason": "OK",
+    "ms": 1369,
+    "size": 2036,
+    "response_json": {
+     "status": "success",
+     "agent_used": "coordinator",
+     "response": "I'm not sure what you need yet. Is this about:\n• 📦 **stock or a product's location** (e.g. \"how many SKU-4521 are on hand?\")\n• 🚚 **an order** (e.g. \"why is ORD-1001 delayed?\")\n• 📚 **a procedure / SOP** (e.g. \"what is the returns policy?\")",
+     "routing": {
+      "target_agent": "coordinator",
+      "intent": "COORDINATOR",
+      "domain": "COORDINATOR",
+      "confidence": 0.5,
+      "reasoning": "No rule matched and the LLM result was error; asking the user to clarify.",
+      "source": "fallback",
+      "follow_up": false,
+      "rule_id": "clarify.domain",
+      "decided_by": "fallback",
+      "llm_consulted": true,
+      "llm_status": "error",
+      "normalized_query": "ோ்்ி்் ே்ிை ா்் ெ்ு்ோு ்ு ் ாுா்ு ்் ேை?",
+      "direct_response": "I'm not sure what you need yet. Is this about:\n• 📦 **stock or a product's location** (e.g. \"how many SKU-4521 are on hand?\")\n• 🚚 **an order** (e.g. \"why is ORD-1001 delayed?\")\n• 📚 **a procedure / SOP** (e.g. \"what is the returns policy?\")",
+      "decisions": [
+       {
+        "stage": "normalize",
+        "outcome": "accepted",
+        "decided_by": "llm",
+        "rule_id": "normalize.accepted",
+        "llm_consulted": true,
+        "llm_status": null,
+        "confidence": null
+       },
+       {
+        "stage": "route",
+        "outcome": "COORDINATOR",
+        "decided_by": "fallback",
+        "rule_id": "clarify.domain",
+        "llm_consulted": true,
+        "llm_status": "error",
+        "confidence": 0.5
+       },
+       {
+        "stage": "reply",
+        "outcome": "clarify.domain",
+        "decided_by": "rule",
+        "rule_id": "reply.clarify.domain",
+        "llm_consulted": false,
+        "llm_status": null,
+        "confidence": null
+       }
+      ]
+     },
+     "audit": {
+      "user_id": "usr_admin_003",
+      "timestamp": "2026-10-10T15:31:25.233298+00:00",
+      "routing_confidence": 0.5,
+      "domain": "COORDINATOR",
+      "normalized_query": "ோ்்ி்் ே்ிை ா்் ெ்ு்ோு ்ு ் ாுா்ு ்் ேை?",
+      "request_id": "37e43712b9ac4fa0a881ffa9e93e0ac5",
+      "trace_id": "d54fe159217b0b10d207e05b9b6b5940"
+     },
+     "thread_id": "ff1eae1a-4262-4bc3-978e-b24ed66826ac",
+     "persisted": true,
+     "request_id": "37e43712b9ac4fa0a881ffa9e93e0ac5",
+     "trace_id": "d54fe159217b0b10d207e05b9b6b5940"
+    },
+    "response_text": null,
+    "sent_at": "2026-10-10 21:01:25"
+   },
+   {
+    "method": "POST",
+    "url": "http://127.0.0.1:8020/query",
+    "account": "admin_user",
+    "request_headers": {
+     "Content-Type": "application/json",
+     "Authorization": "Bearer <token hidden>"
+    },
+    "request_json": {
+     "message": "forklift battery charge karaddi mona safety gear da ona?"
+    },
+    "status": 200,
+    "reason": "OK",
+    "ms": 32,
+    "size": 1732,
+    "response_json": {
+     "status": "success",
+     "agent_used": "knowledge_agent",
+     "response": "I couldn't find a documented procedure for that in the SOP library, so I won't guess. Please check with your shift supervisor or safety officer.",
+     "routing": {
+      "target_agent": "knowledge_agent",
+      "intent": "KNOWLEDGE",
+      "domain": "KNOWLEDGE",
+      "confidence": 0.91,
+      "reasoning": "Heuristic match: Warehouse SOP / safety keywords.",
+      "source": "heuristic",
+      "follow_up": false,
+      "rule_id": "knowledge.keywords",
+      "decided_by": "rule",
+      "llm_consulted": false,
+      "llm_status": null,
+      "normalized_query": null,
+      "direct_response": null,
+      "decisions": [
+       {
+        "stage": "route",
+        "outcome": "KNOWLEDGE",
+        "decided_by": "rule",
+        "rule_id": "knowledge.keywords",
+        "llm_consulted": false,
+        "llm_status": null,
+        "confidence": 0.91
+       }
+      ]
+     },
+     "audit": {
+      "user_id": "usr_admin_003",
+      "timestamp": "2026-10-10T15:31:25.267920+00:00",
+      "routing_confidence": 0.91,
+      "domain": "KNOWLEDGE",
+      "original_query": "forklift battery charge karaddi mona safety gear da ona?",
+      "normalized_query": "forklift battery charge karaddi mona safety gear da ona?",
+      "request_id": "ccf28ff9e114497e9025575a32d6ece2",
+      "trace_id": "8109fb6999be9546f091247ece49a53f"
+     },
+     "knowledge_details": {
+      "agent": "knowledge_agent",
+      "query": "forklift battery charge karaddi mona safety gear da ona?",
+      "response": "I couldn't find a documented procedure for that in the SOP library, so I won't guess. Please check with your shift supervisor or safety officer.",
+      "entities": {
+       "skus": [],
+       "locations": [],
+       "products": [],
+       "quantities": [],
+       "dates": [],
+       "intent_hint": "location_query",
+       "raw_query": "forklift battery charge karaddi mona safety gear da ona?"
+      },
+      "source": "no_match"
+     },
+     "thread_id": "0f287454-933c-42d5-9b1a-db5c6c0705cd",
+     "persisted": true,
+     "request_id": "ccf28ff9e114497e9025575a32d6ece2",
+     "trace_id": "8109fb6999be9546f091247ece49a53f"
+    },
+    "response_text": null,
+    "sent_at": "2026-10-10 21:01:25"
+   }
+  ],
+  [
+   {
+    "method": "POST",
+    "url": "http://127.0.0.1:8020/query",
+    "account": "admin_user",
+    "request_headers": {
+     "Content-Type": "application/json",
+     "Authorization": "Bearer <token hidden>"
+    },
+    "request_json": {
+     "message": "What protective equipment do I need when charging forklift batteries?"
+    },
+    "status": 200,
+    "reason": "OK",
+    "ms": 36,
+    "size": 2592,
+    "response_json": {
+     "status": "success",
+     "agent_used": "knowledge_agent",
+     "response": "Heavy Duty Forklift Battery Lithium (SKU-2045) is stored in **Building 5 — Quarantine Yard** at Aisle 4, Bay B-12 / Quarantine compound (Building 5 — Quarantine Yard). Current stock: 42 units (19.0 °C (Hazmat Thermal Guarded)).",
+     "routing": {
+      "target_agent": "knowledge_agent",
+      "intent": "KNOWLEDGE",
+      "domain": "KNOWLEDGE",
+      "confidence": 0.91,
+      "reasoning": "Heuristic match: Warehouse SOP / safety keywords.",
+      "source": "heuristic",
+      "follow_up": false,
+      "rule_id": "knowledge.keywords",
+      "decided_by": "rule",
+      "llm_consulted": false,
+      "llm_status": null,
+      "normalized_query": null,
+      "direct_response": null,
+      "decisions": [
+       {
+        "stage": "route",
+        "outcome": "KNOWLEDGE",
+        "decided_by": "rule",
+        "rule_id": "knowledge.keywords",
+        "llm_consulted": false,
+        "llm_status": null,
+        "confidence": 0.91
+       }
+      ]
+     },
+     "audit": {
+      "user_id": "usr_admin_003",
+      "timestamp": "2026-10-10T15:31:25.299385+00:00",
+      "routing_confidence": 0.91,
+      "domain": "KNOWLEDGE",
+      "original_query": "What protective equipment do I need when charging forklift batteries?",
+      "normalized_query": "What protective equipment do I need when charging forklift batteries?",
+      "request_id": "f01eb85e342941fca05aa5b1f999f515",
+      "trace_id": "ccff46767cdc9585de94425c6773ff64"
+     },
+     "knowledge_details": {
+      "agent": "knowledge_agent",
+      "query": "What protective equipment do I need when charging forklift batteries?",
+      "response": "Heavy Duty Forklift Battery Lithium (SKU-2045) is stored in **Building 5 — Quarantine Yard** at Aisle 4, Bay B-12 / Quarantine compound (Building 5 — Quarantine Yard). Current stock: 42 units (19.0 °C (Hazmat Thermal Guarded)).",
+      "entities": {
+       "skus": [],
+       "locations": [],
+       "products": [],
+       "quantities": [],
+       "dates": [],
+       "intent_hint": "location_query",
+       "raw_query": "What protective equipment do I need when charging forklift batteries?"
+      },
+      "data": {
+       "found": true,
+       "entity_type": "product_sku",
+       "sku": "SKU-2045",
+       "name": "Heavy Duty Forklift Battery Lithium",
+       "building_id": "BLD-05",
+       "building_name": "Building 5 — Quarantine Yard",
+       "location": "Aisle 4, Bay B-12 / Quarantine compound (Building 5 — Quarantine Yard)",
+       "quantity": 42,
+       "category": "Heavy Hazmat / Power",
+       "temperature": "19.0 °C (Hazmat Thermal Guarded)",
+       "formatted_message": "Heavy Duty Forklift Battery Lithium (SKU-2045) is stored in **Building 5 — Quarantine Yard** at Aisle 4, Bay B-12 / Quarantine compound (Building 5 — Quarantine Yard). Current stock: 42 units (19.0 °C (Hazmat Thermal Guarded))."
+      },
+      "source": "database_location"
+     },
+     "thread_id": "abe0a07d-92ac-4a2f-8f3b-517ac63d894a",
+     "persisted": true,
+     "request_id": "f01eb85e342941fca05aa5b1f999f515",
+     "trace_id": "ccff46767cdc9585de94425c6773ff64"
+    },
+    "response_text": null,
+    "sent_at": "2026-10-10 21:01:25"
+   },
+   {
+    "method": "POST",
+    "url": "http://127.0.0.1:8020/query",
+    "account": "admin_user",
+    "request_headers": {
+     "Content-Type": "application/json",
+     "Authorization": "Bearer <token hidden>"
+    },
+    "request_json": {
+     "message": "ෆෝක්ලිෆ්ට් බැටරි චාජ් කරනකොට මට මොන ආරක්ෂක උපකරණ ඕනෙද?"
+    },
+    "status": 200,
+    "reason": "OK",
+    "ms": 1437,
+    "size": 1928,
+    "response_json": {
+     "status": "success",
+     "agent_used": "coordinator",
+     "response": "I'm not sure what you need yet. Is this about:\n• 📦 **stock or a product's location** (e.g. \"how many SKU-4521 are on hand?\")\n• 🚚 **an order** (e.g. \"why is ORD-1001 delayed?\")\n• 📚 **a procedure / SOP** (e.g. \"what is the returns policy?\")",
+     "routing": {
+      "target_agent": "coordinator",
+      "intent": "COORDINATOR",
+      "domain": "COORDINATOR",
+      "confidence": 0.5,
+      "reasoning": "No rule matched and the LLM result was error; asking the user to clarify.",
+      "source": "fallback",
+      "follow_up": false,
+      "rule_id": "clarify.domain",
+      "decided_by": "fallback",
+      "llm_consulted": true,
+      "llm_status": "error",
+      "normalized_query": "ෝ්ි්් ැි ා් ො  ො ්  ෙ?",
+      "direct_response": "I'm not sure what you need yet. Is this about:\n• 📦 **stock or a product's location** (e.g. \"how many SKU-4521 are on hand?\")\n• 🚚 **an order** (e.g. \"why is ORD-1001 delayed?\")\n• 📚 **a procedure / SOP** (e.g. \"what is the returns policy?\")",
+      "decisions": [
+       {
+        "stage": "normalize",
+        "outcome": "accepted",
+        "decided_by": "llm",
+        "rule_id": "normalize.accepted",
+        "llm_consulted": true,
+        "llm_status": null,
+        "confidence": null
+       },
+       {
+        "stage": "route",
+        "outcome": "COORDINATOR",
+        "decided_by": "fallback",
+        "rule_id": "clarify.domain",
+        "llm_consulted": true,
+        "llm_status": "error",
+        "confidence": 0.5
+       },
+       {
+        "stage": "reply",
+        "outcome": "clarify.domain",
+        "decided_by": "rule",
+        "rule_id": "reply.clarify.domain",
+        "llm_consulted": false,
+        "llm_status": null,
+        "confidence": null
+       }
+      ]
+     },
+     "audit": {
+      "user_id": "usr_admin_003",
+      "timestamp": "2026-10-10T15:31:26.733265+00:00",
+      "routing_confidence": 0.5,
+      "domain": "COORDINATOR",
+      "normalized_query": "ෝ්ි්් ැි ා් ො  ො ්  ෙ?",
+      "request_id": "a573c7422347474a881653546a378d68",
+      "trace_id": "ebbe84e5f5d3c570200096a3defa9f73"
+     },
+     "thread_id": "e97fe724-e367-40a7-8927-d59c957be8d3",
+     "persisted": true,
+     "request_id": "a573c7422347474a881653546a378d68",
+     "trace_id": "ebbe84e5f5d3c570200096a3defa9f73"
+    },
+    "response_text": null,
+    "sent_at": "2026-10-10 21:01:26"
+   },
+   {
+    "method": "POST",
+    "url": "http://127.0.0.1:8020/query",
+    "account": "admin_user",
+    "request_headers": {
+     "Content-Type": "application/json",
+     "Authorization": "Bearer <token hidden>"
+    },
+    "request_json": {
+     "message": "ஃபோர்க்லிஃப்ட் பேட்டரிகளை சார்ஜ் செய்யும்போது எனக்கு என்ன பாதுகாப்பு உபகரணங்கள் தேவை?"
+    },
+    "status": 200,
+    "reason": "OK",
+    "ms": 1548,
+    "size": 2036,
+    "response_json": {
+     "status": "success",
+     "agent_used": "coordinator",
+     "response": "I'm not sure what you need yet. Is this about:\n• 📦 **stock or a product's location** (e.g. \"how many SKU-4521 are on hand?\")\n• 🚚 **an order** (e.g. \"why is ORD-1001 delayed?\")\n• 📚 **a procedure / SOP** (e.g. \"what is the returns policy?\")",
+     "routing": {
+      "target_agent": "coordinator",
+      "intent": "COORDINATOR",
+      "domain": "COORDINATOR",
+      "confidence": 0.5,
+      "reasoning": "No rule matched and the LLM result was error; asking the user to clarify.",
+      "source": "fallback",
+      "follow_up": false,
+      "rule_id": "clarify.domain",
+      "decided_by": "fallback",
+      "llm_consulted": true,
+      "llm_status": "error",
+      "normalized_query": "ோ்்ி்் ே்ிை ா்் ெ்ு்ோு ்ு ் ாுா்ு ்் ேை?",
+      "direct_response": "I'm not sure what you need yet. Is this about:\n• 📦 **stock or a product's location** (e.g. \"how many SKU-4521 are on hand?\")\n• 🚚 **an order** (e.g. \"why is ORD-1001 delayed?\")\n• 📚 **a procedure / SOP** (e.g. \"what is the returns policy?\")",
+      "decisions": [
+       {
+        "stage": "normalize",
+        "outcome": "accepted",
+        "decided_by": "llm",
+        "rule_id": "normalize.accepted",
+        "llm_consulted": true,
+        "llm_status": null,
+        "confidence": null
+       },
+       {
+        "stage": "route",
+        "outcome": "COORDINATOR",
+        "decided_by": "fallback",
+        "rule_id": "clarify.domain",
+        "llm_consulted": true,
+        "llm_status": "error",
+        "confidence": 0.5
+       },
+       {
+        "stage": "reply",
+        "outcome": "clarify.domain",
+        "decided_by": "rule",
+        "rule_id": "reply.clarify.domain",
+        "llm_consulted": false,
+        "llm_status": null,
+        "confidence": null
+       }
+      ]
+     },
+     "audit": {
+      "user_id": "usr_admin_003",
+      "timestamp": "2026-10-10T15:31:28.282789+00:00",
+      "routing_confidence": 0.5,
+      "domain": "COORDINATOR",
+      "normalized_query": "ோ்்ி்் ே்ிை ா்் ெ்ு்ோு ்ு ் ாுா்ு ்் ேை?",
+      "request_id": "c4c01682966e482596c1a60c969ed38b",
+      "trace_id": "2f9b13a3d6c98cb027e99e64b25a3966"
+     },
+     "thread_id": "35bd6046-a348-4ef6-8049-2418fcf46572",
+     "persisted": true,
+     "request_id": "c4c01682966e482596c1a60c969ed38b",
+     "trace_id": "2f9b13a3d6c98cb027e99e64b25a3966"
+    },
+    "response_text": null,
+    "sent_at": "2026-10-10 21:01:28"
+   },
+   {
+    "method": "POST",
+    "url": "http://127.0.0.1:8020/query",
+    "account": "admin_user",
+    "request_headers": {
+     "Content-Type": "application/json",
+     "Authorization": "Bearer <token hidden>"
+    },
+    "request_json": {
+     "message": "forklift battery charge karaddi mona safety gear da ona?"
+    },
+    "status": 200,
+    "reason": "OK",
+    "ms": 35,
+    "size": 1732,
+    "response_json": {
+     "status": "success",
+     "agent_used": "knowledge_agent",
+     "response": "I couldn't find a documented procedure for that in the SOP library, so I won't guess. Please check with your shift supervisor or safety officer.",
+     "routing": {
+      "target_agent": "knowledge_agent",
+      "intent": "KNOWLEDGE",
+      "domain": "KNOWLEDGE",
+      "confidence": 0.91,
+      "reasoning": "Heuristic match: Warehouse SOP / safety keywords.",
+      "source": "heuristic",
+      "follow_up": false,
+      "rule_id": "knowledge.keywords",
+      "decided_by": "rule",
+      "llm_consulted": false,
+      "llm_status": null,
+      "normalized_query": null,
+      "direct_response": null,
+      "decisions": [
+       {
+        "stage": "route",
+        "outcome": "KNOWLEDGE",
+        "decided_by": "rule",
+        "rule_id": "knowledge.keywords",
+        "llm_consulted": false,
+        "llm_status": null,
+        "confidence": 0.91
+       }
+      ]
+     },
+     "audit": {
+      "user_id": "usr_admin_003",
+      "timestamp": "2026-10-10T15:31:28.321585+00:00",
+      "routing_confidence": 0.91,
+      "domain": "KNOWLEDGE",
+      "original_query": "forklift battery charge karaddi mona safety gear da ona?",
+      "normalized_query": "forklift battery charge karaddi mona safety gear da ona?",
+      "request_id": "5d8bdd3ab0e045cf9790152dd2d5fcd0",
+      "trace_id": "2cd195e5081ad3406658734069bd4b7d"
+     },
+     "knowledge_details": {
+      "agent": "knowledge_agent",
+      "query": "forklift battery charge karaddi mona safety gear da ona?",
+      "response": "I couldn't find a documented procedure for that in the SOP library, so I won't guess. Please check with your shift supervisor or safety officer.",
+      "entities": {
+       "skus": [],
+       "locations": [],
+       "products": [],
+       "quantities": [],
+       "dates": [],
+       "intent_hint": "location_query",
+       "raw_query": "forklift battery charge karaddi mona safety gear da ona?"
+      },
+      "source": "no_match"
+     },
+     "thread_id": "640ff949-3a14-4f3f-840e-106e348d7518",
+     "persisted": true,
+     "request_id": "5d8bdd3ab0e045cf9790152dd2d5fcd0",
+     "trace_id": "2cd195e5081ad3406658734069bd4b7d"
+    },
+    "response_text": null,
+    "sent_at": "2026-10-10 21:01:28"
+   }
+  ]
+ ]
+}

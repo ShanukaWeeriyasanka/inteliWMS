@@ -10,6 +10,14 @@ from utils.logger import StructuredLogger
 logger = StructuredLogger(__name__)
 
 
+def system_config(system: str = ""):
+    """Gemini request config carrying the system instruction separately from the user content."""
+    if not system:
+        return None
+    from google.genai import types
+    return types.GenerateContentConfig(system_instruction=system)
+
+
 class LLMConfig:
     """Centralized Gemini + Groq hybrid LLM provider configuration with key isolation."""
 
@@ -71,16 +79,15 @@ class LLMConfig:
         Returns:
             str: LLM response text, or empty string if both fail.
         """
-        full_prompt = f"{system}\n\n{prompt}".strip() if system else prompt
-
-        # 1. Try Gemini
+        # 1. Try Gemini (instructions as the system instruction, so user text never shares their role)
         if self.gemini_key:
             try:
                 client = self.get_client()
                 if client:
                     response = client.models.generate_content(
                         model=self.GEMINI_MODEL,
-                        contents=full_prompt
+                        contents=prompt,
+                        config=system_config(system),
                     )
                     text = getattr(response, "text", "").strip()
                     if text:

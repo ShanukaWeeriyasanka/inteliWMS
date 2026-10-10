@@ -1,0 +1,115 @@
+{
+ "key": "S1-COMP#6",
+ "stack": "after",
+ "runs": [
+  [
+   {
+    "method": "GET",
+    "url": "http://127.0.0.1:8020/twin/rack-fill?floor_id=WH1-F1",
+    "account": "admin_user",
+    "request_headers": {
+     "Authorization": "Bearer <token hidden>"
+    },
+    "request_json": null,
+    "status": 200,
+    "reason": "OK",
+    "ms": 581,
+    "size": 1531,
+    "response_json": [
+     {
+      "rack_id": "WH1-F1-Z01-R01",
+      "rack_name": "Rack 1",
+      "zone_id": "WH1-F1-Z01",
+      "floor_id": "WH1-F1",
+      "total_units": 0,
+      "distinct_products": 0,
+      "capacity_units": 1200,
+      "fill_ratio": 0.0
+     },
+     {
+      "rack_id": "WH1-F1-Z01-R02",
+      "rack_name": "Rack 2",
+      "zone_id": "WH1-F1-Z01",
+      "floor_id": "WH1-F1",
+      "total_units": 0,
+      "distinct_products": 0,
+      "capacity_units": 1200,
+      "fill_ratio": 0.0
+     },
+     {
+      "rack_id": "WH1-F1-Z01-R03",
+      "rack_name": "Rack 3",
+      "zone_id": "WH1-F1-Z01",
+      "floor_id": "WH1-F1",
+      "total_units": 0,
+      "distinct_products": 0,
+      "capacity_units": 1200,
+      "fill_ratio": 0.0
+     },
+     {
+      "rack_id": "WH1-F1-Z01-R04",
+      "rack_name": "Rack 4",
+      "zone_id": "WH1-F1-Z01",
+      "floor_id": "WH1-F1",
+      "total_units": 0,
+      "distinct_products": 0,
+      "capacity_units": 1200,
+      "fill_ratio": 0.0
+     },
+     {
+      "rack_id": "WH1-F1-Z02-R01",
+      "rack_name": "Crate 1",
+      "zone_id": "WH1-F1-Z02",
+      "floor_id": "WH1-F1",
+      "total_units": 0,
+      "distinct_products": 0,
+      "capacity_units": 480,
+      "fill_ratio": 0.0
+     },
+     {
+      "rack_id": "WH1-F1-Z02-R02",
+      "rack_name": "Crate 2",
+      "zone_id": "WH1-F1-Z02",
+      "floor_id": "WH1-F1",
+      "total_units": 0,
+      "distinct_products": 0,
+      "capacity_units": 480,
+      "fill_ratio": 0.0
+     },
+     {
+      "rack_id": "WH1-F1-Z02-R03",
+      "rack_name": "Crate 3",
+      "zone_id": "WH1-F1-Z02",
+      "floor_id": "WH1-F1",
+      "total_units": 0,
+      "distinct_products": 0,
+      "capacity_units": 480,
+      "fill_ratio": 0.0
+     },
+     {
+      "rack_id": "WH1-F1-Z02-R04",
+      "rack_name": "Crate 4",
+      "zone_id": "WH1-F1-Z02",
+      "floor_id": "WH1-F1",
+      "total_units": 0,
+      "distinct_products": 0,
+      "capacity_units": 480,
+      "fill_ratio": 0.0
+     },
+     {
+      "rack_id": "WH1-F1-Z02-R05",
+      "rack_name": "Crate 5",
+      "zone_id": "WH1-F1-Z02",
+      "floor_id": "WH1-F1",
+      "total_units": 0,
+      "distinct_products": 0,
+      "capacity_units": 480,
+      "fill_ratio": 0.0
+     }
+    ],
+    "response_text": null,
+    "sent_at": "2026-10-10 21:05:23"
+   }
+  ]
+ ]
+}

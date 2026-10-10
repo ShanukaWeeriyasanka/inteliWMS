@@ -6,8 +6,11 @@ from typing import Optional
 from contextlib import asynccontextmanager
 
 import uvicorn
-from fastapi import FastAPI, HTTPException, UploadFile, File, Form
+import hmac
+
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from agents.knowledge_agent.agent import execute_knowledge_query
 from agents.knowledge_agent.location_resolver import resolve_location
@@ -32,6 +35,7 @@ from agents.knowledge_agent.schemas import (
     ComplianceCheckRequest,
     ReturnTriageRequest
 )
+from security.sanitizer import sanitizer
 from utils.logger import StructuredLogger
 
 
@@ -70,6 +74,33 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+if not knowledge_config.SERVICE_API_KEY:
+    logger.log_event("KNOWLEDGE_SERVICE_UNAUTHENTICATED",
+                     {"warning": "KNOWLEDGE_SERVICE_API_KEY is not set; every endpoint is open"}, level="WARNING")
+
+
+@app.middleware("http")
+async def require_service_key(request: Request, call_next):
+    """With KNOWLEDGE_SERVICE_API_KEY set, every endpoint but /health needs a matching X-API-Key header."""
+    expected = knowledge_config.SERVICE_API_KEY
+    if expected and request.method != "OPTIONS" and request.url.path != "/health":
+        supplied = request.headers.get("x-api-key", "")
+        if not hmac.compare_digest(supplied.encode(), expected.encode()):
+            return JSONResponse(status_code=401, content={"detail": "Missing or invalid X-API-Key."})
+    return await call_next(request)
+
+
+def _reject_injected(*texts: Optional[str]) -> None:
+    """
+    Text stored here is later quoted back to users and re-enters LLM prompts through chat history
+    (indirect prompt injection / RAG poisoning): refuse it when it carries instruction-like text.
+    """
+    for text in texts:
+        if text and sanitizer.is_injection_attempt(text)[0]:
+            rule = sanitizer.matched_rule(text)
+            logger.log_event("KNOWLEDGE_WRITE_REJECTED", {"rule": rule}, level="WARNING")
+            raise HTTPException(status_code=400, detail=f"Rejected: the text matched the security filter (rule: {rule}).")
+
 
 
 @app.get("/health", response_model=HealthResponse)
@@ -89,6 +120,7 @@ def process_agent_query(req: KnowledgeQueryRequest):
     Main entry point for Coordinator Agent delegation.
     Resolves location or retrieves SOP policy with extracted entity breakdown.
     """
+    _reject_injected(req.query)
     try:
         result = execute_knowledge_query(
             query=req.query,
@@ -125,6 +157,7 @@ def tool_extract_entities(req: ExtractEntitiesRequest):
 @app.post("/tools/index_document")
 def tool_index_document(req: IndexDocumentRequest):
     """Direct tool endpoint to ingest and index new warehouse documents."""
+    _reject_injected(req.title, req.content)
     try:
         knowledge_store.add_document(
             doc_id=req.doc_id,
@@ -155,6 +188,10 @@ async def tool_upload_sop_file(
     try:
         content_bytes = await file.read()
         content = content_bytes.decode("utf-8")
+    except UnicodeDecodeError:
+        raise HTTPException(status_code=400, detail="SOP files must be UTF-8 text.")
+    _reject_injected(title, content)
+    try:
         knowledge_store.add_document(
             doc_id=doc_id,
             title=title,
@@ -182,6 +219,7 @@ def tool_get_latest_shift_handoff(shift_type: Optional[str] = None):
 @app.post("/tools/shift_handoff/record")
 def tool_record_shift_handoff(req: ShiftHandoffCreate):
     """Record a shift handover note."""
+    _reject_injected(req.supervisor, req.summary, req.incidents, req.pending_tasks)
     res = record_shift_handoff(
         shift_type=req.shift_type,
         supervisor=req.supervisor,

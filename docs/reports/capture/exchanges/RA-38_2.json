@@ -1,0 +1,108 @@
+{
+ "key": "RA-38#2",
+ "stack": "after",
+ "runs": [
+  [
+   {
+    "method": "POST",
+    "url": "http://127.0.0.1:8022/query",
+    "account": null,
+    "request_headers": {
+     "Content-Type": "application/json"
+    },
+    "request_json": {
+     "query": "process returns RMA-1001 unopened SKU-4521",
+     "user_role": "staff"
+    },
+    "status": 200,
+    "reason": "OK",
+    "ms": 16,
+    "size": 1301,
+    "response_json": {
+     "status": "success",
+     "agent": "knowledge_agent",
+     "query": "process returns RMA-1001 unopened SKU-4521",
+     "response": "📦 RETURN TRIAGE: GRADE B (REPACKAGING ROUTE)\n• RMA ID: RMA-1001\n• Product SKU: SKU-4521\n• Rule: SOP-RET-004 (Section 2 - Repackaging Line)\n• Condition: Opened packaging with all internal accessories verified intact.\n• Destination: Repackaging Station 4\n• Action: Route to repackaging for inspection wipe-down and resealing.",
+     "entities": {
+      "skus": [
+       "SKU-4521"
+      ],
+      "locations": [],
+      "products": [],
+      "quantities": [
+       {
+        "value": 1001,
+        "text": "1001"
+       }
+      ],
+      "dates": [],
+      "intent_hint": "location_query",
+      "raw_query": "process returns RMA-1001 unopened SKU-4521"
+     },
+     "data": {
+      "approved_for_intake": true,
+      "grade": "Grade B",
+      "destination": "Repackaging Station 4",
+      "sop_id": "SOP-RET-004",
+      "reasoning": "Opened packaging but functional with complete accessories.",
+      "recommended_action": "Transfer to Repackaging Station 4.",
+      "formatted_message": "📦 RETURN TRIAGE: GRADE B (REPACKAGING ROUTE)\n• RMA ID: RMA-1001\n• Product SKU: SKU-4521\n• Rule: SOP-RET-004 (Section 2 - Repackaging Line)\n• Condition: Opened packaging with all internal accessories verified intact.\n• Destination: Repackaging Station 4\n• Action: Route to repackaging for inspection wipe-down and resealing."
+     },
+     "source": "returns_triage"
+    },
+    "response_text": null,
+    "sent_at": "2026-10-10 21:01:34"
+   },
+   {
+    "method": "POST",
+    "url": "http://127.0.0.1:8022/query",
+    "account": null,
+    "request_headers": {
+     "Content-Type": "application/json"
+    },
+    "request_json": {
+     "query": "process returns RMA-1002 SKU-4521 item not damaged",
+     "user_role": "staff"
+    },
+    "status": 200,
+    "reason": "OK",
+    "ms": 8,
+    "size": 1350,
+    "response_json": {
+     "status": "success",
+     "agent": "knowledge_agent",
+     "query": "process returns RMA-1002 SKU-4521 item not damaged",
+     "response": "📦 RETURN TRIAGE: GRADE C (QUARANTINE)\n• RMA ID: RMA-1002\n• Product SKU: SKU-4521\n• Rule: SOP-RET-004 (Section 3 - Quarantine & Scrap)\n• Condition: Physical or electrical defect detected\n• Destination: Bay 11 (Returns Quarantine Area)\n• Mandatory Action: Affix Yellow Quarantine Tag. Segregate immediately from saleable inventory.",
+     "entities": {
+      "skus": [
+       "SKU-4521"
+      ],
+      "locations": [],
+      "products": [],
+      "quantities": [
+       {
+        "value": 1002,
+        "text": "1002"
+       }
+      ],
+      "dates": [],
+      "intent_hint": "location_query",
+      "raw_query": "process returns RMA-1002 SKU-4521 item not damaged"
+     },
+     "data": {
+      "approved_for_intake": true,
+      "grade": "Grade C (Quarantine)",
+      "destination": "Bay 11 (Returns Quarantine Area)",
+      "sop_id": "SOP-RET-004",
+      "reasoning": "Physical or electrical defect detected",
+      "recommended_action": "Affix Yellow Tag and transfer to Quarantine Bay 11.",
+      "formatted_message": "📦 RETURN TRIAGE: GRADE C (QUARANTINE)\n• RMA ID: RMA-1002\n• Product SKU: SKU-4521\n• Rule: SOP-RET-004 (Section 3 - Quarantine & Scrap)\n• Condition: Physical or electrical defect detected\n• Destination: Bay 11 (Returns Quarantine Area)\n• Mandatory Action: Affix Yellow Quarantine Tag. Segregate immediately from saleable inventory."
+     },
+     "source": "returns_triage"
+    },
+    "response_text": null,
+    "sent_at": "2026-10-10 21:01:34"
+   }
+  ]
+ ]
+}
