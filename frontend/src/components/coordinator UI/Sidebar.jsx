@@ -12,8 +12,12 @@ import {
   Sparkles,
   Crown,
   Compass,
+  TrendingUp,
   X
 } from 'lucide-react'
+
+// DemandIQ sales forecaster (ML-MODEL/app.py) runs as its own service; opened in a new browser tab.
+const SALES_FORECASTER_URL = import.meta.env.VITE_ML_FORECAST_URL || 'http://localhost:8001'
 
 export default function Sidebar({
   isOpen,
@@ -202,6 +206,16 @@ export default function Sidebar({
             {isOpen && <span className="gemini-item-label">Order Fulfillment</span>}
           </button>
         )}
+
+        {/* Sales Forecaster (ML model): opens the standalone DemandIQ app in a separate tab */}
+        <button
+          onClick={() => window.open(SALES_FORECASTER_URL, '_blank', 'noopener,noreferrer')}
+          className={`gemini-nav-item ${isOpen ? 'item-expanded' : 'item-collapsed'}`}
+          title={!isOpen ? 'Sales Forecaster' : 'Open Sales Forecaster in a new tab'}
+        >
+          <TrendingUp size={18} className="gemini-item-icon" />
+          {isOpen && <span className="gemini-item-label">Sales Forecaster</span>}
+        </button>
 
         {/* 4. RECENT SECTION */}
         {isOpen && (

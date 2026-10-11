@@ -50,6 +50,20 @@ If your `.env` was made before they were added, copy those lines over and restar
 
 The ML Model service (**DemandIQ Amazon Product Demand Forecasting**) is an independent, self-contained service featuring a pre-trained XGBoost regression model (31 features) and its own built-in web UI dashboard.
 
+> ⚠️ **The ML model uses its own virtual environment: `ML-MODEL\venv`.** The project's main `venv` does
+> not have `xgboost` etc. Do not install them there: they could upgrade packages the main backend relies on.
+> If you start the ML model with `..\venv\...`, it crashes on startup but keeps port 8001 reserved, so the
+> **Sales Forecaster** sidebar button shows "localhost refused to connect".
+>
+> **One-time setup** (from the repository root):
+> ```powershell
+> cd ML-MODEL
+> python -m venv venv
+> .\venv\Scripts\python.exe -m pip install -r requirements.txt
+> ```
+>
+> **Shortcut (Windows):** double-click `ML-MODEL\start_forecaster.bat`. It does the setup above on first run, then starts the forecaster on port 8001.
+
 ### Option 1: Run ML Model Alongside IntelliWMS (Port 8001 — Recommended)
 When running together with the main IntelliWMS backend (which occupies port 8000), run the ML model on **port 8001**:
 
@@ -57,8 +71,8 @@ When running together with the main IntelliWMS backend (which occupies port 8000
 # 1. Navigate to the ML-MODEL folder from the repository root
 cd ML-MODEL
 
-# 2. Start the Uvicorn server on port 8001
-..\venv\Scripts\python.exe -m uvicorn app:app --reload --port 8001
+# 2. Start the Uvicorn server on port 8001 (uses ML-MODEL\venv, see one-time setup above)
+.\venv\Scripts\python.exe -m uvicorn app:app --reload --port 8001
 ```
 
 ✅ It's working when you see:
@@ -74,7 +88,7 @@ INFO:     Application startup complete.
 #### Run Automated Sanity Test for ML Model:
 In another PowerShell tab (inside `ML-MODEL`):
 ```powershell
-..\venv\Scripts\python.exe test_api.py
+.\venv\Scripts\python.exe test_api.py
 ```
 
 ---
@@ -84,14 +98,14 @@ If you are **not** running the main IntelliWMS backend API simultaneously, you c
 
 ```powershell
 cd ML-MODEL
-..\venv\Scripts\python.exe -m uvicorn app:app --reload --port 8000
+.\venv\Scripts\python.exe -m uvicorn app:app --reload --port 8000
 ```
 
 - 🌐 **Interactive Dashboard UI**: [http://localhost:8000](http://localhost:8000)
 - 📄 **Swagger API Docs**: [http://localhost:8000/docs](http://localhost:8000/docs)
 - 🧪 **Sanity Test**:
 ```powershell
-..\venv\Scripts\python.exe test_api.py http://127.0.0.1:8000
+.\venv\Scripts\python.exe test_api.py http://127.0.0.1:8000
 ```
 
 ---
@@ -159,10 +173,11 @@ npm run dev
 
 ```powershell
 cd ML-MODEL
-..\venv\Scripts\python.exe -m uvicorn app:app --reload --port 8001
+.\venv\Scripts\python.exe -m uvicorn app:app --reload --port 8001
 ```
 
-🌐 Open your browser → **[http://localhost:8001](http://localhost:8001)**
+🌐 Open your browser → **[http://localhost:8001](http://localhost:8001)**, or click **Sales Forecaster** in the IntelliWMS sidebar (opens it in a new tab).
+Needs the one-time `ML-MODEL\venv` setup from the ML Model section above.
 
 ---
 
@@ -251,7 +266,7 @@ To stop Postgres: `docker compose stop postgres`
 | **Terminal 1: Backend API** | Project Root (`inteliWMS\`) | `.\venv\Scripts\python.exe -m uvicorn backend.main:app --reload --port 8000 --timeout-graceful-shutdown 3` | [http://localhost:8000](http://localhost:8000) |
 | **Terminal 2: Knowledge Agent** | Project Root (`inteliWMS\`) | `.\venv\Scripts\python.exe -m uvicorn agents.knowledge_agent.server:app --reload --port 8002` | [http://localhost:8002](http://localhost:8002) |
 | **Terminal 3: Frontend** | `frontend\` | `npm run dev` | [http://localhost:5173](http://localhost:5173) |
-| **Terminal 4: ML Model (DemandIQ)** | `ML-MODEL\` | `..\venv\Scripts\python.exe -m uvicorn app:app --reload --port 8001` | [http://localhost:8001](http://localhost:8001) |
+| **Terminal 4: ML Model (DemandIQ)** | `ML-MODEL\` | `.\venv\Scripts\python.exe -m uvicorn app:app --reload --port 8001` | [http://localhost:8001](http://localhost:8001) |
 | **(optional) Postgres** | Background / Service | Local Windows service or Docker | `localhost:5432` |
 
 > 💡 **Notes:**
